@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediControl · Control de medicamentos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+</style>
+</head>
+<body class="bg-slate-50">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+/* ============================================================
+   MediControl — Control personal de medicamentos
+   Los datos se guardan en ESTE navegador (localStorage).
+   ============================================================ */
+
+const KEY = "medicontrol-data-v1";
+const GAP_MIN = 30; // separación mínima entre tomas de distintos medicamentos
+const FRECUENCIAS = [4, 6, 8, 12, 24];
+
+const PRESENTACIONES = ["Tabletas","Cápsulas","Jarabe / Suspensión","Gotas","Inyectable","Sobres","Crema / Ungüento","Inhalador","Otro"];
+
+const CATEGORIAS = [
+  { id: "analgesico", label: "Analgésico / Dolor", cls: "bg-rose-100 text-rose-700 border-rose-200" },
+  { id: "antibiotico", label: "Antibiótico", cls: "bg-sky-100 text-sky-700 border-sky-200" },
+  { id: "antiinflamatorio", label: "Antiinflamatorio", cls: "bg-orange-100 text-orange-700 border-orange-200" },
+  { id: "gastro", label: "Gastroprotector / Digestivo", cls: "bg-lime-100 text-lime-700 border-lime-200" },
+  { id: "cardio", label: "Cardiovascular / Presión", cls: "bg-red-100 text-red-700 border-red-200" },
+  { id: "diabetes", label: "Diabetes / Glucosa", cls: "bg-violet-100 text-violet-700 border-violet-200" },
+  { id: "alergia", label: "Antihistamínico / Alergia", cls: "bg-teal-100 text-teal-700 border-teal-200" },
+  { id: "respiratorio", label: "Respiratorio", cls: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+  { id: "vitamina", label: "Vitamina / Suplemento", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+  { id: "otro", label: "Otro", cls: "bg-slate-100 text-slate-600 border-slate-200" },
+];
+
+const DIAS_SEM = ["dom","lun","mar","mié","jue","vie","sáb"];
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const MESES_CORTO = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+/* ---------- utilidades ---------- */
+const pad = (n) => String(n).padStart(2, "0");
+const timeToMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const minToTime = (m) => { const mm = ((m % 1440) + 1440) % 1440; return pad(Math.floor(mm / 60)) + ":" + pad(mm % 60); };
+const fmt12 = (t) => {
+  const m = timeToMin(t); let h = Math.floor(m / 60); const mm = m % 60;
+  const suf = h >= 12 ? "p.m." : "a.m."; h = h % 12; if (h === 0) h = 12;
+  return h + ":" + pad(mm) + " " + suf;
+};
+const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+const parseDate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const dateToStr = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const addDays = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return dateToStr(d); };
+const fmtDate = (s) => { const d = parseDate(s); return DIAS_SEM[d.getDay()] + " " + d.getDate() + " " + MESES_CORTO[d.getMonth()]; };
+const fmtDateLong = (s) => { const d = parseDate(s); return d.getDate() + " de " + MESES[d.getMonth()] + " de " + d.getFullYear(); };
+
+const genSerie = (startMin, freq) => {
+  const n = Math.round(24 / freq); const arr = [];
+  for (let i = 0; i < n; i++) arr.push((startMin + i * freq * 60) % 1440);
+  return arr.sort((a, b) => a - b);
+};
+const circDist = (a, b) => { const d = Math.abs(a - b) % 1440; return Math.min(d, 1440 - d); };
+const detectarChoques = (serie, ocupados) => {
+  const out = [];
+  for (const s of serie) for (const o of ocupados) if (circDist(s, o.min) < GAP_MIN) out.push({ hora: minToTime(s), con: o });
+  return out;
+};
+const fechaFin = (med) => addDays(med.startDate, med.durationDays - 1);
+const doseKey = (id, fecha, hora) => id + "|" + fecha + "|" + hora;
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+const diasTratamiento = (med) => { const out = []; for (let i = 0; i < med.durationDays; i++) out.push(addDays(med.startDate, i)); return out; };
+const catInfo = (id) => CATEGORIAS.find((c) => c.id === id) || CATEGORIAS[CATEGORIAS.length - 1];
+
+/* ---------- iconos ---------- */
+const Sv = ({ d, cls, extra }) => (
+  <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {extra}{d && <path d={d} />}
+  </svg>
+);
+const ICircle = ({ cls }) => <Sv cls={cls} extra={<circle cx="12" cy="12" r="10" />} />;
+const ICheckCircle = ({ cls }) => <Sv cls={cls} d="m9 12 2 2 4-4" extra={<circle cx="12" cy="12" r="10" />} />;
+const IChevD = ({ cls }) => <Sv cls={cls} d="m6 9 6 6 6-6" />;
+const IChevR = ({ cls }) => <Sv cls={cls} d="m9 18 6-6-6-6" />;
+const IPlus = ({ cls }) => <Sv cls={cls} d="M12 5v14M5 12h14" />;
+const IClock = ({ cls }) => <Sv cls={cls} d="M12 6v6l4 2" extra={<circle cx="12" cy="12" r="10" />} />;
+const IWarn = ({ cls }) => <Sv cls={cls} d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />;
+const ITrash = ({ cls }) => <Sv cls={cls} d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />;
+const IPill = ({ cls }) => <Sv cls={cls} d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7ZM8.5 8.5l7 7" />;
+const IBox = ({ cls }) => <Sv cls={cls} d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Zm-18-.27 9 5.15 9-5.15M12 22V12" />;
+const ICal = ({ cls }) => <Sv cls={cls} d="M8 2v4m8-4v4M3 10h18" extra={<rect x="3" y="4" width="18" height="18" rx="2" />} />;
+const IList = ({ cls }) => <Sv cls={cls} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />;
+const IChart = ({ cls }) => <Sv cls={cls} d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9m-5 8V5M8 17v-3" />;
+const ISteth = ({ cls }) => <Sv cls={cls} d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6 6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3M8 15v1a6 6 0 0 0 6 6 6 6 0 0 0 6-6v-4" extra={<circle cx="20" cy="10" r="2" />} />;
+const IPause = ({ cls }) => <Sv cls={cls} d="M10 15V9m4 6V9" extra={<circle cx="12" cy="12" r="10" />} />;
+const IRotate = ({ cls }) => <Sv cls={cls} d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0-5v5h5" />;
+const ISun = ({ cls }) => <Sv cls={cls} d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" extra={<circle cx="12" cy="12" r="4" />} />;
+const IMoon = ({ cls }) => <Sv cls={cls} d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />;
+const ICheckCheck = ({ cls }) => <Sv cls={cls} d="M18 6 7 17l-5-5m20-2-7.5 7.5L13 16" />;
+const IBarcode = ({ cls }) => <Sv cls={cls} d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14" />;
+const ICamera = ({ cls }) => <Sv cls={cls} d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" extra={<circle cx="12" cy="13" r="3" />} />;
+const ISearch = ({ cls }) => <Sv cls={cls} d="m21 21-4.3-4.3" extra={<circle cx="11" cy="11" r="8" />} />;
+const IMinus = ({ cls }) => <Sv cls={cls} d="M5 12h14" />;
+const IActivity = ({ cls }) => <Sv cls={cls} d="M22 12h-4l-3 9L9 3l-3 9H2" />;
+const IDrop = ({ cls }) => <Sv cls={cls} d="M12 2.7 6.3 8.4a8 8 0 1 0 11.4 0L12 2.7Z" />;
+const IScale = ({ cls }) => <Sv cls={cls} d="M12 3v3m-6.5 2 2 5a3 3 0 0 1-4 0l2-5Zm13 0 2 5a3 3 0 0 1-4 0l2-5ZM7 21h10M12 6l-6.5 2M12 6l6.5 2M12 6v15" />;
+const ILung = ({ cls }) => <Sv cls={cls} d="M12 4v8m0-4c0 4-2 6-5 8-2 1.3-4 .7-4-2 0-4 2-9 5-9 2 0 3 1 4 3Zm0 0c0 4 2 6 5 8 2 1.3 4 .7 4-2 0-4-2-9-5-9-2 0-3 1-4 3Z" />;
+const IX = ({ cls }) => <Sv cls={cls} d="M18 6 6 18M6 6l12 12" />;
+const IEdit = ({ cls }) => <Sv cls={cls} d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z" />;
+const IUser = ({ cls }) => <Sv cls={cls} d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" extra={<circle cx="12" cy="7" r="4" />} />;
+const IDownload = ({ cls }) => <Sv cls={cls} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />;
+const IUpload = ({ cls }) => <Sv cls={cls} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />;
+
+/* ============================================================ */
+function MediControl() {
+  const [data, setData] = useState({ meds: [], taken: {}, inv: [], vitals: { readings: [], horarios: null }, perfil: {} });
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState("hoy");
+  const [expanded, setExpanded] = useState(null);
+  const [openDay, setOpenDay] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const now = new Date();
+  const hoy = todayStr();
+
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(KEY);
+      if (v) { const p = JSON.parse(v); setData({ meds: p.meds || [], taken: p.taken || {}, inv: p.inv || [], vitals: p.vitals || { readings: [], horarios: null }, perfil: p.perfil || {} }); }
+    } catch (e) { /* sin datos previos */ }
+    setLoaded(true);
+  }, []);
+
+  const persist = (next) => {
+    setData(next);
+    try { localStorage.setItem(KEY, JSON.stringify(next)); }
+    catch (e) { console.error("No se pudo guardar", e); }
+  };
+
+  const avisar = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2200); };
+
+  const toggleToma = (id, fecha, hora) => {
+    const k = doseKey(id, fecha, hora);
+    const taken = { ...data.taken };
+    if (taken[k]) delete taken[k]; else taken[k] = new Date().toISOString();
+    persist({ ...data, taken });
+  };
+
+  const cambiarEstado = (id, status) => {
+    persist({ ...data, meds: data.meds.map((m) => (m.id === id ? { ...m, status } : m)) });
+    avisar(status === "activo" ? "Tratamiento reactivado" : status === "terminado" ? "Tratamiento marcado como terminado" : "Tratamiento suspendido");
+  };
+
+  const eliminarMed = (id) => {
+    const taken = {};
+    for (const k of Object.keys(data.taken)) if (!k.startsWith(id + "|")) taken[k] = data.taken[k];
+    persist({ ...data, meds: data.meds.filter((m) => m.id !== id), taken });
+    setConfirmDel(null);
+    avisar("Medicamento eliminado");
+  };
+
+  const guardarMed = (med) => {
+    const existe = data.meds.some((m) => m.id === med.id);
+    persist({ ...data, meds: existe ? data.meds.map((m) => (m.id === med.id ? med : m)) : [...data.meds, med] });
+    setEditId(null);
+    setTab("meds");
+    setExpanded(med.id);
+    avisar(existe ? "Medicamento actualizado" : "Medicamento agregado al historial");
+  };
+
+  const editarMed = (id) => { setEditId(id); setTab("agregar"); };
+
+  const ocupados = useMemo(() => {
+    const out = [];
+    for (const m of data.meds) {
+      if (m.status !== "activo" || m.id === editId) continue;
+      for (const t of m.times) out.push({ min: timeToMin(t), med: m.name });
+    }
+    return out;
+  }, [data.meds, editId]);
+
+  const tomasHoy = useMemo(() => {
+    const out = [];
+    for (const m of data.meds) {
+      if (m.status !== "activo") continue;
+      if (hoy < m.startDate || hoy > fechaFin(m)) continue;
+      for (const t of m.times) out.push({ med: m, hora: t, done: !!data.taken[doseKey(m.id, hoy, t)] });
+    }
+    return out.sort((a, b) => timeToMin(a.hora) - timeToMin(b.hora));
+  }, [data, hoy]);
+
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  if (!loaded) return (
+    <div className="min-h-screen flex items-center justify-center text-slate-500">
+      <IPill cls="w-6 h-6 mr-2 animate-pulse" /> Cargando tu historial…
+    </div>
+  );
+
+  const activos = data.meds.filter((m) => m.status === "activo");
+  const inactivos = data.meds.filter((m) => m.status !== "activo");
+
+  const tabs = [
+    { id: "hoy", label: "Hoy", Icon: IClock },
+    { id: "meds", label: "Medicamentos", Icon: IList },
+    { id: "agregar", label: "Agregar", Icon: IPlus },
+    { id: "inv", label: "Inventario", Icon: IBox },
+    { id: "salud", label: "Salud", Icon: IActivity },
+    { id: "reporte", label: "Reporte", Icon: IChart },
+  ];
+
+  return (
+    <div className="min-h-screen text-slate-800">
+      <header className="bg-emerald-800 text-white">
+        <div className="max-w-3xl mx-auto px-4 py-5">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-700 rounded-xl p-2"><ISteth cls="w-6 h-6" /></div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">MediControl</h1>
+              <p className="text-emerald-200 text-sm">{data.perfil && data.perfil.nombre ? data.perfil.nombre + " · " : ""}Control personal de medicamentos · {fmtDateLong(hoy)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto px-4 flex gap-1 overflow-x-auto">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={"flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-t-lg whitespace-nowrap transition-colors " +
+                (tab === t.id ? "bg-slate-50 text-emerald-800" : "text-emerald-100 hover:bg-emerald-700")}>
+              <t.Icon cls="w-4 h-4" /> {t.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 py-6 pb-24">
+        {tab === "hoy" && (
+          <div>
+            <ResumenHoy tomas={tomasHoy} />
+            {tomasHoy.length === 0 ? (
+              <VacioCard titulo="Sin tomas programadas para hoy"
+                texto="Agrega un medicamento con su horario y aquí aparecerán las tomas del día para que las confirmes."
+                accion={() => setTab("agregar")} accionLabel="Agregar medicamento" />
+            ) : (
+              <div className="space-y-2 mt-4">
+                {tomasHoy.map((t, i) => {
+                  const tMin = timeToMin(t.hora);
+                  const pasada = tMin < nowMin && !t.done;
+                  const cat = catInfo(t.med.category);
+                  return (
+                    <button key={i} onClick={() => toggleToma(t.med.id, hoy, t.hora)}
+                      className={"w-full flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all " +
+                        (t.done ? "bg-emerald-50 border-emerald-200" : pasada ? "bg-amber-50 border-amber-200" : "bg-white border-slate-200 hover:border-emerald-300")}>
+                      {t.done ? <ICheckCircle cls="w-7 h-7 text-emerald-600 shrink-0" /> : <ICircle cls={"w-7 h-7 shrink-0 " + (pasada ? "text-amber-400" : "text-slate-300")} />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={"font-semibold " + (t.done ? "text-emerald-800" : "")}>{t.med.name}</span>
+                          <span className={"text-xs px-2 py-0.5 rounded-full border " + cat.cls}>{cat.label}</span>
+                        </div>
+                        <div className="text-sm text-slate-500">{t.med.dose} · {t.med.presentation}</div>
+                        {pasada && <div className="text-xs text-amber-700 mt-0.5 flex items-center gap-1"><IWarn cls="w-3 h-3" /> Toma pendiente — la hora ya pasó</div>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className={"font-bold text-lg " + (t.done ? "text-emerald-700" : "text-slate-700")}>{fmt12(t.hora)}</div>
+                        <div className="text-xs text-slate-400">{t.done ? "tomado ✓" : "clic para confirmar"}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "meds" && (
+          <div>
+            {data.meds.length === 0 && (
+              <VacioCard titulo="Aún no tienes medicamentos registrados"
+                texto="Registra lo que te recetó el médico: nombre, dosis, frecuencia y motivo. La herramienta calcula el horario y las cajas necesarias."
+                accion={() => setTab("agregar")} accionLabel="Agregar el primero" />
+            )}
+            {activos.length > 0 && (
+              <section>
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-2">En tratamiento ({activos.length})</h2>
+                <div className="space-y-3">
+                  {activos.map((m) => (
+                    <MedCard key={m.id} med={m} data={data} hoy={hoy} onEditar={editarMed}
+                      expanded={expanded === m.id} onExpand={() => setExpanded(expanded === m.id ? null : m.id)}
+                      openDay={openDay} setOpenDay={setOpenDay} toggleToma={toggleToma} cambiarEstado={cambiarEstado}
+                      confirmDel={confirmDel} setConfirmDel={setConfirmDel} eliminarMed={eliminarMed} />
+                  ))}
+                </div>
+              </section>
+            )}
+            {inactivos.length > 0 && (
+              <section className="mt-6">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-2">Historial · terminados y suspendidos ({inactivos.length})</h2>
+                <div className="space-y-3">
+                  {inactivos.map((m) => (
+                    <MedCard key={m.id} med={m} data={data} hoy={hoy} onEditar={editarMed}
+                      expanded={expanded === m.id} onExpand={() => setExpanded(expanded === m.id ? null : m.id)}
+                      openDay={openDay} setOpenDay={setOpenDay} toggleToma={toggleToma} cambiarEstado={cambiarEstado}
+                      confirmDel={confirmDel} setConfirmDel={setConfirmDel} eliminarMed={eliminarMed} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
+        {tab === "agregar" && <FormAgregar ocupados={ocupados} onGuardar={guardarMed} medEditar={data.meds.find((m) => m.id === editId) || null} onCancelar={() => { setEditId(null); setTab("meds"); }} />}
+        {tab === "inv" && <Inventario data={data} persist={persist} avisar={avisar} />}
+        {tab === "salud" && <Salud data={data} persist={persist} avisar={avisar} hoy={hoy} />}
+        {tab === "reporte" && <Reporte data={data} now={now} />}
+      </main>
+
+      {toast && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+          <ICheckCheck cls="w-4 h-4 text-emerald-400" /> {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResumenHoy({ tomas }) {
+  const total = tomas.length;
+  const hechas = tomas.filter((t) => t.done).length;
+  const pct = total ? Math.round((hechas / total) * 100) : 0;
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-semibold text-slate-700">Avance de hoy</div>
+        <div className="text-sm text-slate-500">{hechas} de {total} tomas · {pct}%</div>
+      </div>
+      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: pct + "%" }} />
+      </div>
+      {total > 0 && hechas === total && (
+        <div className="mt-2 text-sm text-emerald-700 flex items-center gap-1.5"><ICheckCircle cls="w-4 h-4" /> ¡Completaste todas tus tomas de hoy!</div>
+      )}
+    </div>
+  );
+}
+
+function VacioCard({ titulo, texto, accion, accionLabel }) {
+  return (
+    <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center mt-4">
+      <IPill cls="w-10 h-10 text-slate-300 mx-auto mb-3" />
+      <div className="font-semibold text-slate-600">{titulo}</div>
+      <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">{texto}</p>
+      <button onClick={accion} className="mt-4 inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium px-4 py-2 rounded-xl">
+        <IPlus cls="w-4 h-4" /> {accionLabel}
+      </button>
+    </div>
+  );
+}
+
+function MedCard({ med, data, hoy, onEditar, expanded, onExpand, openDay, setOpenDay, toggleToma, cambiarEstado, confirmDel, setConfirmDel, eliminarMed }) {
+  const cat = catInfo(med.category);
+  const fin = fechaFin(med);
+  const dias = diasTratamiento(med);
+  const tomasPorDia = med.times.length;
+  const totalTomas = tomasPorDia * med.durationDays;
+  const totalUnidades = totalTomas * (med.unitsPerDose || 1);
+  const cajas = med.unitsPerBox ? Math.ceil(totalUnidades / med.unitsPerBox) : null;
+  const tomadas = dias.reduce((acc, f) => acc + med.times.filter((t) => data.taken[doseKey(med.id, f, t)]).length, 0);
+  const pct = totalTomas ? Math.round((tomadas / totalTomas) * 100) : 0;
+  const terminadoPorFecha = hoy > fin;
+
+  const estadoBadge = med.status === "activo"
+    ? (terminadoPorFecha
+        ? <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">fechas cumplidas</span>
+        : <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">activo</span>)
+    : med.status === "terminado"
+      ? <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">terminado</span>
+      : <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">suspendido</span>;
+
+  return (
+    <div className={"bg-white rounded-2xl border border-slate-200 " + (med.status === "activo" ? "" : "opacity-80")}>
+      <button onClick={onExpand} className="w-full text-left p-4 flex items-start gap-3">
+        <div className={"rounded-xl p-2 border shrink-0 " + cat.cls}><IPill cls="w-5 h-5" /></div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-slate-800">{med.name}</span>
+            <span className={"text-xs px-2 py-0.5 rounded-full border " + cat.cls}>{cat.label}</span>
+            {estadoBadge}
+          </div>
+          <div className="text-sm text-slate-500 mt-0.5">
+            {med.dose} · {med.presentation} · cada {med.freqHours} h ({tomasPorDia} {tomasPorDia === 1 ? "toma" : "tomas"}/día)
+          </div>
+          {med.purpose && <div className="text-sm text-slate-600 mt-1"><span className="font-medium text-slate-500">Para:</span> {med.purpose}</div>}
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full" style={{ width: pct + "%" }} />
+            </div>
+            <span className="text-xs text-slate-500 shrink-0">{tomadas}/{totalTomas} tomas · {pct}%</span>
+          </div>
+        </div>
+        {expanded ? <IChevD cls="w-5 h-5 text-slate-400 shrink-0 mt-1" /> : <IChevR cls="w-5 h-5 text-slate-400 shrink-0 mt-1" />}
+      </button>
+
+      {expanded && (
+        <div className="border-t border-slate-100 p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Dato Icon={ICal} label="Inicio" valor={fmtDate(med.startDate)} />
+            <Dato Icon={ICal} label="Fin del tratamiento" valor={fmtDate(fin)} />
+            <Dato Icon={IClock} label="Duración" valor={med.durationDays + " días · " + totalTomas + " tomas totales"} />
+            <Dato Icon={IBox} label="Cantidad necesaria"
+              valor={cajas ? cajas + (cajas === 1 ? " caja/frasco" : " cajas/frascos") + " (" + totalUnidades + " unid.)" : totalUnidades + " unidades en total"} />
+          </div>
+
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Horario diario</div>
+            <div className="flex flex-wrap gap-2">
+              {med.times.map((t) => {
+                const m = timeToMin(t);
+                const nocturna = m < 360 || m >= 1290;
+                return (
+                  <span key={t} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium px-3 py-1 rounded-full">
+                    {nocturna ? <IMoon cls="w-3.5 h-3.5" /> : <ISun cls="w-3.5 h-3.5" />} {fmt12(t)}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {med.notes && (
+            <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 text-sm text-sky-900">
+              <div className="font-semibold flex items-center gap-1.5 mb-0.5"><ISteth cls="w-4 h-4" /> Indicaciones del médico</div>
+              {med.notes}
+            </div>
+          )}
+          {med.doctor && <div className="text-xs text-slate-500">Recetado por: {med.doctor}</div>}
+
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Calendario del tratamiento · marca cada toma</div>
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+              {dias.map((f, idx) => {
+                const done = med.times.filter((t) => data.taken[doseKey(med.id, f, t)]).length;
+                const esHoy = f === hoy;
+                const abierto = openDay === med.id + "|" + f;
+                return (
+                  <div key={f} className={esHoy ? "bg-emerald-50" : "bg-white"}>
+                    <button onClick={() => setOpenDay(abierto ? null : med.id + "|" + f)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        {abierto ? <IChevD cls="w-4 h-4 text-slate-400" /> : <IChevR cls="w-4 h-4 text-slate-400" />}
+                        <span className={"font-medium " + (esHoy ? "text-emerald-800" : "text-slate-700")}>
+                          Día {idx + 1} · {fmtDate(f)} {esHoy && "· HOY"}
+                        </span>
+                      </span>
+                      <span className={"text-xs px-2 py-0.5 rounded-full " + (done === med.times.length ? "bg-emerald-100 text-emerald-700" : done > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500")}>
+                        {done}/{med.times.length}
+                      </span>
+                    </button>
+                    {abierto && (
+                      <div className="px-9 pb-2.5 flex flex-wrap gap-2">
+                        {med.times.map((t) => {
+                          const ok = !!data.taken[doseKey(med.id, f, t)];
+                          return (
+                            <button key={t} onClick={() => toggleToma(med.id, f, t)}
+                              className={"inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full border transition-colors " +
+                                (ok ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")}>
+                              {ok ? <ICheckCircle cls="w-4 h-4" /> : <ICircle cls="w-4 h-4" />} {fmt12(t)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <BtnSec onClick={() => onEditar(med.id)} Icon={IEdit}>Editar</BtnSec>
+            {med.status === "activo" ? (
+              <React.Fragment>
+                <BtnSec onClick={() => cambiarEstado(med.id, "terminado")} Icon={ICheckCircle}>Marcar terminado</BtnSec>
+                <BtnSec onClick={() => cambiarEstado(med.id, "suspendido")} Icon={IPause}>Suspender</BtnSec>
+              </React.Fragment>
+            ) : (
+              <BtnSec onClick={() => cambiarEstado(med.id, "activo")} Icon={IRotate}>Volver a activo</BtnSec>
+            )}
+            {confirmDel === med.id ? (
+              <span className="inline-flex items-center gap-2 text-sm">
+                <span className="text-rose-700">¿Eliminar definitivamente?</span>
+                <button onClick={() => eliminarMed(med.id)} className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-medium">Sí, eliminar</button>
+                <button onClick={() => setConfirmDel(null)} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm">Cancelar</button>
+              </span>
+            ) : (
+              <BtnSec onClick={() => setConfirmDel(med.id)} Icon={ITrash} danger>Eliminar</BtnSec>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Dato({ Icon, label, valor }) {
+  return (
+    <div className="bg-slate-50 rounded-xl p-2.5">
+      <div className="text-xs text-slate-500 flex items-center gap-1"><Icon cls="w-3.5 h-3.5" /> {label}</div>
+      <div className="font-semibold text-slate-700 text-sm mt-0.5">{valor}</div>
+    </div>
+  );
+}
+
+function BtnSec({ onClick, Icon, children, danger }) {
+  return (
+    <button onClick={onClick}
+      className={"inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors " +
+        (danger ? "border-rose-200 text-rose-600 hover:bg-rose-50" : "border-slate-300 text-slate-600 hover:bg-slate-50")}>
+      <Icon cls="w-4 h-4" /> {children}
+    </button>
+  );
+}
+
+/* ============================================================ */
+function FormAgregar({ ocupados, onGuardar, medEditar, onCancelar }) {
+  const [f, setF] = useState({
+    name: "", presentation: PRESENTACIONES[0], dose: "", category: "analgesico",
+    purpose: "", notes: "", doctor: "",
+    freqHours: 8, durationDays: 7, startDate: todayStr(),
+    unitsPerDose: 1, unitsPerBox: 10,
+  });
+  const [startTime, setStartTime] = useState(null);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    if (medEditar) {
+      setF({
+        name: medEditar.name, presentation: medEditar.presentation, dose: medEditar.dose,
+        category: medEditar.category, purpose: medEditar.purpose || "", notes: medEditar.notes || "",
+        doctor: medEditar.doctor || "", freqHours: medEditar.freqHours, durationDays: medEditar.durationDays,
+        startDate: medEditar.startDate, unitsPerDose: medEditar.unitsPerDose, unitsPerBox: medEditar.unitsPerBox,
+      });
+      setStartTime(timeToMin(medEditar.times[0]));
+      setErr(null);
+    }
+  }, [medEditar]);
+
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const opciones = useMemo(() => {
+    const out = [];
+    for (let m = 0; m < 1440; m += 30) {
+      const serie = genSerie(m, f.freqHours);
+      const choques = detectarChoques(serie, ocupados);
+      out.push({ min: m, hora: minToTime(m), libre: choques.length === 0, choques });
+    }
+    return out;
+  }, [f.freqHours, ocupados]);
+
+  const serie = startTime !== null ? genSerie(startTime, f.freqHours) : [];
+  const choquesSel = startTime !== null ? detectarChoques(serie, ocupados) : [];
+
+  const tomasDia = Math.round(24 / f.freqHours);
+  const totalTomas = tomasDia * (Number(f.durationDays) || 0);
+  const totalUnid = totalTomas * (Number(f.unitsPerDose) || 1);
+  const cajas = Number(f.unitsPerBox) > 0 ? Math.ceil(totalUnid / Number(f.unitsPerBox)) : null;
+  const fin = f.startDate && f.durationDays ? addDays(f.startDate, Number(f.durationDays) - 1) : null;
+
+  const sugeridas = useMemo(() => {
+    const base = 480;
+    return opciones.filter((o) => o.libre)
+      .slice().sort((a, b) => circDist(a.min, base) - circDist(b.min, base))
+      .slice(0, 4);
+  }, [opciones]);
+
+  const guardar = () => {
+    if (!f.name.trim()) return setErr("Escribe el nombre del medicamento.");
+    if (!f.dose.trim()) return setErr("Escribe la dosis (ej. 500 mg, 1 tableta, 10 ml).");
+    if (!f.durationDays || Number(f.durationDays) < 1) return setErr("Indica cuántos días dura el tratamiento.");
+    if (startTime === null) return setErr("Selecciona la hora de la primera toma para generar el horario.");
+    setErr(null);
+    onGuardar({
+      id: medEditar ? medEditar.id : uid(), name: f.name.trim(), presentation: f.presentation, dose: f.dose.trim(),
+      category: f.category, purpose: f.purpose.trim(), notes: f.notes.trim(), doctor: f.doctor.trim(),
+      freqHours: Number(f.freqHours), durationDays: Number(f.durationDays), startDate: f.startDate,
+      times: serie.map(minToTime), unitsPerDose: Number(f.unitsPerDose) || 1, unitsPerBox: Number(f.unitsPerBox) || 0,
+      status: medEditar ? medEditar.status : "activo", createdAt: medEditar ? medEditar.createdAt : new Date().toISOString(),
+    });
+    setF({ name: "", presentation: PRESENTACIONES[0], dose: "", category: "analgesico", purpose: "", notes: "", doctor: "", freqHours: 8, durationDays: 7, startDate: todayStr(), unitsPerDose: 1, unitsPerBox: 10 });
+    setStartTime(null);
+  };
+
+  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white";
+  const labelCls = "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1";
+
+  return (
+    <div className="space-y-5">
+      {medEditar && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-2">
+          <span className="text-sm text-amber-800 font-semibold flex items-center gap-2"><IEdit cls="w-4 h-4" /> Editando: {medEditar.name}</span>
+          <button onClick={onCancelar} className="text-xs px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100">Cancelar edición</button>
+        </div>
+      )}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2"><ISteth cls="w-5 h-5 text-emerald-700" /> Datos de la receta</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Nombre del medicamento *</label>
+            <input className={inputCls} placeholder="Ej. Paracetamol" value={f.name} onChange={(e) => set("name", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Dosis *</label>
+            <input className={inputCls} placeholder="Ej. 500 mg · 1 tableta · 10 ml" value={f.dose} onChange={(e) => set("dose", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Presentación</label>
+            <select className={inputCls} value={f.presentation} onChange={(e) => set("presentation", e.target.value)}>
+              {PRESENTACIONES.map((p) => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Tipo / función</label>
+            <select className={inputCls} value={f.category} onChange={(e) => set("category", e.target.value)}>
+              {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>¿Para qué te lo recetaron? (motivo)</label>
+          <input className={inputCls} placeholder="Ej. Dolor de cabeza y fiebre por infección de garganta" value={f.purpose} onChange={(e) => set("purpose", e.target.value)} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Indicaciones del médico</label>
+            <textarea className={inputCls} rows={2} placeholder="Ej. Tomar con alimentos, no combinar con alcohol…" value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Médico que lo recetó (opcional)</label>
+            <input className={inputCls} placeholder="Ej. Dra. López — Medicina general" value={f.doctor} onChange={(e) => set("doctor", e.target.value)} />
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2"><IClock cls="w-5 h-5 text-emerald-700" /> Frecuencia y duración</h2>
+        <div>
+          <label className={labelCls}>¿Cada cuántas horas?</label>
+          <div className="flex flex-wrap gap-2">
+            {FRECUENCIAS.map((h) => (
+              <button key={h} onClick={() => { set("freqHours", h); setStartTime(null); }}
+                className={"px-4 py-2 rounded-xl text-sm font-semibold border transition-colors " +
+                  (f.freqHours === h ? "bg-emerald-700 border-emerald-700 text-white" : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")}>
+                cada {h} h
+              </button>
+            ))}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">= {tomasDia} {tomasDia === 1 ? "toma" : "tomas"} al día</div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Días de tratamiento</label>
+            <input type="number" min="1" className={inputCls} value={f.durationDays} onChange={(e) => set("durationDays", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Fecha de inicio</label>
+            <input type="date" className={inputCls} value={f.startDate} onChange={(e) => set("startDate", e.target.value)} />
+          </div>
+        </div>
+        {fin && (
+          <div className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2 flex items-center gap-2">
+            <ICal cls="w-4 h-4 text-emerald-700" />
+            <span>Del <b>{fmtDate(f.startDate)}</b> al <b>{fmtDate(fin)}</b> · {totalTomas} tomas en total</span>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2"><ISun cls="w-5 h-5 text-emerald-700" /> Horario de tomas</h2>
+        <p className="text-sm text-slate-500">Elige la hora de la <b>primera toma</b>. El sistema calcula las demás y detecta si chocan (menos de {GAP_MIN} min) con tus otros medicamentos activos.</p>
+
+        {sugeridas.length > 0 && (
+          <div>
+            <label className={labelCls}>Sugerencias sin choques</label>
+            <div className="flex flex-wrap gap-2">
+              {sugeridas.map((o) => (
+                <button key={o.min} onClick={() => setStartTime(o.min)}
+                  className={"px-3 py-1.5 rounded-full text-sm font-medium border " +
+                    (startTime === o.min ? "bg-emerald-700 border-emerald-700 text-white" : "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100")}>
+                  {fmt12(o.hora)} ✓
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className={labelCls}>Todas las horas (verde = libre · ámbar = choca con otro medicamento)</label>
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5 max-h-48 overflow-y-auto pr-1">
+            {opciones.map((o) => (
+              <button key={o.min} onClick={() => setStartTime(o.min)}
+                title={o.libre ? "Hora libre" : "Choca con: " + [...new Set(o.choques.map((c) => c.con.med))].join(", ")}
+                className={"text-xs px-1 py-1.5 rounded-lg border font-medium transition-colors " +
+                  (startTime === o.min ? "bg-emerald-700 border-emerald-700 text-white" :
+                   o.libre ? "bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50" :
+                   "bg-amber-50 border-amber-200 text-amber-700")}>
+                {fmt12(o.hora)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {startTime !== null && (
+          <div className={"rounded-xl border p-3 " + (choquesSel.length ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200")}>
+            <div className="text-sm font-semibold mb-1.5 flex items-center gap-1.5">
+              {choquesSel.length
+                ? <React.Fragment><IWarn cls="w-4 h-4 text-amber-600" /> <span className="text-amber-800">Horario con choques — considera moverlo 30 min o más</span></React.Fragment>
+                : <React.Fragment><ICheckCircle cls="w-4 h-4 text-emerald-600" /> <span className="text-emerald-800">Horario generado sin choques</span></React.Fragment>}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {serie.map((m) => (
+                <span key={m} className="bg-white border border-slate-200 text-slate-700 text-sm font-semibold px-3 py-1 rounded-full">{fmt12(minToTime(m))}</span>
+              ))}
+            </div>
+            {choquesSel.length > 0 && (
+              <ul className="mt-2 text-xs text-amber-800 space-y-0.5">
+                {choquesSel.map((c, i) => <li key={i}>• {fmt12(c.hora)} queda muy cerca de {c.con.med} ({fmt12(minToTime(c.con.min))})</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2"><IBox cls="w-5 h-5 text-emerald-700" /> ¿Cuánto necesitas comprar?</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Unidades por toma</label>
+            <input type="number" min="1" step="0.5" className={inputCls} value={f.unitsPerDose} onChange={(e) => set("unitsPerDose", e.target.value)} />
+            <div className="text-xs text-slate-400 mt-0.5">Ej. 1 tableta, 2 cápsulas, 10 (ml)</div>
+          </div>
+          <div>
+            <label className={labelCls}>Contenido por caja / frasco</label>
+            <input type="number" min="0" className={inputCls} value={f.unitsPerBox} onChange={(e) => set("unitsPerBox", e.target.value)} />
+            <div className="text-xs text-slate-400 mt-0.5">Ej. caja con 10 tabletas, frasco de 120 ml</div>
+          </div>
+        </div>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5 text-sm text-emerald-900">
+          Necesitas <b>{totalUnid}</b> unidades en total ({totalTomas} tomas × {f.unitsPerDose || 1}).
+          {cajas ? <span> Compra <b>{cajas} {cajas === 1 ? "caja/frasco" : "cajas/frascos"}</b>.</span> : null}
+        </div>
+      </section>
+
+      {err && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2">
+          <IWarn cls="w-4 h-4 shrink-0" /> {err}
+        </div>
+      )}
+
+      <button onClick={guardar} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-base">
+        <IPlus cls="w-5 h-5" /> {medEditar ? "Guardar cambios del medicamento" : "Guardar medicamento en mi historial"}
+      </button>
+    </div>
+  );
+}
+
+/* ============================================================
+   Inventario personal de medicamentos
+   ============================================================ */
+const ENVASES = ["Caja", "Frasco", "Botella", "Blíster", "Tubo", "Sobre", "Otro"];
+const UNIDADES = ["tabletas", "cápsulas", "ml", "g", "piezas", "sobres", "dosis"];
+
+function Inventario({ data, persist, avisar }) {
+  const inv = data.inv || [];
+  const [codigo, setCodigo] = useState("");
+  const [busca, setBusca] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [editKey, setEditKey] = useState(null);
+  const [scanErr, setScanErr] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+
+  const vacio = { code: "", name: "", presentation: "Tabletas", envase: "Caja", contenido: 20, unidad: "tabletas", cantidad: 1, caducidad: "", notas: "", stockMin: 1, imagen: "" };
+  const [f, setF] = useState(vacio);
+  const [err, setErr] = useState(null);
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const guardarInv = (next) => persist({ ...data, inv: next });
+
+  /* captura rápida: si el código existe suma +1; si no, abre el formulario prellenado */
+  const procesarCodigo = (code) => {
+    const c = String(code).trim();
+    if (!c) return;
+    const item = inv.find((i) => i.code === c);
+    if (item) {
+      guardarInv(inv.map((i) => (i.code === c ? { ...i, cantidad: i.cantidad + 1 } : i)));
+      avisar("+1 " + item.envase.toLowerCase() + " de " + item.name + " · total: " + (item.cantidad + 1));
+    } else {
+      setF({ ...vacio, code: c });
+      setFormOpen(true);
+      avisar("Código nuevo — completa los datos para registrarlo");
+    }
+    setCodigo("");
+  };
+
+  /* escaneo con cámara (detector nativo de Chrome/Edge) */
+  const detener = () => {
+    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
+    setScanning(false);
+  };
+
+  const escanear = async () => {
+    setScanErr(null);
+    if (!("BarcodeDetector" in window)) {
+      setScanErr("Tu navegador no soporta escaneo con cámara. Escribe el código o usa un lector USB (teclea el código solo en el campo).");
+      return;
+    }
+    try {
+      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"] });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      setScanning(true);
+      setTimeout(async () => {
+        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+        const loop = async () => {
+          if (!streamRef.current || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes.length) { procesarCodigo(codes[0].rawValue); detener(); return; }
+          } catch (e) { /* siguiente cuadro */ }
+          requestAnimationFrame(loop);
+        };
+        loop();
+      }, 100);
+    } catch (e) {
+      setScanErr("No se pudo acceder a la cámara. Verifica los permisos o escribe el código manualmente.");
+      detener();
+    }
+  };
+
+  useEffect(() => () => detener(), []);
+
+  /* sumar o restar envases */
+  const ajustar = (key, delta) => {
+    const item = inv.find((i) => i.key === key);
+    if (!item) return;
+    const nueva = Math.max(0, item.cantidad + delta);
+    guardarInv(inv.map((i) => (i.key === key ? { ...i, cantidad: nueva } : i)));
+    if (delta < 0) avisar(nueva === 0 ? item.name + " agotado — considera reabastecer" : "Se descontó 1 " + item.envase.toLowerCase() + " de " + item.name);
+  };
+
+  const eliminar = (key) => {
+    guardarInv(inv.filter((i) => i.key !== key));
+    setConfirmDel(null);
+    avisar("Producto eliminado del inventario");
+  };
+
+  const editarItem = (item) => {
+    setF({ code: item.code, name: item.name, presentation: item.presentation, envase: item.envase, contenido: item.contenido, unidad: item.unidad, cantidad: item.cantidad, caducidad: item.caducidad || "", notas: item.notas || "", stockMin: item.stockMin || 1, imagen: item.imagen || "" });
+    setEditKey(item.key);
+    setFormOpen(true);
+    setErr(null);
+  };
+
+  const guardarForm = () => {
+    if (!f.name.trim()) return setErr("Escribe el nombre del medicamento.");
+    if (!f.contenido || Number(f.contenido) <= 0) return setErr("Indica el contenido por envase (ej. 20 tabletas, 120 ml).");
+    const code = f.code.trim() || ("MED-" + Math.random().toString(36).slice(2, 7).toUpperCase());
+    if (inv.some((i) => i.code === code && i.key !== editKey)) return setErr("Ese código/ID ya existe en otro producto. Usa la captura rápida de arriba para sumar unidades.");
+    const base = {
+      code, name: f.name.trim(), presentation: f.presentation, envase: f.envase,
+      contenido: Number(f.contenido), unidad: f.unidad, cantidad: Math.max(0, Number(f.cantidad) || 0),
+      caducidad: f.caducidad, notas: f.notas.trim(), stockMin: Math.max(1, Number(f.stockMin) || 1), imagen: f.imagen || "",
+    };
+    if (editKey) {
+      guardarInv(inv.map((i) => (i.key === editKey ? { ...i, ...base } : i)));
+      avisar("Producto actualizado");
+    } else {
+      guardarInv([...inv, { key: uid(), ...base, createdAt: new Date().toISOString() }]);
+      avisar("Medicamento agregado al inventario");
+    }
+    setF(vacio); setErr(null); setFormOpen(false); setEditKey(null);
+  };
+
+  const estadoCad = (cad) => {
+    if (!cad) return { txt: "sin fecha de caducidad", cls: "bg-slate-100 text-slate-500 border-slate-200", nivel: 0 };
+    const dias = Math.round((parseDate(cad) - parseDate(todayStr())) / 86400000);
+    if (dias < 0) return { txt: "CADUCADO hace " + Math.abs(dias) + " días", cls: "bg-rose-100 text-rose-700 border-rose-200", nivel: 2 };
+    if (dias <= 60) return { txt: "caduca en " + dias + " días (" + fmtDate(cad) + ")", cls: "bg-amber-100 text-amber-700 border-amber-200", nivel: 1 };
+    return { txt: "vigente · caduca " + fmtDate(cad), cls: "bg-emerald-100 text-emerald-700 border-emerald-200", nivel: 0 };
+  };
+
+  /* subir imagen del producto: se comprime a miniatura de 96px para no saturar el almacenamiento */
+  const subirImagen = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const S = 96;
+        const esc = Math.min(S / img.width, S / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * esc));
+        canvas.height = Math.max(1, Math.round(img.height * esc));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        set("imagen", canvas.toDataURL("image/jpeg", 0.72));
+        avisar("Imagen cargada y optimizada");
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  /* estado combinado de un producto para el PDF */
+  const estadoProducto = (i) => {
+    const partes = [];
+    const c = estadoCad(i.caducidad);
+    if (c.nivel === 2) partes.push("CADUCADO");
+    else if (c.nivel === 1) partes.push("Por caducar");
+    if (i.cantidad === 0) partes.push("Agotado");
+    else if (i.cantidad <= (i.stockMin || 1)) partes.push("Stock bajo");
+    return partes.length ? partes.join(" · ") : "OK";
+  };
+
+  /* exportar inventario a PDF ordenado por ID ascendente */
+  const exportarPDF = () => {
+    if (!(window.jspdf && window.jspdf.jsPDF)) { avisar("No se pudo cargar el generador de PDF. Revisa tu conexión a internet y recarga."); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape" });
+    const nombre = (data.perfil && data.perfil.nombre) || "";
+    doc.setFontSize(16);
+    doc.setTextColor(6, 78, 59);
+    doc.text("Inventario de medicamentos", 14, 15);
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text((nombre ? "Paciente: " + nombre + "   ·   " : "") + "Generado: " + fmtDateLong(todayStr()) + "   ·   MediControl", 14, 21);
+    const orden = inv.slice().sort((a, b) => String(a.code).localeCompare(String(b.code), undefined, { numeric: true }));
+    const filas = orden.map((i) => [
+      i.code, i.name, i.presentation, i.envase + " · " + i.contenido + " " + i.unidad,
+      String(i.cantidad), (i.cantidad * i.contenido) + " " + i.unidad,
+      String(i.stockMin || 1), i.caducidad ? fmtDate(i.caducidad) : "—", estadoProducto(i),
+      i.notas || "",
+    ]);
+    doc.autoTable({
+      head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Envases", "Total disponible", "Stock mín.", "Caducidad", "Estado", "Notas"]],
+      body: filas, startY: 26,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [4, 120, 87], fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 250, 248] },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index === 8 && d.cell.raw !== "OK") { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+      },
+    });
+    const yFin = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    doc.text("Resumen: " + inv.length + " productos  ·  " + agotados + " agotados  ·  " + stockBajo.length + " con stock bajo  ·  " + porCaducar + " por caducar  ·  " + caducados + " caducados", 14, yFin);
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text("Documento informativo generado por MediControl. Ordenado por ID/código ascendente.", 14, yFin + 5);
+    doc.save("inventario-medicamentos-" + todayStr() + ".pdf");
+    avisar("PDF del inventario descargado");
+  };
+
+  const filtrados = inv
+    .filter((i) => (i.name + " " + i.code).toLowerCase().includes(busca.toLowerCase()))
+    .slice()
+    .sort((a, b) => ((a.caducidad || "9999-12-31") < (b.caducidad || "9999-12-31") ? -1 : 1));
+
+  const hoy0 = parseDate(todayStr());
+  const caducados = inv.filter((i) => i.caducidad && parseDate(i.caducidad) < hoy0).length;
+  const porCaducar = inv.filter((i) => {
+    if (!i.caducidad) return false;
+    const d = Math.round((parseDate(i.caducidad) - hoy0) / 86400000);
+    return d >= 0 && d <= 60;
+  }).length;
+  const agotados = inv.filter((i) => i.cantidad === 0).length;
+  const stockBajo = inv.filter((i) => i.cantidad > 0 && i.cantidad <= (i.stockMin || 1));
+  const agotadosList = inv.filter((i) => i.cantidad === 0);
+  const topStock = inv.slice().sort((a, b) => b.cantidad - a.cantidad).filter((i) => i.cantidad > 0).slice(0, 3);
+
+  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white";
+  const labelCls = "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1";
+
+  return (
+    <div className="space-y-4">
+      {/* captura rápida */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-bold text-slate-700 flex items-center gap-2"><IBarcode cls="w-5 h-5 text-emerald-700" /> Captura rápida por código</h2>
+          {inv.length > 0 && (
+            <button onClick={exportarPDF} className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl border border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100">
+              <IDownload cls="w-4 h-4" /> Exportar PDF
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <input className={inputCls} placeholder="Escanea o escribe el código de barras / ID y presiona Enter"
+            value={codigo} onChange={(e) => setCodigo(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") procesarCodigo(codigo); }} />
+          <button onClick={() => procesarCodigo(codigo)}
+            className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 rounded-xl flex items-center gap-1.5">
+            <IPlus cls="w-4 h-4" /> +1
+          </button>
+          <button onClick={scanning ? detener : escanear}
+            className={"shrink-0 text-sm font-semibold px-4 rounded-xl flex items-center gap-1.5 border " +
+              (scanning ? "bg-rose-50 border-rose-300 text-rose-700" : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")}>
+            <ICamera cls="w-4 h-4" /> {scanning ? "Detener" : "Cámara"}
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">Si el código ya existe se suma <b>+1 envase</b> automáticamente. Si es nuevo, se abre el formulario con el código prellenado. Compatible con lectores USB de código de barras (escanean directo al campo).</p>
+        {scanning && (
+          <div className="rounded-xl overflow-hidden border border-emerald-300 bg-black">
+            <video ref={videoRef} className="w-full max-h-64 object-cover" muted playsInline />
+            <div className="text-center text-xs text-emerald-200 bg-slate-900 py-1.5">Apunta la cámara al código de barras…</div>
+          </div>
+        )}
+        {scanErr && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl px-3 py-2 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" /> {scanErr}
+          </div>
+        )}
+      </section>
+
+      {/* resumen del botiquín */}
+      {inv.length > 0 && (
+        <div className="grid grid-cols-5 gap-1.5">
+          <Kpi label="Productos" valor={inv.length} />
+          <Kpi label="Stock bajo" valor={stockBajo.length} verde={stockBajo.length === 0} />
+          <Kpi label="Agotados" valor={agotados} verde={agotados === 0} />
+          <Kpi label="Por caducar" valor={porCaducar} verde={porCaducar === 0} />
+          <Kpi label="Caducados" valor={caducados} verde={caducados === 0} />
+        </div>
+      )}
+
+      {/* ficha del botiquín */}
+      {inv.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-emerald-700 mb-1.5 flex items-center gap-1"><IBox cls="w-3.5 h-3.5" /> Con más existencias</div>
+              {topStock.length === 0 ? <div className="text-xs text-slate-400">Sin existencias.</div> : topStock.map((i) => (
+                <div key={i.key} className="text-sm text-slate-700 flex justify-between gap-2 py-0.5">
+                  <span className="truncate">{i.name}</span>
+                  <b className="shrink-0">{i.cantidad} {i.envase.toLowerCase()}{i.cantidad === 1 ? "" : "s"}</b>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1.5 flex items-center gap-1"><IWarn cls="w-3.5 h-3.5" /> Por acabarse</div>
+              {stockBajo.length === 0 ? <div className="text-xs text-slate-400">Ninguno en el límite. Todo en orden.</div> : stockBajo.slice(0, 4).map((i) => (
+                <div key={i.key} className="text-sm text-amber-800 flex justify-between gap-2 py-0.5">
+                  <span className="truncate">{i.name}</span>
+                  <b className="shrink-0">{i.cantidad} / mín {i.stockMin || 1}</b>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-rose-600 mb-1.5 flex items-center gap-1"><IX cls="w-3.5 h-3.5" /> Fuera de límite (agotados)</div>
+              {agotadosList.length === 0 ? <div className="text-xs text-slate-400">Ningún producto agotado.</div> : agotadosList.slice(0, 4).map((i) => (
+                <div key={i.key} className="text-sm text-rose-700 flex justify-between gap-2 py-0.5">
+                  <span className="truncate">{i.name}</span>
+                  <b className="shrink-0">reabastecer</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* registrar producto nuevo */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4">
+        <button onClick={() => setFormOpen(!formOpen)} className="w-full flex items-center justify-between">
+          <span className="font-bold text-slate-700 flex items-center gap-2">{editKey ? <IEdit cls="w-5 h-5 text-amber-600" /> : <IPlus cls="w-5 h-5 text-emerald-700" />} {editKey ? "Editando: " + f.name : "Registrar producto nuevo"}</span>
+          {formOpen ? <IChevD cls="w-5 h-5 text-slate-400" /> : <IChevR cls="w-5 h-5 text-slate-400" />}
+        </button>
+        {formOpen && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Código / ID (código de barras)</label>
+                <input className={inputCls} placeholder="Escanea, escribe o deja vacío para generar uno" value={f.code} onChange={(e) => set("code", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Nombre del medicamento *</label>
+                <input className={inputCls} placeholder="Ej. Paracetamol 500 mg" value={f.name} onChange={(e) => set("name", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Presentación</label>
+                <select className={inputCls} value={f.presentation} onChange={(e) => set("presentation", e.target.value)}>
+                  {PRESENTACIONES.map((p) => <option key={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Tipo de envase</label>
+                <select className={inputCls} value={f.envase} onChange={(e) => set("envase", e.target.value)}>
+                  {ENVASES.map((p) => <option key={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>Contenido *</label>
+                  <input type="number" min="1" className={inputCls} value={f.contenido} onChange={(e) => set("contenido", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>Unidad</label>
+                  <select className={inputCls} value={f.unidad} onChange={(e) => set("unidad", e.target.value)}>
+                    {UNIDADES.map((u) => <option key={u}>{u}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>Envases que tienes</label>
+                  <input type="number" min="0" className={inputCls} value={f.cantidad} onChange={(e) => set("cantidad", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>Fecha de caducidad</label>
+                  <input type="date" className={inputCls} value={f.caducidad} onChange={(e) => set("caducidad", e.target.value)} />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Límite de stock (mínimo deseado)</label>
+                <input type="number" min="1" className={inputCls} value={f.stockMin} onChange={(e) => set("stockMin", e.target.value)} />
+                <div className="text-xs text-slate-400 mt-0.5">Cuando queden esta cantidad de envases o menos, se marcará "por acabarse"</div>
+              </div>
+              <div>
+                <label className={labelCls}>Imagen del producto (opcional)</label>
+                <div className="flex items-center gap-2">
+                  {f.imagen ? (
+                    <img src={f.imagen} alt="producto" className="w-12 h-12 rounded-lg object-cover border border-slate-200" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center"><ICamera cls="w-5 h-5 text-slate-400" /></div>
+                  )}
+                  <label className="cursor-pointer text-sm font-medium px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50">
+                    {f.imagen ? "Cambiar" : "Subir foto"}
+                    <input type="file" accept="image/*" className="hidden" onChange={subirImagen} />
+                  </label>
+                  {f.imagen && <button onClick={() => set("imagen", "")} className="text-xs text-slate-400 hover:text-rose-600">quitar</button>}
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">Se comprime automáticamente a miniatura para identificarlo fácil</div>
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Notas (opcional)</label>
+              <input className={inputCls} placeholder="Ej. Guardado en el botiquín del baño · lote 4521" value={f.notas} onChange={(e) => set("notas", e.target.value)} />
+            </div>
+            <div className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
+              Ejemplos: <b>Caja</b> con 20 <b>tabletas</b> · <b>Frasco</b> con 120 <b>ml</b> · <b>Blíster</b> con 10 <b>cápsulas</b>
+            </div>
+            {err && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2">
+                <IWarn cls="w-4 h-4 shrink-0" /> {err}
+              </div>
+            )}
+            <button onClick={guardarForm} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2">
+              <IPlus cls="w-5 h-5" /> {editKey ? "Guardar cambios" : "Agregar al inventario"}
+            </button>
+            {editKey && (
+              <button onClick={() => { setF(vacio); setEditKey(null); setErr(null); setFormOpen(false); }}
+                className="w-full text-sm text-slate-500 hover:text-slate-700 py-1">Cancelar edición</button>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* buscador y lista */}
+      {inv.length > 0 && (
+        <div className="relative">
+          <ISearch cls="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input className={inputCls + " pl-9"} placeholder="Buscar por nombre o código…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+      )}
+
+      {inv.length === 0 ? (
+        <VacioCard titulo="Tu botiquín está vacío"
+          texto="Registra los medicamentos que tienes en casa: nombre, envase, contenido y caducidad. Después bastará escanear o escribir el código para sumar más."
+          accion={() => setFormOpen(true)} accionLabel="Registrar el primero" />
+      ) : (
+        <div className="space-y-2">
+          {filtrados.map((i) => {
+            const cad = estadoCad(i.caducidad);
+            const total = i.cantidad * i.contenido;
+            return (
+              <div key={i.key} className={"bg-white rounded-2xl border p-4 " + (cad.nivel === 2 ? "border-rose-300" : cad.nivel === 1 ? "border-amber-300" : "border-slate-200")}>
+                <div className="flex items-start gap-3">
+                  {i.imagen ? (
+                    <img src={i.imagen} alt={i.name} className={"w-11 h-11 rounded-xl object-cover border shrink-0 " + (i.cantidad === 0 ? "border-slate-200 opacity-60" : "border-emerald-200")} />
+                  ) : (
+                    <div className={"rounded-xl p-2 border shrink-0 " + (i.cantidad === 0 ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-emerald-50 text-emerald-700 border-emerald-200")}>
+                      <IBox cls="w-5 h-5" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-800">{i.name}</span>
+                      <span className="text-xs font-mono bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full flex items-center gap-1"><IBarcode cls="w-3 h-3" /> {i.code}</span>
+                      {i.cantidad === 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">agotado</span>}
+                      {i.cantidad > 0 && i.cantidad <= (i.stockMin || 1) && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">por acabarse · mín {i.stockMin || 1}</span>}
+                    </div>
+                    <div className="text-sm text-slate-500 mt-0.5">
+                      {i.presentation} · {i.envase} con {i.contenido} {i.unidad} · disponible: <b className="text-slate-700">{total} {i.unidad}</b>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                      <span className={"text-xs px-2 py-0.5 rounded-full border " + cad.cls}>{cad.txt}</span>
+                      {i.notas && <span className="text-xs text-slate-400">{i.notas}</span>}
+                    </div>
+                  </div>
+                  {/* contador de envases */}
+                  <div className="flex flex-col items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => ajustar(i.key, -1)} disabled={i.cantidad === 0}
+                        className={"w-8 h-8 rounded-lg border flex items-center justify-center " + (i.cantidad === 0 ? "border-slate-200 text-slate-300" : "border-slate-300 text-slate-600 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600")}>
+                        <IMinus cls="w-4 h-4" />
+                      </button>
+                      <div className="w-10 text-center">
+                        <div className="text-xl font-extrabold text-slate-800 leading-none">{i.cantidad}</div>
+                        <div className="text-[10px] text-slate-400 leading-tight">{i.envase.toLowerCase()}{i.cantidad === 1 ? "" : "s"}</div>
+                      </div>
+                      <button onClick={() => ajustar(i.key, 1)}
+                        className="w-8 h-8 rounded-lg border border-slate-300 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 flex items-center justify-center">
+                        <IPlus cls="w-4 h-4" />
+                      </button>
+                    </div>
+                    {confirmDel === i.key ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <button onClick={() => eliminar(i.key)} className="text-xs px-2 py-1 rounded-lg bg-rose-600 text-white">Eliminar</button>
+                        <button onClick={() => setConfirmDel(null)} className="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-600">No</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1">
+                        <button onClick={() => editarItem(i)} className="text-xs text-slate-400 hover:text-emerald-700 flex items-center gap-1">
+                          <IEdit cls="w-3 h-3" /> editar
+                        </button>
+                        <button onClick={() => setConfirmDel(i.key)} className="text-xs text-slate-400 hover:text-rose-600 flex items-center gap-1">
+                          <ITrash cls="w-3 h-3" /> quitar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filtrados.length === 0 && (
+            <div className="text-center text-sm text-slate-400 py-6">No se encontró ningún producto con "{busca}".</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   Monitoreo de salud: glucosa, presión, peso, oxigenación
+   ============================================================ */
+const CTX_GLUCOSA = ["En ayunas", "Antes de alimento", "2 h después de alimento", "Antes de dormir"];
+
+const METRICAS = {
+  glucosa: {
+    label: "Glucosa", unidad: "mg/dL", Icon: IDrop, color: "text-rose-600",
+    guia: "Mide en ayunas al despertar (mínimo 8 h sin alimento) y/o exactamente 2 h después del primer bocado de la comida. Lava y seca tus manos antes de la punción. Registrar el contexto (con o sin alimento) es clave: los rangos de referencia son distintos.",
+    horariosDefault: [{ hora: "07:00", ctx: "En ayunas" }, { hora: "16:00", ctx: "2 h después de alimento" }],
+  },
+  presion: {
+    label: "Presión arterial", unidad: "mmHg", Icon: IActivity, color: "text-red-600",
+    guia: "Mide 2 veces al día a la misma hora: en la mañana antes de desayunar y de tomar medicamentos, y en la noche antes de cenar. Siéntate con la espalda apoyada y reposa 5 minutos antes; brazo a la altura del corazón, sin cafeína, ejercicio ni cigarro 30 min antes. Medir siempre a las mismas horas permite detectar patrones reales.",
+    horariosDefault: [{ hora: "07:30", ctx: "Mañana (antes de medicamentos)" }, { hora: "19:30", ctx: "Noche (antes de cenar)" }],
+  },
+  peso: {
+    label: "Peso", unidad: "kg", Icon: IScale, color: "text-indigo-600",
+    guia: "Pésate siempre a la misma hora: en la mañana, en ayunas, después de ir al baño, con ropa ligera y en la misma báscula sobre piso firme. El peso varía hasta 1-2 kg durante el día, por eso la constancia en el horario es lo que revela la tendencia real.",
+    horariosDefault: [{ hora: "07:00", ctx: "En ayunas, después del baño" }],
+  },
+  spo2: {
+    label: "Oxigenación (SpO2)", unidad: "%", Icon: ILung, color: "text-cyan-600",
+    guia: "Mide en reposo, sentado y tras 5 minutos de calma, con la mano tibia y sin esmalte de uñas (dedo índice o medio). Mide mañana y noche a la misma hora para detectar patrones, y adicionalmente si tienes síntomas como fatiga o falta de aire. Espera a que la lectura se estabilice (20-30 segundos).",
+    horariosDefault: [{ hora: "08:00", ctx: "Mañana en reposo" }, { hora: "20:00", ctx: "Noche en reposo" }],
+  },
+};
+
+const clasificar = (tipo, a, b, ctx) => {
+  if (tipo === "glucosa") {
+    const v = Number(a);
+    const post = ctx === "2 h después de alimento";
+    if (v < 70) return { txt: "Baja (hipoglucemia)", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    if (post) {
+      if (v < 140) return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+      if (v < 200) return { txt: "Elevada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+      return { txt: "Alta", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    }
+    if (v < 100) return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+    if (v < 126) return { txt: "Elevada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+    return { txt: "Alta", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+  }
+  if (tipo === "presion") {
+    const s = Number(a), d = Number(b);
+    if (s >= 180 || d >= 120) return { txt: "Crisis — busca atención médica", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    if (s >= 140 || d >= 90) return { txt: "Hipertensión etapa 2", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    if (s >= 130 || d >= 80) return { txt: "Hipertensión etapa 1", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+    if (s >= 120) return { txt: "Elevada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+    if (s < 90 || d < 60) return { txt: "Baja", cls: "bg-sky-100 text-sky-700 border-sky-200" };
+    return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+  }
+  if (tipo === "spo2") {
+    const v = Number(a);
+    if (v < 90) return { txt: "Muy baja — busca atención médica", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    if (v < 95) return { txt: "Baja", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+    return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+  }
+  return null;
+};
+
+function Sparkline({ puntos, puntos2, banda, unidad, fechas }) {
+  if (!puntos || puntos.length < 2) return null;
+  const todos = (puntos2 ? puntos.concat(puntos2) : puntos).concat(banda ? banda : []);
+  const min = Math.min(...todos), max = Math.max(...todos);
+  const rango = max - min || 1;
+  const W = 300, H = 90, P = 8, L = 34;
+  const Y = (v) => H - P - ((v - min) / rango) * (H - 2 * P);
+  const linea = (arr) => arr.map((v, i) => {
+    const x = L + (i * (W - L - P)) / (arr.length - 1);
+    return x.toFixed(1) + "," + Y(v).toFixed(1);
+  }).join(" ");
+  return (
+    <div>
+      <svg viewBox={"0 0 " + W + " " + H} className="w-full h-24">
+        {banda && (
+          <rect x={L} y={Y(Math.min(banda[1], max))} width={W - L - P}
+            height={Math.max(2, Y(Math.max(banda[0], min)) - Y(Math.min(banda[1], max)))}
+            fill="#d1fae5" opacity="0.6" rx="3" />
+        )}
+        <text x={L - 4} y={Y(max) + 4} textAnchor="end" fontSize="9" fill="#94a3b8">{max}</text>
+        <text x={L - 4} y={Y(min) + 4} textAnchor="end" fontSize="9" fill="#94a3b8">{min}</text>
+        {banda && banda[0] > min && <text x={L - 4} y={Y(banda[0]) + 3} textAnchor="end" fontSize="8" fill="#059669">{banda[0]}</text>}
+        {banda && banda[1] < max && <text x={L - 4} y={Y(banda[1]) + 3} textAnchor="end" fontSize="8" fill="#059669">{banda[1]}</text>}
+        {puntos2 && <polyline points={linea(puntos2)} fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 3" strokeLinecap="round" />}
+        <polyline points={linea(puntos)} fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {puntos.map((v, i) => {
+          const x = L + (i * (W - L - P)) / (puntos.length - 1);
+          const fuera = banda && (v < banda[0] || v > banda[1]);
+          return <circle key={i} cx={x} cy={Y(v)} r={i === puntos.length - 1 ? 4 : 2.5} fill={fuera ? "#e11d48" : "#059669"} />;
+        })}
+      </svg>
+      {fechas && fechas.length >= 2 && (
+        <div className="flex justify-between text-[10px] text-slate-400 px-1" style={{ paddingLeft: "34px" }}>
+          <span>{fmtDate(fechas[0])}</span><span>{fmtDate(fechas[fechas.length - 1])}</span>
+        </div>
+      )}
+      {banda && <div className="text-[10px] text-emerald-700 text-center mt-0.5">Zona sombreada = rango de referencia ({banda[0]}–{banda[1]} {unidad}) · puntos rojos = fuera de rango</div>}
+    </div>
+  );
+}
+
+/* IMC (índice de masa corporal) */
+const calcIMC = (pesoKg, estCm) => {
+  if (!pesoKg || !estCm) return null;
+  const m = estCm / 100;
+  return Math.round((pesoKg / (m * m)) * 10) / 10;
+};
+const clasIMC = (pesoKg, estCm) => {
+  const imc = calcIMC(pesoKg, estCm);
+  if (imc === null) return null;
+  if (imc < 18.5) return { imc, txt: "Bajo peso", cls: "bg-sky-100 text-sky-700 border-sky-200", dir: "subir" };
+  if (imc < 25) return { imc, txt: "Peso normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200", dir: null };
+  if (imc < 30) return { imc, txt: "Sobrepeso", cls: "bg-amber-100 text-amber-700 border-amber-200", dir: "bajar" };
+  if (imc < 35) return { imc, txt: "Obesidad grado I", cls: "bg-rose-100 text-rose-700 border-rose-200", dir: "bajar" };
+  if (imc < 40) return { imc, txt: "Obesidad grado II", cls: "bg-rose-100 text-rose-700 border-rose-200", dir: "bajar" };
+  return { imc, txt: "Obesidad grado III", cls: "bg-rose-100 text-rose-700 border-rose-200", dir: "bajar" };
+};
+const rangoPesoSaludable = (estCm) => {
+  if (!estCm) return null;
+  const m = estCm / 100;
+  return [Math.round(18.5 * m * m * 10) / 10, Math.round(24.9 * m * m * 10) / 10];
+};
+const calcEdad = (fechaNac) => {
+  if (!fechaNac) return null;
+  const n = parseDate(fechaNac), h = new Date();
+  let e = h.getFullYear() - n.getFullYear();
+  if (h.getMonth() < n.getMonth() || (h.getMonth() === n.getMonth() && h.getDate() < n.getDate())) e--;
+  return e;
+};
+
+/* ============================================================
+   Perfil del paciente + respaldo de datos
+   ============================================================ */
+function Perfil({ data, persist, avisar }) {
+  const perfil = data.perfil || {};
+  const [open, setOpen] = useState(!perfil.estatura);
+  const [p, setP] = useState({ nombre: perfil.nombre || "", fechaNac: perfil.fechaNac || "", sexo: perfil.sexo || "", estatura: perfil.estatura || "", condiciones: perfil.condiciones || "", alergias: perfil.alergias || "", contacto: perfil.contacto || "" });
+  const set = (k, v) => setP((prev) => ({ ...prev, [k]: v }));
+  const fileRef = React.useRef(null);
+
+  const guardar = () => {
+    persist({ ...data, perfil: { ...p, estatura: p.estatura ? Number(p.estatura) : "" } });
+    avisar("Perfil guardado");
+    setOpen(false);
+  };
+
+  const exportar = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "medicontrol-respaldo-" + todayStr() + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    avisar("Respaldo descargado");
+  };
+
+  const importar = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (!d || typeof d !== "object" || !Array.isArray(d.meds)) throw new Error("formato");
+        persist({ meds: d.meds || [], taken: d.taken || {}, inv: d.inv || [], vitals: d.vitals || { readings: [], horarios: null }, perfil: d.perfil || {} });
+        avisar("Respaldo restaurado correctamente");
+      } catch (err) { avisar("El archivo no es un respaldo válido de MediControl"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const edad = calcEdad(perfil.fechaNac);
+
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200 p-4">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between">
+        <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
+          <IUser cls="w-4 h-4 text-emerald-700" />
+          {perfil.nombre ? perfil.nombre : "Perfil del paciente"}
+          {perfil.estatura && <span className="text-xs font-normal text-slate-400">· {perfil.estatura} cm{edad !== null ? " · " + edad + " años" : ""}{perfil.sexo ? " · " + perfil.sexo : ""}</span>}
+          {!perfil.estatura && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">completa tu estatura para calcular tu IMC</span>}
+        </span>
+        {open ? <IChevD cls="w-4 h-4 text-slate-400" /> : <IChevR cls="w-4 h-4 text-slate-400" />}
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Nombre</label>
+              <input className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="Tu nombre" value={p.nombre} onChange={(e) => set("nombre", e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Fecha de nacimiento</label>
+              <input type="date" className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" value={p.fechaNac} onChange={(e) => set("fechaNac", e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Sexo</label>
+              <select className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" value={p.sexo} onChange={(e) => set("sexo", e.target.value)}>
+                <option value="">—</option><option>Hombre</option><option>Mujer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Estatura (cm) *</label>
+              <input type="number" min="50" max="250" className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="170" value={p.estatura} onChange={(e) => set("estatura", e.target.value)} />
+            </div>
+            <div className="col-span-2 sm:col-span-3">
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Condiciones / diagnósticos (opcional)</label>
+              <input className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="Ej. Hipertensión, diabetes tipo 2…" value={p.condiciones} onChange={(e) => set("condiciones", e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Alergias (opcional)</label>
+              <input className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="Ej. Penicilina" value={p.alergias} onChange={(e) => set("alergias", e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Contacto de emergencia (opcional)</label>
+              <input className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="Nombre y teléfono" value={p.contacto} onChange={(e) => set("contacto", e.target.value)} />
+            </div>
+          </div>
+          <button onClick={guardar} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-2xl">Guardar perfil</button>
+          <div className="flex gap-2 pt-1 border-t border-slate-100">
+            <button onClick={exportar} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 mt-2">
+              <IDownload cls="w-4 h-4" /> Descargar respaldo
+            </button>
+            <button onClick={() => fileRef.current && fileRef.current.click()} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 mt-2">
+              <IUpload cls="w-4 h-4" /> Restaurar respaldo
+            </button>
+            <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={importar} />
+          </div>
+          <p className="text-xs text-slate-400">El respaldo descarga todos tus datos (medicamentos, inventario, mediciones y perfil) en un archivo. Guárdalo para no perder nada si cambias de navegador o computadora.</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Salud({ data, persist, avisar, hoy }) {
+  const vitals = data.vitals || { readings: [], horarios: null };
+  const readings = vitals.readings || [];
+  const horarios = vitals.horarios || {
+    glucosa: METRICAS.glucosa.horariosDefault,
+    presion: METRICAS.presion.horariosDefault,
+    peso: METRICAS.peso.horariosDefault,
+    spo2: METRICAS.spo2.horariosDefault,
+  };
+
+  const [tipo, setTipo] = useState("glucosa");
+  const [guiaOpen, setGuiaOpen] = useState(false);
+  const [horarioOpen, setHorarioOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [editRead, setEditRead] = useState(null);
+  const [err, setErr] = useState(null);
+  const estatura = (data.perfil && Number(data.perfil.estatura)) || null;
+  const ahora = new Date();
+  const horaActual = pad(ahora.getHours()) + ":" + pad(ahora.getMinutes());
+  const [f, setF] = useState({ a: "", b: "", pulso: "", ctx: CTX_GLUCOSA[0], fecha: hoy, hora: horaActual, notas: "" });
+  const [nuevaHora, setNuevaHora] = useState("08:00");
+  const [nuevoCtx, setNuevoCtx] = useState(CTX_GLUCOSA[0]);
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const M = METRICAS[tipo];
+
+  const guardarVitals = (next) => persist({ ...data, vitals: next });
+
+  const cambiarTipo = (t) => {
+    setTipo(t);
+    setErr(null);
+    setEditRead(null);
+    setF({ a: "", b: "", pulso: "", ctx: t === "glucosa" ? CTX_GLUCOSA[0] : (horarios[t][0] ? horarios[t][0].ctx : ""), fecha: hoy, hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()), notas: "" });
+  };
+
+  const editarLectura = (r) => {
+    setTipo(r.tipo);
+    setEditRead(r.id);
+    setErr(null);
+    setF({ a: r.a, b: r.b || "", pulso: r.pulso || "", ctx: r.ctx || (r.tipo === "glucosa" ? CTX_GLUCOSA[0] : ""), fecha: r.fecha, hora: r.hora, notas: r.notas || "" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const registrar = () => {
+    if (!f.a || Number(f.a) <= 0) return setErr(tipo === "presion" ? "Escribe la presión sistólica (número de arriba)." : "Escribe el valor de la medición.");
+    if (tipo === "presion" && (!f.b || Number(f.b) <= 0)) return setErr("Escribe la presión diastólica (número de abajo).");
+    setErr(null);
+    const r = {
+      id: editRead || uid(), tipo, fecha: f.fecha, hora: f.hora,
+      a: Number(f.a), b: tipo === "presion" ? Number(f.b) : null,
+      pulso: tipo === "presion" && f.pulso ? Number(f.pulso) : null,
+      ctx: f.ctx || "", notas: f.notas.trim(), ts: new Date().toISOString(),
+    };
+    const nuevas = editRead ? readings.map((x) => (x.id === editRead ? r : x)) : [...readings, r];
+    guardarVitals({ ...vitals, readings: nuevas, horarios });
+    const c = tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(tipo, r.a, r.b, r.ctx);
+    avisar((editRead ? "Medición corregida" : "Medición registrada") + (c ? " · " + c.txt : ""));
+    setEditRead(null);
+    setF({ ...f, a: "", b: "", pulso: "", notas: "", hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()) });
+  };
+
+  const eliminarLectura = (id) => {
+    guardarVitals({ ...vitals, readings: readings.filter((r) => r.id !== id), horarios });
+    setConfirmDel(null);
+    avisar("Medición eliminada");
+  };
+
+  /* horarios de medición */
+  const agregarHora = () => {
+    const lista = horarios[tipo] || [];
+    if (lista.some((h) => h.hora === nuevaHora)) { avisar("Esa hora ya está en el horario"); return; }
+    const item = { hora: nuevaHora, ctx: tipo === "glucosa" ? nuevoCtx : (f.ctx || "") };
+    const next = { ...horarios, [tipo]: [...lista, item].sort((x, y) => timeToMin(x.hora) - timeToMin(y.hora)) };
+    guardarVitals({ ...vitals, readings, horarios: next });
+    avisar("Hora agregada al horario de medición");
+  };
+
+  const quitarHora = (hora) => {
+    const next = { ...horarios, [tipo]: horarios[tipo].filter((h) => h.hora !== hora) };
+    guardarVitals({ ...vitals, readings, horarios: next });
+  };
+
+  /* mediciones de hoy según horario (hecha si hay lectura hoy a ±2 h de la hora programada) */
+  const lecturasHoy = readings.filter((r) => r.tipo === tipo && r.fecha === hoy);
+  const checklistHoy = (horarios[tipo] || []).map((h) => {
+    const done = lecturasHoy.some((r) => circDist(timeToMin(r.hora), timeToMin(h.hora)) <= 120);
+    return { ...h, done };
+  });
+
+  /* historial y estadísticas */
+  const delTipo = readings.filter((r) => r.tipo === tipo)
+    .slice().sort((x, y) => ((x.fecha + x.hora) < (y.fecha + y.hora) ? -1 : 1));
+  const ultimas = delTipo.slice(-14);
+  const ultima = delTipo[delTipo.length - 1];
+  const hace7 = addDays(hoy, -6);
+  const semana = delTipo.filter((r) => r.fecha >= hace7);
+  const prom = (arr, k) => arr.length ? Math.round((arr.reduce((s, r) => s + r[k], 0) / arr.length) * 10) / 10 : null;
+  const prevPeso = tipo === "peso" && delTipo.length > 1 ? delTipo[delTipo.length - 2] : null;
+  const deltaPeso = prevPeso && ultima ? Math.round((ultima.a - prevPeso.a) * 10) / 10 : null;
+
+  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white";
+  const labelCls = "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1";
+
+  return (
+    <div className="space-y-4">
+      {/* perfil del paciente */}
+      <Perfil data={data} persist={persist} avisar={avisar} />
+
+      {/* selector de métrica */}
+      <div className="grid grid-cols-4 gap-2">
+        {Object.keys(METRICAS).map((t) => {
+          const m = METRICAS[t];
+          const activo = tipo === t;
+          return (
+            <button key={t} onClick={() => cambiarTipo(t)}
+              className={"rounded-2xl border p-3 flex flex-col items-center gap-1 transition-colors " +
+                (activo ? "bg-emerald-700 border-emerald-700 text-white" : "bg-white border-slate-200 text-slate-600 hover:border-emerald-300")}>
+              <m.Icon cls={"w-6 h-6 " + (activo ? "text-white" : m.color)} />
+              <span className="text-xs font-semibold text-center leading-tight">{m.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* mediciones de hoy según horario */}
+      {checklistHoy.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Mediciones de {M.label.toLowerCase()} para hoy</div>
+          <div className="flex flex-wrap gap-2">
+            {checklistHoy.map((h) => (
+              <button key={h.hora} onClick={() => { if (!h.done) setF({ ...f, hora: h.hora, ctx: h.ctx || f.ctx }); }}
+                className={"inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border " +
+                  (h.done ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")}>
+                {h.done ? <ICheckCircle cls="w-4 h-4" /> : <IClock cls="w-4 h-4" />}
+                {fmt12(h.hora)}{h.ctx ? " · " + h.ctx : ""}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-1.5">Toca una medición pendiente para prellenar el registro con esa hora y contexto.</p>
+        </section>
+      )}
+
+      {/* registro rápido */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2"><M.Icon cls={"w-5 h-5 " + M.color} /> {editRead ? "Corregir medición de " : "Registrar "}{M.label.toLowerCase()}</h2>
+        {editRead && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between text-sm">
+            <span className="text-amber-800 font-medium flex items-center gap-1.5"><IEdit cls="w-4 h-4" /> Editando una medición existente</span>
+            <button onClick={() => cambiarTipo(tipo)} className="text-xs px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-800">Cancelar</button>
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {tipo === "presion" ? (
+            <React.Fragment>
+              <div>
+                <label className={labelCls}>Sistólica (arriba)</label>
+                <input type="number" min="1" className={inputCls} placeholder="120" value={f.a} onChange={(e) => set("a", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Diastólica (abajo)</label>
+                <input type="number" min="1" className={inputCls} placeholder="80" value={f.b} onChange={(e) => set("b", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Pulso (opcional)</label>
+                <input type="number" min="1" className={inputCls} placeholder="72" value={f.pulso} onChange={(e) => set("pulso", e.target.value)} />
+              </div>
+            </React.Fragment>
+          ) : (
+            <div className={tipo === "glucosa" ? "" : "col-span-2"}>
+              <label className={labelCls}>Valor ({M.unidad})</label>
+              <input type="number" min="1" step={tipo === "peso" ? "0.1" : "1"} className={inputCls}
+                placeholder={tipo === "glucosa" ? "95" : tipo === "peso" ? "78.5" : "97"}
+                value={f.a} onChange={(e) => set("a", e.target.value)} />
+            </div>
+          )}
+          {tipo === "glucosa" && (
+            <div className="col-span-2 sm:col-span-1">
+              <label className={labelCls}>Contexto de alimento</label>
+              <select className={inputCls} value={f.ctx} onChange={(e) => set("ctx", e.target.value)}>
+                {CTX_GLUCOSA.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
+          <div>
+            <label className={labelCls}>Fecha</label>
+            <input type="date" className={inputCls} value={f.fecha} onChange={(e) => set("fecha", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Hora</label>
+            <input type="time" className={inputCls} value={f.hora} onChange={(e) => set("hora", e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Notas (opcional)</label>
+          <input className={inputCls} placeholder={tipo === "glucosa" ? "Ej. Comí tacos al pastor, me sentí mareado…" : "Ej. Después de caminar, con dolor de cabeza…"} value={f.notas} onChange={(e) => set("notas", e.target.value)} />
+        </div>
+        {err && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" /> {err}
+          </div>
+        )}
+        <button onClick={registrar} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2">
+          <IPlus cls="w-5 h-5" /> {editRead ? "Guardar corrección" : "Guardar medición"}
+        </button>
+      </section>
+
+      {/* cómo medir correctamente */}
+      <section className="bg-sky-50 rounded-2xl border border-sky-100 p-4">
+        <button onClick={() => setGuiaOpen(!guiaOpen)} className="w-full flex items-center justify-between text-sky-900">
+          <span className="font-semibold text-sm flex items-center gap-2"><ISteth cls="w-4 h-4" /> Cómo medir correctamente</span>
+          {guiaOpen ? <IChevD cls="w-4 h-4" /> : <IChevR cls="w-4 h-4" />}
+        </button>
+        {guiaOpen && <p className="text-sm text-sky-900 mt-2">{M.guia}</p>}
+      </section>
+
+      {/* horario de medición */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4">
+        <button onClick={() => setHorarioOpen(!horarioOpen)} className="w-full flex items-center justify-between">
+          <span className="font-bold text-slate-700 text-sm flex items-center gap-2"><IClock cls="w-4 h-4 text-emerald-700" /> Horario de medición ({(horarios[tipo] || []).length} al día)</span>
+          {horarioOpen ? <IChevD cls="w-4 h-4 text-slate-400" /> : <IChevR cls="w-4 h-4 text-slate-400" />}
+        </button>
+        {horarioOpen && (
+          <div className="mt-3 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {(horarios[tipo] || []).map((h) => (
+                <span key={h.hora} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-3 py-1 rounded-full">
+                  {fmt12(h.hora)}{h.ctx ? " · " + h.ctx : ""}
+                  <button onClick={() => quitarHora(h.hora)} className="hover:text-rose-600"><IX cls="w-3.5 h-3.5" /></button>
+                </span>
+              ))}
+              {(horarios[tipo] || []).length === 0 && <span className="text-sm text-slate-400">Sin horas programadas.</span>}
+            </div>
+            <div className="flex flex-wrap gap-2 items-end">
+              <div>
+                <label className={labelCls}>Nueva hora</label>
+                <input type="time" className={inputCls} value={nuevaHora} onChange={(e) => setNuevaHora(e.target.value)} />
+              </div>
+              {tipo === "glucosa" && (
+                <div>
+                  <label className={labelCls}>Contexto</label>
+                  <select className={inputCls} value={nuevoCtx} onChange={(e) => setNuevoCtx(e.target.value)}>
+                    {CTX_GLUCOSA.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+              <button onClick={agregarHora} className="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5">
+                <IPlus cls="w-4 h-4" /> Agregar
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">Medir siempre a las mismas horas es lo que permite comparar días y detectar patrones reales.</p>
+          </div>
+        )}
+      </section>
+
+      {/* análisis de peso con IMC y recomendación */}
+      {tipo === "peso" && ultima && (
+        estatura ? (() => {
+          const c = clasIMC(ultima.a, estatura);
+          const rango = rangoPesoSaludable(estatura);
+          const exceso = Math.round((ultima.a - rango[1]) * 10) / 10;
+          const falta = Math.round((rango[0] - ultima.a) * 10) / 10;
+          const kg = c.dir === "bajar" ? exceso : c.dir === "subir" ? falta : 0;
+          const semanas = kg > 0 ? Math.ceil(kg / 0.5) : 0;
+          return (
+            <section className={"rounded-2xl border p-4 " + (c.dir ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200")}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-slate-800">IMC: {c.imc}</span>
+                <span className={"text-xs px-2 py-0.5 rounded-full border " + c.cls}>{c.txt}</span>
+                <span className="text-xs text-slate-500">Rango saludable para tu estatura ({estatura} cm): <b>{rango[0]} – {rango[1]} kg</b></span>
+              </div>
+              {c.dir ? (
+                <div className="text-sm text-slate-700 mt-2 space-y-1">
+                  <p><b>Objetivo sugerido:</b> {c.dir === "bajar" ? "bajar" : "subir"} aproximadamente <b>{kg} kg</b> para entrar al rango saludable. A un ritmo seguro de 0.5 kg por semana, eso tomaría alrededor de <b>{semanas} semanas ({semanas * 7} días)</b>.</p>
+                  <p className="text-xs text-slate-600">{c.dir === "bajar"
+                    ? "Sugerencias generales: prioriza verduras, frutas y proteína magra; reduce bebidas azucaradas, frituras y ultraprocesados; procura 150 minutos de actividad moderada a la semana (caminar cuenta) y duerme 7-8 horas. Pésate a la misma hora para ver la tendencia real."
+                    : "Sugerencias generales: aumenta la frecuencia de comidas con alimentos densos en nutrientes (avena, frutos secos, aguacate, lácteos, proteína); acompaña con ejercicio de fuerza para ganar masa muscular y no solo grasa."}</p>
+                  <p className="text-xs text-slate-400">Estas metas son orientativas y basadas en el IMC; tu médico puede ajustar el objetivo según tu composición corporal y condiciones.</p>
+                </div>
+              ) : (
+                <p className="text-sm text-emerald-800 mt-1.5">Estás dentro del rango saludable. Mantén tus hábitos y continúa monitoreando a la misma hora para detectar cambios de tendencia a tiempo.</p>
+              )}
+            </section>
+          );
+        })() : (
+          <section className="bg-amber-50 rounded-2xl border border-amber-200 p-4 text-sm text-amber-800 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" /> Para calcular tu IMC e indicarte si estás en peso normal, sobrepeso o bajo peso, completa tu <b>estatura</b> en el Perfil del paciente (arriba).
+          </section>
+        )
+      )}
+
+      {/* estadísticas y tendencia */}
+      {delTipo.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="grid grid-cols-3 gap-3 mb-2">
+            <div className="text-center">
+              <div className="text-xl font-extrabold text-slate-800">
+                {ultima ? (tipo === "presion" ? ultima.a + "/" + ultima.b : ultima.a) : "—"}
+                <span className="text-xs font-medium text-slate-400"> {M.unidad}</span>
+              </div>
+              <div className="text-xs text-slate-500">Última ({ultima ? fmtDate(ultima.fecha) : ""})</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-extrabold text-slate-800">
+                {tipo === "presion" ? (prom(semana, "a") || "—") + "/" + (prom(semana, "b") || "—") : (prom(semana, "a") ?? "—")}
+                <span className="text-xs font-medium text-slate-400"> {M.unidad}</span>
+              </div>
+              <div className="text-xs text-slate-500">Promedio 7 días ({semana.length} med.)</div>
+            </div>
+            <div className="text-center">
+              {tipo === "peso" && deltaPeso !== null ? (
+                <React.Fragment>
+                  <div className={"text-xl font-extrabold " + (deltaPeso > 0 ? "text-amber-600" : deltaPeso < 0 ? "text-emerald-700" : "text-slate-800")}>
+                    {deltaPeso > 0 ? "+" : ""}{deltaPeso} kg
+                  </div>
+                  <div className="text-xs text-slate-500">vs. medición anterior</div>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <div className="text-xl font-extrabold text-slate-800">{delTipo.length}</div>
+                  <div className="text-xs text-slate-500">Mediciones totales</div>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+          {ultimas.length >= 2 && (
+            <React.Fragment>
+              <Sparkline puntos={ultimas.map((r) => r.a)} puntos2={tipo === "presion" ? ultimas.map((r) => r.b) : null}
+                unidad={M.unidad} fechas={ultimas.map((r) => r.fecha)}
+                banda={tipo === "glucosa" ? [70, 140] : tipo === "presion" ? [90, 120] : tipo === "spo2" ? [95, 100] : (estatura ? rangoPesoSaludable(estatura) : null)} />
+              <div className="text-xs text-slate-400 text-center">Tendencia de las últimas {ultimas.length} mediciones{tipo === "presion" ? " (verde: sistólica · gris punteada: diastólica)" : ""}</div>
+            </React.Fragment>
+          )}
+        </section>
+      )}
+
+      {/* historial */}
+      <section>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-2">Historial de {M.label.toLowerCase()}</h2>
+        {delTipo.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">
+            Aún no hay mediciones de {M.label.toLowerCase()}. Registra la primera arriba.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {delTipo.slice().reverse().slice(0, 30).map((r) => {
+              const c = r.tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(r.tipo, r.a, r.b, r.ctx);
+              return (
+                <div key={r.id} className="bg-white rounded-2xl border border-slate-200 p-3.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-800 text-lg">
+                        {tipo === "presion" ? r.a + "/" + r.b : r.a} <span className="text-xs font-medium text-slate-400">{M.unidad}</span>
+                      </span>
+                      {r.pulso && <span className="text-xs text-slate-500">♥ {r.pulso} lpm</span>}
+                      {c && <span className={"text-xs px-2 py-0.5 rounded-full border " + c.cls}>{c.txt}{r.tipo === "peso" && c.imc ? " · IMC " + c.imc : ""}</span>}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      {fmtDate(r.fecha)} · {fmt12(r.hora)}{r.ctx ? " · " + r.ctx : ""}{r.notas ? " · " + r.notas : ""}
+                    </div>
+                  </div>
+                  {confirmDel === r.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => eliminarLectura(r.id)} className="text-xs px-2 py-1 rounded-lg bg-rose-600 text-white">Eliminar</button>
+                      <button onClick={() => setConfirmDel(null)} className="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-600">No</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => editarLectura(r)} className="text-slate-300 hover:text-emerald-700" title="Corregir esta medición"><IEdit cls="w-4 h-4" /></button>
+                      <button onClick={() => setConfirmDel(r.id)} className="text-slate-300 hover:text-rose-600" title="Eliminar"><ITrash cls="w-4 h-4" /></button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <p className="text-xs text-slate-400 text-center">Los rangos mostrados son referencias generales para adultos. No sustituyen la valoración de tu médico; si obtienes valores en zona de alerta o síntomas, busca atención médica.</p>
+    </div>
+  );
+}
+
+/* ============================================================ */
+function Reporte({ data, now }) {
+  const [mes, setMes] = useState(now.getFullYear() + "-" + pad(now.getMonth() + 1));
+  const [y, m] = mes.split("-").map(Number);
+  const diasEnMes = new Date(y, m, 0).getDate();
+  const nowISO = todayStr() + "T" + pad(now.getHours()) + ":" + pad(now.getMinutes());
+
+  const mover = (d) => {
+    const dt = new Date(y, m - 1 + d, 1);
+    setMes(dt.getFullYear() + "-" + pad(dt.getMonth() + 1));
+  };
+
+  const filas = useMemo(() => {
+    return data.meds.map((med) => {
+      const fin = fechaFin(med);
+      let prog = 0, tom = 0, futuras = 0;
+      for (let d = 1; d <= diasEnMes; d++) {
+        const fecha = y + "-" + pad(m) + "-" + pad(d);
+        if (fecha < med.startDate || fecha > fin) continue;
+        for (const t of med.times) {
+          prog++;
+          if (data.taken[doseKey(med.id, fecha, t)]) tom++;
+          else if (fecha + "T" + t > nowISO) futuras++;
+        }
+      }
+      const vencidas = prog - futuras;
+      const adh = vencidas > 0 ? Math.round((tom / vencidas) * 100) : null;
+      return { med, prog, tom, futuras, omitidas: Math.max(0, vencidas - tom), adh };
+    }).filter((r) => r.prog > 0);
+  }, [data, y, m, diasEnMes, nowISO]);
+
+  const totProg = filas.reduce((a, r) => a + r.prog, 0);
+  const totTom = filas.reduce((a, r) => a + r.tom, 0);
+  const totVenc = filas.reduce((a, r) => a + (r.prog - r.futuras), 0);
+  const adhGlobal = totVenc > 0 ? Math.round((totTom / totVenc) * 100) : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center justify-between">
+        <button onClick={() => mover(-1)} className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm hover:bg-slate-50">← anterior</button>
+        <div className="font-bold text-slate-700 capitalize">{MESES[m - 1]} {y}</div>
+        <button onClick={() => mover(1)} className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm hover:bg-slate-50">siguiente →</button>
+      </div>
+
+      {filas.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500 text-sm">
+          <IChart cls="w-10 h-10 text-slate-300 mx-auto mb-2" />
+          No hay tratamientos programados en este mes.
+        </div>
+      ) : (
+        <React.Fragment>
+          <div className="grid grid-cols-3 gap-3">
+            <Kpi label="Tomas programadas" valor={totProg} />
+            <Kpi label="Tomas confirmadas" valor={totTom} verde />
+            <Kpi label="Adherencia" valor={adhGlobal === null ? "—" : adhGlobal + "%"} verde={adhGlobal !== null && adhGlobal >= 80} />
+          </div>
+
+          <div className="space-y-2">
+            {filas.map((r) => {
+              const cat = catInfo(r.med.category);
+              return (
+                <div key={r.med.id} className="bg-white rounded-2xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-800">{r.med.name}</span>
+                    <span className={"text-xs px-2 py-0.5 rounded-full border " + cat.cls}>{cat.label}</span>
+                    <span className="text-xs text-slate-400">cada {r.med.freqHours} h · {r.med.dose}</span>
+                  </div>
+                  {r.med.purpose && <div className="text-xs text-slate-500 mt-0.5">Motivo: {r.med.purpose}</div>}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="h-2.5 flex-1 bg-slate-100 rounded-full overflow-hidden flex">
+                      <div className="h-full bg-emerald-500" style={{ width: (r.prog ? (r.tom / r.prog) * 100 : 0) + "%" }} />
+                      <div className="h-full bg-rose-300" style={{ width: (r.prog ? (r.omitidas / r.prog) * 100 : 0) + "%" }} />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-600 shrink-0">{r.adh === null ? "sin tomas vencidas" : r.adh + "%"}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
+                    <span>Programadas: <b className="text-slate-700">{r.prog}</b></span>
+                    <span>Tomadas: <b className="text-emerald-700">{r.tom}</b></span>
+                    <span>Omitidas: <b className="text-rose-600">{r.omitidas}</b></span>
+                    {r.futuras > 0 && <span>Por venir: <b className="text-slate-600">{r.futuras}</b></span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400 text-center">La adherencia se calcula solo sobre tomas cuya hora ya pasó. Este reporte es informativo y no sustituye la indicación de tu médico.</p>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+function Kpi({ label, valor, verde }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-3 text-center">
+      <div className={"text-2xl font-extrabold " + (verde ? "text-emerald-700" : "text-slate-800")}>{valor}</div>
+      <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<MediControl />);
+</script>
+</body>
+</html>
