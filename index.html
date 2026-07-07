@@ -790,6 +790,89 @@ function FormAgregar({ ocupados, onGuardar, medEditar, onCancelar }) {
 const ENVASES = ["Caja", "Frasco", "Botella", "Blíster", "Tubo", "Sobre", "Otro"];
 const UNIDADES = ["tabletas", "cápsulas", "ml", "g", "piezas", "sobres", "dosis"];
 
+/* Base semilla: medicamentos comunes del mercado mexicano [nombre, presentación, envase, contenido, unidad] */
+const SEED_MEDS = [
+["Paracetamol 500 mg","Tabletas","Caja",20,"tabletas"],["Paracetamol 750 mg","Tabletas","Caja",12,"tabletas"],
+["Paracetamol gotas pediátricas 100 mg/ml","Gotas","Frasco",15,"ml"],["Paracetamol jarabe 160 mg/5 ml","Jarabe / Suspensión","Frasco",120,"ml"],
+["Ibuprofeno 400 mg","Tabletas","Caja",10,"tabletas"],["Ibuprofeno 600 mg","Tabletas","Caja",10,"tabletas"],
+["Ibuprofeno suspensión 100 mg/5 ml","Jarabe / Suspensión","Frasco",120,"ml"],["Naproxeno 250 mg","Tabletas","Caja",30,"tabletas"],
+["Naproxeno 550 mg","Tabletas","Caja",10,"tabletas"],["Ácido acetilsalicílico (Aspirina) 500 mg","Tabletas","Caja",40,"tabletas"],
+["Aspirina Protect 100 mg","Tabletas","Caja",28,"tabletas"],["Diclofenaco 100 mg","Tabletas","Caja",20,"tabletas"],
+["Diclofenaco gel 1%","Crema / Ungüento","Tubo",60,"g"],["Ketorolaco 10 mg","Tabletas","Caja",10,"tabletas"],
+["Ketorolaco sublingual 30 mg","Tabletas","Caja",4,"tabletas"],["Metamizol sódico 500 mg","Tabletas","Caja",10,"tabletas"],
+["Tramadol/Paracetamol 37.5/325 mg","Tabletas","Caja",20,"tabletas"],["Clonixinato de lisina 125 mg","Tabletas","Caja",20,"tabletas"],
+["Ácido mefenámico 500 mg","Tabletas","Caja",20,"tabletas"],["Meloxicam 15 mg","Tabletas","Caja",10,"tabletas"],
+["Piroxicam 20 mg","Cápsulas","Caja",20,"cápsulas"],["Celecoxib 200 mg","Cápsulas","Caja",10,"cápsulas"],
+["Colchicina 1 mg","Tabletas","Caja",30,"tabletas"],["Butilhioscina (Buscapina) 10 mg","Tabletas","Caja",10,"tabletas"],
+["Butilhioscina compuesta 10/250 mg","Tabletas","Caja",10,"tabletas"],
+["Loratadina 10 mg","Tabletas","Caja",10,"tabletas"],["Loratadina jarabe 5 mg/5 ml","Jarabe / Suspensión","Frasco",60,"ml"],
+["Loratadina/Betametasona 5/0.25 mg","Tabletas","Caja",6,"tabletas"],["Cetirizina 10 mg","Tabletas","Caja",10,"tabletas"],
+["Levocetirizina 5 mg","Tabletas","Caja",10,"tabletas"],["Fexofenadina 120 mg","Tabletas","Caja",10,"tabletas"],
+["Desloratadina 5 mg","Tabletas","Caja",10,"tabletas"],["Clorfenamina 4 mg","Tabletas","Caja",20,"tabletas"],
+["Ambroxol jarabe 30 mg/5 ml","Jarabe / Suspensión","Frasco",120,"ml"],["Ambroxol/Clenbuterol jarabe","Jarabe / Suspensión","Frasco",120,"ml"],
+["Dextrometorfano jarabe 15 mg/5 ml","Jarabe / Suspensión","Frasco",120,"ml"],["Antigripal (paracetamol/fenilefrina/clorfenamina)","Tabletas","Caja",24,"tabletas"],
+["Salbutamol inhalador 100 mcg","Inhalador","Caja",200,"dosis"],["Salbutamol jarabe 2 mg/5 ml","Jarabe / Suspensión","Frasco",120,"ml"],
+["Budesonida inhalador","Inhalador","Caja",200,"dosis"],["Montelukast 10 mg","Tabletas","Caja",30,"tabletas"],
+["Oximetazolina spray nasal 0.05%","Gotas","Frasco",20,"ml"],["Vick VapoRub","Crema / Ungüento","Frasco",50,"g"],
+["Amoxicilina 500 mg","Cápsulas","Caja",12,"cápsulas"],["Amoxicilina suspensión 250 mg/5 ml","Jarabe / Suspensión","Frasco",75,"ml"],
+["Amoxicilina/Ácido clavulánico 875/125 mg","Tabletas","Caja",14,"tabletas"],["Ampicilina 500 mg","Cápsulas","Caja",20,"cápsulas"],
+["Azitromicina 500 mg","Tabletas","Caja",3,"tabletas"],["Cefalexina 500 mg","Cápsulas","Caja",20,"cápsulas"],
+["Ciprofloxacino 500 mg","Tabletas","Caja",14,"tabletas"],["Levofloxacino 500 mg","Tabletas","Caja",7,"tabletas"],
+["Claritromicina 500 mg","Tabletas","Caja",10,"tabletas"],["Doxiciclina 100 mg","Cápsulas","Caja",10,"cápsulas"],
+["Trimetoprim/Sulfametoxazol 80/400 mg","Tabletas","Caja",20,"tabletas"],["Metronidazol 500 mg","Tabletas","Caja",20,"tabletas"],
+["Nitrofurantoína 100 mg","Cápsulas","Caja",40,"cápsulas"],["Clindamicina 300 mg","Cápsulas","Caja",16,"cápsulas"],
+["Fluconazol 150 mg","Cápsulas","Caja",1,"cápsulas"],["Albendazol 400 mg","Tabletas","Caja",2,"tabletas"],
+["Ivermectina 6 mg","Tabletas","Caja",4,"tabletas"],["Aciclovir 400 mg","Tabletas","Caja",35,"tabletas"],
+["Aciclovir crema 5%","Crema / Ungüento","Tubo",5,"g"],
+["Omeprazol 20 mg","Cápsulas","Caja",14,"cápsulas"],["Pantoprazol 40 mg","Tabletas","Caja",14,"tabletas"],
+["Esomeprazol 40 mg","Tabletas","Caja",14,"tabletas"],["Lansoprazol 30 mg","Cápsulas","Caja",14,"cápsulas"],
+["Famotidina 40 mg","Tabletas","Caja",10,"tabletas"],["Sucralfato 1 g","Tabletas","Caja",40,"tabletas"],
+["Aluminio/Magnesio suspensión (Melox)","Jarabe / Suspensión","Frasco",360,"ml"],["Subsalicilato de bismuto (Pepto-Bismol)","Jarabe / Suspensión","Frasco",236,"ml"],
+["Loperamida 2 mg","Tabletas","Caja",12,"tabletas"],["Electrolitos orales (Vida Suero Oral)","Sobres","Caja",4,"sobres"],
+["Electrolit bebida","Otro","Botella",625,"ml"],["Senósidos A-B 8.6 mg","Tabletas","Caja",20,"tabletas"],
+["Psyllium plantago (fibra)","Otro","Frasco",340,"g"],["Simeticona 125 mg","Cápsulas","Caja",10,"cápsulas"],
+["Metoclopramida 10 mg","Tabletas","Caja",20,"tabletas"],["Ondansetrón 8 mg","Tabletas","Caja",10,"tabletas"],
+["Trimebutina 200 mg","Tabletas","Caja",20,"tabletas"],["Cinitaprida 1 mg","Tabletas","Caja",25,"tabletas"],
+["Domperidona 10 mg","Tabletas","Caja",30,"tabletas"],
+["Metformina 500 mg","Tabletas","Caja",30,"tabletas"],["Metformina 850 mg","Tabletas","Caja",30,"tabletas"],
+["Glibenclamida 5 mg","Tabletas","Caja",50,"tabletas"],["Sitagliptina 100 mg","Tabletas","Caja",28,"tabletas"],
+["Linagliptina 5 mg","Tabletas","Caja",30,"tabletas"],["Empagliflozina 25 mg","Tabletas","Caja",30,"tabletas"],
+["Dapagliflozina 10 mg","Tabletas","Caja",28,"tabletas"],["Insulina glargina (pluma)","Inyectable","Caja",3,"ml"],
+["Insulina NPH","Inyectable","Frasco",10,"ml"],
+["Losartán 50 mg","Tabletas","Caja",30,"tabletas"],["Telmisartán 40 mg","Tabletas","Caja",30,"tabletas"],
+["Enalapril 10 mg","Tabletas","Caja",30,"tabletas"],["Captopril 25 mg","Tabletas","Caja",30,"tabletas"],
+["Amlodipino 5 mg","Tabletas","Caja",30,"tabletas"],["Metoprolol 100 mg","Tabletas","Caja",20,"tabletas"],
+["Hidroclorotiazida 25 mg","Tabletas","Caja",30,"tabletas"],["Furosemida 40 mg","Tabletas","Caja",20,"tabletas"],
+["Espironolactona 25 mg","Tabletas","Caja",20,"tabletas"],["Isosorbida 10 mg","Tabletas","Caja",20,"tabletas"],
+["Atorvastatina 20 mg","Tabletas","Caja",30,"tabletas"],["Rosuvastatina 20 mg","Tabletas","Caja",30,"tabletas"],
+["Pravastatina 10 mg","Tabletas","Caja",30,"tabletas"],["Ezetimiba 10 mg","Tabletas","Caja",28,"tabletas"],
+["Bezafibrato 200 mg","Tabletas","Caja",30,"tabletas"],["Clopidogrel 75 mg","Tabletas","Caja",28,"tabletas"],
+["Warfarina 5 mg","Tabletas","Caja",25,"tabletas"],["Pentoxifilina 400 mg","Tabletas","Caja",30,"tabletas"],
+["Diosmina/Hesperidina 500 mg","Tabletas","Caja",30,"tabletas"],
+["Levotiroxina 100 mcg","Tabletas","Caja",100,"tabletas"],["Alopurinol 300 mg","Tabletas","Caja",20,"tabletas"],
+["Prednisona 5 mg","Tabletas","Caja",20,"tabletas"],["Prednisona 50 mg","Tabletas","Caja",20,"tabletas"],
+["Tamsulosina 0.4 mg","Cápsulas","Caja",20,"cápsulas"],["Finasterida 5 mg","Tabletas","Caja",30,"tabletas"],
+["Sildenafil 100 mg","Tabletas","Caja",4,"tabletas"],["Anticonceptivo oral 28 días","Tabletas","Caja",28,"tabletas"],
+["Levonorgestrel 1.5 mg (emergencia)","Tabletas","Caja",1,"tabletas"],
+["Sertralina 50 mg","Tabletas","Caja",14,"tabletas"],["Fluoxetina 20 mg","Cápsulas","Caja",14,"cápsulas"],
+["Escitalopram 10 mg","Tabletas","Caja",28,"tabletas"],["Amitriptilina 25 mg","Tabletas","Caja",20,"tabletas"],
+["Gabapentina 300 mg","Cápsulas","Caja",15,"cápsulas"],["Pregabalina 75 mg","Cápsulas","Caja",14,"cápsulas"],
+["Carbamazepina 200 mg","Tabletas","Caja",20,"tabletas"],["Melatonina 5 mg","Tabletas","Frasco",60,"tabletas"],
+["Complejo B","Tabletas","Frasco",30,"tabletas"],["Vitamina C 500 mg","Tabletas","Frasco",60,"tabletas"],
+["Vitamina D3 4000 UI","Cápsulas","Frasco",30,"cápsulas"],["Ácido fólico 5 mg","Tabletas","Frasco",90,"tabletas"],
+["Multivitamínico","Tabletas","Frasco",60,"tabletas"],["Calcio + Vitamina D","Tabletas","Frasco",60,"tabletas"],
+["Fumarato ferroso 200 mg","Tabletas","Caja",50,"tabletas"],["Omega 3 1000 mg","Cápsulas","Frasco",60,"cápsulas"],
+["Magnesio 500 mg","Tabletas","Frasco",60,"tabletas"],
+["Ketoconazol crema 2%","Crema / Ungüento","Tubo",30,"g"],["Clotrimazol crema 1%","Crema / Ungüento","Tubo",20,"g"],
+["Miconazol crema 2%","Crema / Ungüento","Tubo",20,"g"],["Hidrocortisona crema 1%","Crema / Ungüento","Tubo",30,"g"],
+["Mupirocina ungüento 2%","Crema / Ungüento","Tubo",15,"g"],["Óxido de zinc pasta","Crema / Ungüento","Tubo",60,"g"],
+["Cloranfenicol gotas oftálmicas","Gotas","Frasco",15,"ml"],["Nafazolina gotas oftálmicas","Gotas","Frasco",15,"ml"],
+["Lágrimas artificiales","Gotas","Frasco",15,"ml"],["Neomicina/Polimixina gotas óticas","Gotas","Frasco",10,"ml"],
+["Suero fisiológico 0.9%","Otro","Botella",250,"ml"],["Alcohol etílico 70%","Otro","Botella",500,"ml"],
+["Agua oxigenada","Otro","Botella",480,"ml"],["Yodopovidona solución (Isodine)","Otro","Frasco",120,"ml"],
+];
+const normTxt = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 function Inventario({ data, persist, avisar }) {
   const inv = data.inv || [];
   const [codigo, setCodigo] = useState("");
@@ -797,6 +880,7 @@ function Inventario({ data, persist, avisar }) {
   const [formOpen, setFormOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
   const [editKey, setEditKey] = useState(null);
+  const [sugOpen, setSugOpen] = useState(false);
   const [scanErr, setScanErr] = useState(null);
   const [scanning, setScanning] = useState(false);
   const videoRef = React.useRef(null);
@@ -891,6 +975,32 @@ function Inventario({ data, persist, avisar }) {
     setEditKey(item.key);
     setFormOpen(true);
     setErr(null);
+  };
+
+  /* autocompletado: primero tu catálogo personal, luego la base de medicamentos comunes de México */
+  const sugerencias = useMemo(() => {
+    const q = normTxt(f.name.trim());
+    if (q.length < 2) return [];
+    const out = [];
+    Object.keys(catalogo).forEach((c) => {
+      const it = catalogo[c];
+      if (normTxt(it.name).includes(q)) out.push({ origen: "catálogo", name: it.name, presentation: it.presentation, envase: it.envase, contenido: it.contenido, unidad: it.unidad, precio: it.precio, imagen: it.imagen });
+    });
+    SEED_MEDS.forEach(([n, p, e, c, u]) => {
+      if (normTxt(n).includes(q) && !out.some((o) => normTxt(o.name) === normTxt(n))) out.push({ origen: "base MX", name: n, presentation: p, envase: e, contenido: c, unidad: u });
+    });
+    return out.slice(0, 8);
+  }, [f.name, catalogo]);
+
+  const aplicarSug = (s) => {
+    setF((p) => ({
+      ...p, name: s.name, presentation: s.presentation, envase: s.envase,
+      contenido: s.contenido, unidad: s.unidad,
+      precio: s.precio !== undefined && s.precio !== "" ? s.precio : p.precio,
+      imagen: s.imagen || p.imagen,
+    }));
+    setSugOpen(false);
+    avisar("Datos llenados desde " + (s.origen === "catálogo" ? "tu catálogo" : "la base de medicamentos") + " — confirma cantidad, precio y caducidad");
   };
 
   const guardarForm = () => {
@@ -1164,9 +1274,27 @@ function Inventario({ data, persist, avisar }) {
                 <label className={labelCls}>Código / ID (código de barras)</label>
                 <input className={inputCls} placeholder="Escanea, escribe o deja vacío para generar uno" value={f.code} onChange={(e) => set("code", e.target.value)} />
               </div>
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Nombre del medicamento *</label>
-                <input className={inputCls} placeholder="Ej. Paracetamol 500 mg" value={f.name} onChange={(e) => set("name", e.target.value)} />
+                <input className={inputCls} placeholder="Escribe 2+ letras, ej. para…" value={f.name}
+                  onChange={(e) => { set("name", e.target.value); setSugOpen(true); }}
+                  onFocus={() => setSugOpen(true)}
+                  onBlur={() => setTimeout(() => setSugOpen(false), 150)} />
+                {sugOpen && sugerencias.length > 0 && (
+                  <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {sugerencias.map((s, i) => (
+                      <button key={i} onMouseDown={(e) => { e.preventDefault(); aplicarSug(s); }}
+                        className="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-slate-50 last:border-0">
+                        <span className="min-w-0">
+                          <span className="text-sm font-medium text-slate-700 block truncate">{s.name}</span>
+                          <span className="text-xs text-slate-400">{s.envase} · {s.contenido} {s.unidad}{s.precio ? " · " + fmtMoney(s.precio) : ""}</span>
+                        </span>
+                        <span className={"text-[10px] px-1.5 py-0.5 rounded-full shrink-0 " + (s.origen === "catálogo" ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700")}>{s.origen}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="text-xs text-slate-400 mt-0.5">Elige de la base de medicamentos comunes de México y se llena todo el formulario</div>
               </div>
               <div>
                 <label className={labelCls}>Presentación</label>
