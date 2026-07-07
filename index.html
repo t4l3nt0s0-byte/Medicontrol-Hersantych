@@ -82,6 +82,14 @@ const doseKey = (id, fecha, hora) => id + "|" + fecha + "|" + hora;
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const diasTratamiento = (med) => { const out = []; for (let i = 0; i < med.durationDays; i++) out.push(addDays(med.startDate, i)); return out; };
 const catInfo = (id) => CATEGORIAS.find((c) => c.id === id) || CATEGORIAS[CATEGORIAS.length - 1];
+const fmtMoney = (n) => "$" + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const diasCadTexto = (cad) => {
+  if (!cad) return "—";
+  const dias = Math.round((parseDate(cad) - parseDate(todayStr())) / 86400000);
+  if (dias < 0) return "VENCIDO hace " + Math.abs(dias) + " días (" + fmtDate(cad) + ")";
+  if (dias === 0) return "Vence HOY (" + fmtDate(cad) + ")";
+  return "Faltan " + dias + " días (" + fmtDate(cad) + ")";
+};
 
 /* ---------- iconos ---------- */
 const Sv = ({ d, cls, extra }) => (
@@ -121,10 +129,12 @@ const IEdit = ({ cls }) => <Sv cls={cls} d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2
 const IUser = ({ cls }) => <Sv cls={cls} d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" extra={<circle cx="12" cy="7" r="4" />} />;
 const IDownload = ({ cls }) => <Sv cls={cls} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />;
 const IUpload = ({ cls }) => <Sv cls={cls} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />;
+const IFood = ({ cls }) => <Sv cls={cls} d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />;
+const DIAS_FULL = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 /* ============================================================ */
 function MediControl() {
-  const [data, setData] = useState({ meds: [], taken: {}, inv: [], vitals: { readings: [], horarios: null }, perfil: {} });
+  const [data, setData] = useState({ meds: [], taken: {}, inv: [], vitals: { readings: [], horarios: null }, perfil: {}, catalogo: {}, comidas: [], agua: {} });
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("hoy");
   const [expanded, setExpanded] = useState(null);
@@ -138,7 +148,7 @@ function MediControl() {
   useEffect(() => {
     try {
       const v = localStorage.getItem(KEY);
-      if (v) { const p = JSON.parse(v); setData({ meds: p.meds || [], taken: p.taken || {}, inv: p.inv || [], vitals: p.vitals || { readings: [], horarios: null }, perfil: p.perfil || {} }); }
+      if (v) { const p = JSON.parse(v); setData({ meds: p.meds || [], taken: p.taken || {}, inv: p.inv || [], vitals: p.vitals || { readings: [], horarios: null }, perfil: p.perfil || {}, catalogo: p.catalogo || {}, comidas: p.comidas || [], agua: p.agua || {} }); }
     } catch (e) { /* sin datos previos */ }
     setLoaded(true);
   }, []);
@@ -218,6 +228,7 @@ function MediControl() {
     { id: "agregar", label: "Agregar", Icon: IPlus },
     { id: "inv", label: "Inventario", Icon: IBox },
     { id: "salud", label: "Salud", Icon: IActivity },
+    { id: "comidas", label: "Comidas", Icon: IFood },
     { id: "reporte", label: "Reporte", Icon: IChart },
   ];
 
@@ -322,7 +333,8 @@ function MediControl() {
         {tab === "agregar" && <FormAgregar ocupados={ocupados} onGuardar={guardarMed} medEditar={data.meds.find((m) => m.id === editId) || null} onCancelar={() => { setEditId(null); setTab("meds"); }} />}
         {tab === "inv" && <Inventario data={data} persist={persist} avisar={avisar} />}
         {tab === "salud" && <Salud data={data} persist={persist} avisar={avisar} hoy={hoy} />}
-        {tab === "reporte" && <Reporte data={data} now={now} />}
+        {tab === "comidas" && <Comidas data={data} persist={persist} avisar={avisar} hoy={hoy} />}
+        {tab === "reporte" && <Reporte data={data} now={now} avisar={avisar} />}
       </main>
 
       {toast && (
@@ -790,7 +802,9 @@ function Inventario({ data, persist, avisar }) {
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
-  const vacio = { code: "", name: "", presentation: "Tabletas", envase: "Caja", contenido: 20, unidad: "tabletas", cantidad: 1, caducidad: "", notas: "", stockMin: 1, imagen: "" };
+  const vacio = { code: "", name: "", presentation: "Tabletas", envase: "Caja", contenido: 20, unidad: "tabletas", cantidad: 1, caducidad: "", notas: "", stockMin: 1, imagen: "", precio: "" };
+  const catalogo = data.catalogo || {};
+  const [catOpen, setCatOpen] = useState(false);
   const [f, setF] = useState(vacio);
   const [err, setErr] = useState(null);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -805,10 +819,17 @@ function Inventario({ data, persist, avisar }) {
     if (item) {
       guardarInv(inv.map((i) => (i.code === c ? { ...i, cantidad: i.cantidad + 1 } : i)));
       avisar("+1 " + item.envase.toLowerCase() + " de " + item.name + " · total: " + (item.cantidad + 1));
+    } else if (catalogo[c]) {
+      const cat = catalogo[c];
+      setF({ ...vacio, code: c, name: cat.name || "", presentation: cat.presentation || "Tabletas", envase: cat.envase || "Caja", contenido: cat.contenido || 1, unidad: cat.unidad || "tabletas", precio: cat.precio || "", imagen: cat.imagen || "", stockMin: cat.stockMin || 1 });
+      setEditKey(null);
+      setFormOpen(true);
+      avisar("Reconocido del catálogo: " + cat.name + " — solo confirma cantidad y caducidad");
     } else {
       setF({ ...vacio, code: c });
+      setEditKey(null);
       setFormOpen(true);
-      avisar("Código nuevo — completa los datos para registrarlo");
+      avisar("Código nuevo — completa los datos y quedará guardado en tu catálogo");
     }
     setCodigo("");
   };
@@ -866,7 +887,7 @@ function Inventario({ data, persist, avisar }) {
   };
 
   const editarItem = (item) => {
-    setF({ code: item.code, name: item.name, presentation: item.presentation, envase: item.envase, contenido: item.contenido, unidad: item.unidad, cantidad: item.cantidad, caducidad: item.caducidad || "", notas: item.notas || "", stockMin: item.stockMin || 1, imagen: item.imagen || "" });
+    setF({ code: item.code, name: item.name, presentation: item.presentation, envase: item.envase, contenido: item.contenido, unidad: item.unidad, cantidad: item.cantidad, caducidad: item.caducidad || "", notas: item.notas || "", stockMin: item.stockMin || 1, imagen: item.imagen || "", precio: item.precio || "" });
     setEditKey(item.key);
     setFormOpen(true);
     setErr(null);
@@ -880,15 +901,19 @@ function Inventario({ data, persist, avisar }) {
     const base = {
       code, name: f.name.trim(), presentation: f.presentation, envase: f.envase,
       contenido: Number(f.contenido), unidad: f.unidad, cantidad: Math.max(0, Number(f.cantidad) || 0),
-      caducidad: f.caducidad, notas: f.notas.trim(), stockMin: Math.max(1, Number(f.stockMin) || 1), imagen: f.imagen || "",
+      caducidad: f.caducidad, notas: f.notas.trim(), stockMin: Math.max(1, Number(f.stockMin) || 1),
+      imagen: f.imagen || "", precio: Math.max(0, Number(f.precio) || 0),
     };
-    if (editKey) {
-      guardarInv(inv.map((i) => (i.key === editKey ? { ...i, ...base } : i)));
-      avisar("Producto actualizado");
-    } else {
-      guardarInv([...inv, { key: uid(), ...base, createdAt: new Date().toISOString() }]);
-      avisar("Medicamento agregado al inventario");
-    }
+    const nextInv = editKey
+      ? inv.map((i) => (i.key === editKey ? { ...i, ...base } : i))
+      : [...inv, { key: uid(), ...base, createdAt: new Date().toISOString() }];
+    /* el catálogo maestro acumula todos los códigos con su información y precio, para reconocerlos en el futuro */
+    const nextCat = { ...catalogo, [code]: {
+      name: base.name, presentation: base.presentation, envase: base.envase, contenido: base.contenido,
+      unidad: base.unidad, precio: base.precio, imagen: base.imagen, stockMin: base.stockMin, updatedAt: todayStr(),
+    }};
+    persist({ ...data, inv: nextInv, catalogo: nextCat });
+    avisar(editKey ? "Producto actualizado (catálogo sincronizado)" : "Agregado al inventario y guardado en tu catálogo");
     setF(vacio); setErr(null); setFormOpen(false); setEditKey(null);
   };
 
@@ -950,28 +975,62 @@ function Inventario({ data, persist, avisar }) {
     const filas = orden.map((i) => [
       i.code, i.name, i.presentation, i.envase + " · " + i.contenido + " " + i.unidad,
       String(i.cantidad), (i.cantidad * i.contenido) + " " + i.unidad,
-      String(i.stockMin || 1), i.caducidad ? fmtDate(i.caducidad) : "—", estadoProducto(i),
-      i.notas || "",
+      i.precio ? fmtMoney(i.precio) : "—", fmtMoney((i.precio || 0) * i.cantidad),
+      diasCadTexto(i.caducidad), estadoProducto(i),
     ]);
     doc.autoTable({
-      head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Envases", "Total disponible", "Stock mín.", "Caducidad", "Estado", "Notas"]],
+      head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Envases", "Total disponible", "Precio c/u", "Valor", "Caducidad", "Estado"]],
       body: filas, startY: 26,
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [4, 120, 87], fontSize: 8 },
       alternateRowStyles: { fillColor: [245, 250, 248] },
       didParseCell: (d) => {
-        if (d.section === "body" && d.column.index === 8 && d.cell.raw !== "OK") { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+        if (d.section === "body" && d.column.index === 9 && d.cell.raw !== "OK") { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+        if (d.section === "body" && d.column.index === 8 && String(d.cell.raw).indexOf("VENCIDO") === 0) { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
       },
     });
     const yFin = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    doc.setFontSize(11);
+    doc.setTextColor(4, 120, 87);
+    doc.text("VALOR TOTAL DEL INVENTARIO: " + fmtMoney(valorTotal) + " MXN", 14, yFin);
     doc.setFontSize(9);
     doc.setTextColor(60);
-    doc.text("Resumen: " + inv.length + " productos  ·  " + agotados + " agotados  ·  " + stockBajo.length + " con stock bajo  ·  " + porCaducar + " por caducar  ·  " + caducados + " caducados", 14, yFin);
+    doc.text("Resumen: " + inv.length + " productos  ·  " + agotados + " agotados  ·  " + stockBajo.length + " con stock bajo  ·  " + porCaducar + " por caducar  ·  " + caducados + " caducados", 14, yFin + 6);
     doc.setFontSize(7);
     doc.setTextColor(150);
-    doc.text("Documento informativo generado por MediControl. Ordenado por ID/código ascendente.", 14, yFin + 5);
+    doc.text("Documento informativo generado por MediControl. Ordenado por ID/código ascendente.", 14, yFin + 11);
     doc.save("inventario-medicamentos-" + todayStr() + ".pdf");
     avisar("PDF del inventario descargado");
+  };
+
+  /* exportar catálogo maestro a PDF */
+  const exportarCatalogoPDF = () => {
+    if (!(window.jspdf && window.jspdf.jsPDF)) { avisar("No se pudo cargar el generador de PDF. Revisa tu conexión a internet y recarga."); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16); doc.setTextColor(6, 78, 59);
+    doc.text("Catálogo maestro de medicamentos", 14, 15);
+    doc.setFontSize(9); doc.setTextColor(100);
+    doc.text("Base de datos de códigos registrados  ·  Generado: " + fmtDateLong(todayStr()) + "  ·  MediControl", 14, 21);
+    const codigos = Object.keys(catalogo).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    doc.autoTable({
+      head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Precio", "Últ. actualización"]],
+      body: codigos.map((c) => {
+        const it = catalogo[c];
+        return [c, it.name, it.presentation, it.envase + " · " + it.contenido + " " + it.unidad, it.precio ? fmtMoney(it.precio) : "—", it.updatedAt ? fmtDate(it.updatedAt) : "—"];
+      }),
+      startY: 26, styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: [4, 120, 87], fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 250, 248] },
+    });
+    doc.save("catalogo-medicamentos-" + todayStr() + ".pdf");
+    avisar("PDF del catálogo descargado");
+  };
+
+  const quitarDelCatalogo = (code) => {
+    const next = { ...catalogo };
+    delete next[code];
+    persist({ ...data, catalogo: next });
+    avisar("Código eliminado del catálogo");
   };
 
   const filtrados = inv
@@ -990,6 +1049,7 @@ function Inventario({ data, persist, avisar }) {
   const stockBajo = inv.filter((i) => i.cantidad > 0 && i.cantidad <= (i.stockMin || 1));
   const agotadosList = inv.filter((i) => i.cantidad === 0);
   const topStock = inv.slice().sort((a, b) => b.cantidad - a.cantidad).filter((i) => i.cantidad > 0).slice(0, 3);
+  const valorTotal = inv.reduce((s, i) => s + (Number(i.precio) || 0) * i.cantidad, 0);
 
   const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white";
   const labelCls = "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1";
@@ -1035,6 +1095,17 @@ function Inventario({ data, persist, avisar }) {
       </section>
 
       {/* resumen del botiquín */}
+      {inv.length > 0 && (
+        <div className="bg-emerald-800 text-white rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <div className="text-emerald-200 text-xs font-bold uppercase tracking-wide">Valor total del inventario</div>
+            <div className="text-2xl font-extrabold">{fmtMoney(valorTotal)} <span className="text-sm font-medium text-emerald-200">MXN</span></div>
+          </div>
+          <div className="text-right text-emerald-200 text-xs">
+            Dinero invertido en tus<br />medicamentos en existencia
+          </div>
+        </div>
+      )}
       {inv.length > 0 && (
         <div className="grid grid-cols-5 gap-1.5">
           <Kpi label="Productos" valor={inv.length} />
@@ -1134,6 +1205,11 @@ function Inventario({ data, persist, avisar }) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
+                <label className={labelCls}>Precio por envase (MXN)</label>
+                <input type="number" min="0" step="0.01" className={inputCls} placeholder="Ej. 85.50" value={f.precio} onChange={(e) => set("precio", e.target.value)} />
+                <div className="text-xs text-slate-400 mt-0.5">Se guarda en tu catálogo para futuras compras y el valor del inventario</div>
+              </div>
+              <div>
                 <label className={labelCls}>Límite de stock (mínimo deseado)</label>
                 <input type="number" min="1" className={inputCls} value={f.stockMin} onChange={(e) => set("stockMin", e.target.value)} />
                 <div className="text-xs text-slate-400 mt-0.5">Cuando queden esta cantidad de envases o menos, se marcará "por acabarse"</div>
@@ -1214,6 +1290,7 @@ function Inventario({ data, persist, avisar }) {
                     </div>
                     <div className="text-sm text-slate-500 mt-0.5">
                       {i.presentation} · {i.envase} con {i.contenido} {i.unidad} · disponible: <b className="text-slate-700">{total} {i.unidad}</b>
+                      {i.precio > 0 && <span> · {fmtMoney(i.precio)} c/u · <b className="text-emerald-700">{fmtMoney(i.precio * i.cantidad)}</b> en stock</span>}
                     </div>
                     <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                       <span className={"text-xs px-2 py-0.5 rounded-full border " + cad.cls}>{cad.txt}</span>
@@ -1260,6 +1337,49 @@ function Inventario({ data, persist, avisar }) {
             <div className="text-center text-sm text-slate-400 py-6">No se encontró ningún producto con "{busca}".</div>
           )}
         </div>
+      )}
+
+      {/* catálogo maestro de códigos */}
+      {Object.keys(catalogo).length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={() => setCatOpen(!catOpen)} className="flex items-center gap-2 flex-1 text-left">
+              {catOpen ? <IChevD cls="w-4 h-4 text-slate-400" /> : <IChevR cls="w-4 h-4 text-slate-400" />}
+              <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                <IBarcode cls="w-4 h-4 text-emerald-700" /> Catálogo maestro ({Object.keys(catalogo).length} códigos registrados)
+              </span>
+            </button>
+            <button onClick={exportarCatalogoPDF} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50">
+              <IDownload cls="w-3.5 h-3.5" /> PDF catálogo
+            </button>
+          </div>
+          {catOpen && (
+            <div className="mt-3">
+              <p className="text-xs text-slate-400 mb-2">Tu base de datos permanente: cada producto que registras queda aquí con su información y precio, aunque se agote o lo quites del inventario. Al escanear o escribir un código conocido, el sistema lo reconoce y llena todo automáticamente.</p>
+              <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-100">
+                {Object.keys(catalogo).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map((c) => {
+                  const it = catalogo[c];
+                  const enInv = inv.some((i) => i.code === c);
+                  return (
+                    <div key={c} className="flex items-center gap-2 px-3 py-2 text-sm">
+                      {it.imagen ? <img src={it.imagen} alt="" className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0" /> : <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><IPill cls="w-4 h-4 text-slate-400" /></div>}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-slate-700 truncate">{it.name}</span>
+                          <span className="text-xs font-mono text-slate-400">{c}</span>
+                          {enInv ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">en inventario</span> : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">solo en catálogo</span>}
+                        </div>
+                        <div className="text-xs text-slate-500">{it.envase} · {it.contenido} {it.unidad}{it.precio ? " · " + fmtMoney(it.precio) : ""}{it.updatedAt ? " · act. " + fmtDate(it.updatedAt) : ""}</div>
+                      </div>
+                      <button onClick={() => procesarCodigo(c)} className="text-xs px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0">usar</button>
+                      {!enInv && <button onClick={() => quitarDelCatalogo(c)} className="text-slate-300 hover:text-rose-600 shrink-0" title="Eliminar del catálogo"><ITrash cls="w-3.5 h-3.5" /></button>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
       )}
     </div>
   );
@@ -1429,7 +1549,7 @@ function Perfil({ data, persist, avisar }) {
       try {
         const d = JSON.parse(reader.result);
         if (!d || typeof d !== "object" || !Array.isArray(d.meds)) throw new Error("formato");
-        persist({ meds: d.meds || [], taken: d.taken || {}, inv: d.inv || [], vitals: d.vitals || { readings: [], horarios: null }, perfil: d.perfil || {} });
+        persist({ meds: d.meds || [], taken: d.taken || {}, inv: d.inv || [], vitals: d.vitals || { readings: [], horarios: null }, perfil: d.perfil || {}, catalogo: d.catalogo || {}, comidas: d.comidas || [], agua: d.agua || {} });
         avisar("Respaldo restaurado correctamente");
       } catch (err) { avisar("El archivo no es un respaldo válido de MediControl"); }
     };
@@ -1523,7 +1643,81 @@ function Salud({ data, persist, avisar, hoy }) {
   const [f, setF] = useState({ a: "", b: "", pulso: "", ctx: CTX_GLUCOSA[0], fecha: hoy, hora: horaActual, notas: "" });
   const [nuevaHora, setNuevaHora] = useState("08:00");
   const [nuevoCtx, setNuevoCtx] = useState(CTX_GLUCOSA[0]);
+  const [pdfDesde, setPdfDesde] = useState(addDays(hoy, -29));
+  const [pdfHasta, setPdfHasta] = useState(hoy);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const esFuera = (r) => {
+    if (r.tipo === "peso") { const c = clasIMC(r.a, estatura); return c ? c.dir !== null : false; }
+    const c = clasificar(r.tipo, r.a, r.b, r.ctx);
+    return c ? c.txt !== "Normal" : false;
+  };
+
+  const exportarSaludPDF = () => {
+    if (!(window.jspdf && window.jspdf.jsPDF)) { avisar("No se pudo cargar el generador de PDF. Revisa tu conexión a internet y recarga."); return; }
+    const enRango = readings.filter((r) => r.fecha >= pdfDesde && r.fecha <= pdfHasta);
+    if (enRango.length === 0) { avisar("No hay mediciones en el rango de fechas seleccionado"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const perfil = data.perfil || {};
+    const edad = calcEdad(perfil.fechaNac);
+    doc.setFontSize(16); doc.setTextColor(6, 78, 59);
+    doc.text("Reporte de salud", 14, 15);
+    doc.setFontSize(9); doc.setTextColor(100);
+    const linea1 = (perfil.nombre ? "Paciente: " + perfil.nombre : "Paciente") + (edad !== null ? "  ·  " + edad + " años" : "") + (perfil.sexo ? "  ·  " + perfil.sexo : "") + (estatura ? "  ·  Estatura: " + estatura + " cm" : "");
+    doc.text(linea1, 14, 21);
+    doc.text("Periodo: " + fmtDateLong(pdfDesde) + " — " + fmtDateLong(pdfHasta) + "  ·  Generado: " + fmtDateLong(todayStr()) + "  ·  MediControl", 14, 26);
+    if (perfil.condiciones) doc.text("Condiciones: " + perfil.condiciones, 14, 31);
+    let y = perfil.condiciones ? 37 : 33;
+
+    Object.keys(METRICAS).forEach((t) => {
+      const m = METRICAS[t];
+      const rows = enRango.filter((r) => r.tipo === t).slice().sort((a, b) => ((a.fecha + a.hora) < (b.fecha + b.hora) ? -1 : 1));
+      if (rows.length === 0) return;
+      if (y > 250) { doc.addPage(); y = 15; }
+      doc.setFontSize(12); doc.setTextColor(4, 120, 87);
+      doc.text(m.label + " (" + m.unidad + ")", 14, y);
+      const body = rows.map((r) => {
+        const c = t === "peso" ? clasIMC(r.a, estatura) : clasificar(t, r.a, r.b, r.ctx);
+        const val = t === "presion" ? r.a + "/" + r.b + (r.pulso ? "  ·  " + r.pulso + " lpm" : "") : String(r.a);
+        const clas = c ? (c.txt + (t === "peso" && c.imc ? " (IMC " + c.imc + ")" : "")) : "—";
+        return [fmtDate(r.fecha), fmt12(r.hora), val, r.ctx || "—", clas, r.notas || ""];
+      });
+      doc.autoTable({
+        head: [["Fecha", "Hora", "Valor", "Contexto", "Clasificación", "Notas"]],
+        body, startY: y + 2,
+        styles: { fontSize: 8, cellPadding: 1.6 },
+        headStyles: { fillColor: [4, 120, 87], fontSize: 8 },
+        alternateRowStyles: { fillColor: [245, 250, 248] },
+        didParseCell: (d) => {
+          if (d.section === "body" && d.column.index === 4) {
+            const raw = String(d.cell.raw);
+            if (raw.indexOf("Normal") !== 0 && raw !== "—") { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+            else { d.cell.styles.textColor = [4, 120, 87]; }
+          }
+        },
+      });
+      y = doc.lastAutoTable.finalY + 4;
+      const vals = rows.map((r) => r.a);
+      const fuera = rows.filter((r) => esFuera(r)).length;
+      const promA = Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10;
+      let resumen = "Resumen: " + rows.length + " mediciones  ·  Promedio: " + promA;
+      if (t === "presion") {
+        const promB = Math.round((rows.reduce((s, r) => s + r.b, 0) / rows.length) * 10) / 10;
+        resumen = "Resumen: " + rows.length + " mediciones  ·  Promedio: " + promA + "/" + promB;
+      }
+      resumen += "  ·  Mín: " + Math.min(...vals) + "  ·  Máx: " + Math.max(...vals) + "  ·  Fuera de rango: " + fuera + (fuera > 0 ? "  (marcadas en rojo)" : "");
+      doc.setFontSize(8); doc.setTextColor(fuera > 0 ? 190 : 60, fuera > 0 ? 18 : 60, fuera > 0 ? 60 : 60);
+      doc.text(resumen, 14, y);
+      y += 9;
+    });
+
+    if (y > 270) { doc.addPage(); y = 15; }
+    doc.setFontSize(7); doc.setTextColor(150);
+    doc.text("Rangos de referencia generales para adultos (ADA/AHA). Este reporte es informativo y no sustituye la valoración médica.", 14, y);
+    doc.save("reporte-salud-" + pdfDesde + "-a-" + pdfHasta + ".pdf");
+    avisar("Reporte de salud en PDF descargado");
+  };
 
   const M = METRICAS[tipo];
 
@@ -1608,6 +1802,27 @@ function Salud({ data, persist, avisar, hoy }) {
     <div className="space-y-4">
       {/* perfil del paciente */}
       <Perfil data={data} persist={persist} avisar={avisar} />
+
+      {/* exportar reporte PDF por fechas */}
+      {readings.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 font-bold text-slate-700 text-sm w-full sm:w-auto"><IDownload cls="w-4 h-4 text-emerald-700" /> Reporte PDF para tu médico</div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Desde</label>
+              <input type="date" className="rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" value={pdfDesde} onChange={(e) => setPdfDesde(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Hasta</label>
+              <input type="date" className="rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" value={pdfHasta} onChange={(e) => setPdfHasta(e.target.value)} />
+            </div>
+            <button onClick={exportarSaludPDF} className="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5">
+              <IDownload cls="w-4 h-4" /> Exportar PDF
+            </button>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Incluye glucosa, presión arterial, peso y oxigenación del periodo, con las mediciones fuera de rango resaltadas en rojo y resumen estadístico por métrica.</p>
+        </section>
+      )}
 
       {/* selector de métrica */}
       <div className="grid grid-cols-4 gap-2">
@@ -1884,8 +2099,345 @@ function Salud({ data, persist, avisar, hoy }) {
   );
 }
 
+/* ============================================================
+   Registro de comidas (enfoque de nutrición conductual)
+   ============================================================ */
+const TIPOS_COMIDA = ["Desayuno", "Colación matutina", "Comida", "Colación vespertina", "Cena"];
+const GRUPOS_ALIM = [
+  { id: "verduras", label: "Verduras", buena: true },
+  { id: "frutas", label: "Frutas", buena: true },
+  { id: "proteina", label: "Proteína (carne, huevo, leguminosas)", buena: true },
+  { id: "cereales", label: "Cereales integrales", buena: true },
+  { id: "lacteos", label: "Lácteos", buena: true },
+  { id: "grasas", label: "Grasas saludables (aguacate, nueces, aceite de oliva)", buena: true },
+  { id: "procesados", label: "Ultraprocesados / azúcar", buena: false },
+  { id: "bebidas", label: "Bebida azucarada", buena: false },
+  { id: "alcohol", label: "Alcohol", buena: false },
+];
+const CONTEXTOS_COMIDA = ["Sin distracciones", "Viendo pantalla", "Con prisa", "Por ansiedad/estrés", "Reunión social"];
+const META_AGUA = 8;
+
+function Comidas({ data, persist, avisar, hoy }) {
+  const comidas = data.comidas || [];
+  const agua = data.agua || {};
+  const ahora = new Date();
+  const vacioC = { fecha: hoy, hora: pad(ahora.getHours()) + ":" + pad(ahora.getMinutes()), tipo: "Desayuno", alimentos: "", grupos: [], hambre: 3, saciedad: 3, contexto: "", notas: "" };
+  const [f, setF] = useState(vacioC);
+  const [editCom, setEditCom] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [err, setErr] = useState(null);
+  const [diaAbierto, setDiaAbierto] = useState(null);
+  const [pdfDesde, setPdfDesde] = useState(addDays(hoy, -6));
+  const [pdfHasta, setPdfHasta] = useState(hoy);
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const aguaHoy = agua[hoy] || 0;
+  const ajustarAgua = (d) => {
+    const n = Math.max(0, aguaHoy + d);
+    persist({ ...data, agua: { ...agua, [hoy]: n } });
+    if (d > 0 && n === META_AGUA) avisar("¡Meta de agua del día cumplida! 💧");
+  };
+
+  const toggleGrupo = (id) => set("grupos", f.grupos.includes(id) ? f.grupos.filter((g) => g !== id) : [...f.grupos, id]);
+
+  const guardar = () => {
+    if (!f.alimentos.trim()) return setErr("Describe qué comiste (ej. 2 tacos de pollo, ensalada, agua de jamaica).");
+    setErr(null);
+    const c = { id: editCom || uid(), fecha: f.fecha, hora: f.hora, tipo: f.tipo, alimentos: f.alimentos.trim(), grupos: f.grupos, hambre: Number(f.hambre), saciedad: Number(f.saciedad), contexto: f.contexto, notas: f.notas.trim(), ts: new Date().toISOString() };
+    persist({ ...data, comidas: editCom ? comidas.map((x) => (x.id === editCom ? c : x)) : [...comidas, c] });
+    avisar(editCom ? "Comida corregida" : "Comida registrada");
+    setEditCom(null);
+    setF({ ...vacioC, fecha: f.fecha, hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()) });
+  };
+
+  const editar = (c) => {
+    setEditCom(c.id);
+    setF({ fecha: c.fecha, hora: c.hora, tipo: c.tipo, alimentos: c.alimentos, grupos: c.grupos || [], hambre: c.hambre, saciedad: c.saciedad, contexto: c.contexto || "", notas: c.notas || "" });
+    setErr(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const eliminar = (id) => {
+    persist({ ...data, comidas: comidas.filter((c) => c.id !== id) });
+    setConfirmDel(null);
+    avisar("Registro eliminado");
+  };
+
+  const porFecha = (fecha) => comidas.filter((c) => c.fecha === fecha).slice().sort((a, b) => (a.hora < b.hora ? -1 : 1));
+  const deHoy = porFecha(hoy);
+  const fechasPasadas = [...new Set(comidas.filter((c) => c.fecha < hoy).map((c) => c.fecha))].sort().reverse().slice(0, 14);
+
+  const resumenDia = (lista) => {
+    const g = {};
+    lista.forEach((c) => (c.grupos || []).forEach((x) => { g[x] = (g[x] || 0) + 1; }));
+    return g;
+  };
+
+  const exportarComidasPDF = () => {
+    if (!(window.jspdf && window.jspdf.jsPDF)) { avisar("No se pudo cargar el generador de PDF. Revisa tu conexión a internet y recarga."); return; }
+    const enRango = comidas.filter((c) => c.fecha >= pdfDesde && c.fecha <= pdfHasta).slice().sort((a, b) => ((a.fecha + a.hora) < (b.fecha + b.hora) ? -1 : 1));
+    if (enRango.length === 0) { avisar("No hay comidas registradas en ese rango de fechas"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape" });
+    const perfil = data.perfil || {};
+    doc.setFontSize(16); doc.setTextColor(6, 78, 59);
+    doc.text("Diario de alimentación", 14, 15);
+    doc.setFontSize(9); doc.setTextColor(100);
+    doc.text((perfil.nombre ? "Paciente: " + perfil.nombre + "  ·  " : "") + "Periodo: " + fmtDateLong(pdfDesde) + " — " + fmtDateLong(pdfHasta) + "  ·  Generado: " + fmtDateLong(todayStr()) + "  ·  MediControl", 14, 21);
+    const nombreGrupo = (id) => { const g = GRUPOS_ALIM.find((x) => x.id === id); return g ? g.label.split(" (")[0] : id; };
+    doc.autoTable({
+      head: [["Fecha", "Hora", "Comida", "Alimentos", "Grupos presentes", "Hambre→Saciedad", "Contexto", "Notas"]],
+      body: enRango.map((c) => [
+        fmtDate(c.fecha), fmt12(c.hora), c.tipo, c.alimentos,
+        (c.grupos || []).map(nombreGrupo).join(", ") || "—",
+        c.hambre + " → " + c.saciedad,
+        c.contexto || "—", c.notas || "",
+      ]),
+      startY: 26, styles: { fontSize: 7.5, cellPadding: 1.6 },
+      headStyles: { fillColor: [4, 120, 87], fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 250, 248] },
+      columnStyles: { 3: { cellWidth: 70 }, 4: { cellWidth: 55 } },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index === 4) {
+          const raw = String(d.cell.raw);
+          if (raw.indexOf("Ultraprocesados") >= 0 || raw.indexOf("Bebida azucarada") >= 0 || raw.indexOf("Alcohol") >= 0) { d.cell.styles.textColor = [190, 18, 60]; }
+        }
+      },
+    });
+    let yF = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    /* análisis nutricional del periodo */
+    const dias = [...new Set(enRango.map((c) => c.fecha))];
+    const conVerduras = enRango.filter((c) => (c.grupos || []).includes("verduras")).length;
+    const conProcesados = enRango.filter((c) => (c.grupos || []).some((g) => ["procesados", "bebidas", "alcohol"].includes(g))).length;
+    const sinDesayuno = dias.filter((d) => !enRango.some((c) => c.fecha === d && c.tipo === "Desayuno")).length;
+    const conAnsiedad = enRango.filter((c) => c.contexto === "Por ansiedad/estrés").length;
+    const conPantalla = enRango.filter((c) => c.contexto === "Viendo pantalla").length;
+    const aguaProm = dias.length ? Math.round((dias.reduce((s, d) => s + (agua[d] || 0), 0) / dias.length) * 10) / 10 : 0;
+    const satAlta = enRango.filter((c) => c.saciedad >= 5).length;
+    doc.setFontSize(11); doc.setTextColor(4, 120, 87);
+    doc.text("ANÁLISIS DEL PERIODO", 14, yF); yF += 6;
+    doc.setFontSize(9); doc.setTextColor(60);
+    const lineas = [
+      enRango.length + " comidas registradas en " + dias.length + " días (promedio " + Math.round((enRango.length / dias.length) * 10) / 10 + " al día).",
+      "Comidas con verduras: " + conVerduras + " de " + enRango.length + " (" + Math.round((conVerduras / enRango.length) * 100) + "%). Meta experta: incluir verduras en al menos 2 comidas principales al día.",
+      "Comidas con ultraprocesados, bebidas azucaradas o alcohol: " + conProcesados + " (" + Math.round((conProcesados / enRango.length) * 100) + "%).",
+      "Días sin desayuno registrado: " + sinDesayuno + " de " + dias.length + ".",
+      "Comidas por ansiedad/estrés: " + conAnsiedad + "  ·  Comidas viendo pantalla: " + conPantalla + "  ·  Comidas hasta sentirte muy lleno (saciedad 5): " + satAlta + ".",
+      "Agua: promedio de " + aguaProm + " vasos al día (meta: " + META_AGUA + ").",
+    ];
+    lineas.forEach((l) => { doc.text("•  " + l, 14, yF); yF += 5; });
+    yF += 3;
+    doc.setFontSize(7); doc.setTextColor(150);
+    doc.text("Registro basado en grupos de alimentos, escala de hambre-saciedad (1=nada, 5=mucho) y contexto de alimentación. No sustituye la valoración de un nutriólogo.", 14, yF);
+    doc.save("diario-alimentacion-" + pdfDesde + "-a-" + pdfHasta + ".pdf");
+    avisar("Diario de alimentación en PDF descargado");
+  };
+
+  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white";
+  const labelCls = "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1";
+
+  const TarjetaComida = ({ c }) => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-3.5 flex items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-slate-800">{c.tipo}</span>
+          <span className="text-xs text-slate-400">{fmt12(c.hora)}</span>
+          <span className="text-xs text-slate-500">hambre {c.hambre} → saciedad {c.saciedad}</span>
+          {c.contexto && <span className={"text-xs px-2 py-0.5 rounded-full border " + (c.contexto === "Por ansiedad/estrés" || c.contexto === "Viendo pantalla" || c.contexto === "Con prisa" ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-emerald-100 text-emerald-700 border-emerald-200")}>{c.contexto}</span>}
+        </div>
+        <div className="text-sm text-slate-600 mt-0.5">{c.alimentos}</div>
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {(c.grupos || []).map((g) => {
+            const gr = GRUPOS_ALIM.find((x) => x.id === g);
+            if (!gr) return null;
+            return <span key={g} className={"text-[10px] px-1.5 py-0.5 rounded-full border " + (gr.buena ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-600 border-rose-200")}>{gr.label.split(" (")[0]}</span>;
+          })}
+        </div>
+        {c.notas && <div className="text-xs text-slate-400 mt-1">{c.notas}</div>}
+      </div>
+      {confirmDel === c.id ? (
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={() => eliminar(c.id)} className="text-xs px-2 py-1 rounded-lg bg-rose-600 text-white">Eliminar</button>
+          <button onClick={() => setConfirmDel(null)} className="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-600">No</button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => editar(c)} className="text-slate-300 hover:text-emerald-700" title="Corregir"><IEdit cls="w-4 h-4" /></button>
+          <button onClick={() => setConfirmDel(c.id)} className="text-slate-300 hover:text-rose-600" title="Eliminar"><ITrash cls="w-4 h-4" /></button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* agua de hoy */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="font-bold text-slate-700 flex items-center gap-2"><IDrop cls="w-5 h-5 text-cyan-600" /> Agua de hoy</div>
+            <div className="text-sm text-slate-500">{aguaHoy} de {META_AGUA} vasos (~{aguaHoy * 250} ml)</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => ajustarAgua(-1)} disabled={aguaHoy === 0} className={"w-9 h-9 rounded-xl border flex items-center justify-center " + (aguaHoy === 0 ? "border-slate-200 text-slate-300" : "border-slate-300 text-slate-600 hover:bg-slate-50")}><IMinus cls="w-4 h-4" /></button>
+            <div className="flex gap-1">
+              {Array.from({ length: META_AGUA }).map((_, i) => (
+                <div key={i} className={"w-3.5 h-6 rounded-sm " + (i < aguaHoy ? "bg-cyan-500" : "bg-slate-100 border border-slate-200")} />
+              ))}
+            </div>
+            <button onClick={() => ajustarAgua(1)} className="w-9 h-9 rounded-xl border border-cyan-300 text-cyan-700 hover:bg-cyan-50 flex items-center justify-center"><IPlus cls="w-4 h-4" /></button>
+          </div>
+        </div>
+      </section>
+
+      {/* registrar comida */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2"><IFood cls="w-5 h-5 text-emerald-700" /> {editCom ? "Corregir comida" : "Registrar comida"}</h2>
+        {editCom && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between text-sm">
+            <span className="text-amber-800 font-medium flex items-center gap-1.5"><IEdit cls="w-4 h-4" /> Editando un registro existente</span>
+            <button onClick={() => { setEditCom(null); setF(vacioC); }} className="text-xs px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-800">Cancelar</button>
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label className={labelCls}>Fecha</label>
+            <input type="date" className={inputCls} value={f.fecha} onChange={(e) => set("fecha", e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Hora</label>
+            <input type="time" className={inputCls} value={f.hora} onChange={(e) => set("hora", e.target.value)} />
+          </div>
+          <div className="col-span-2">
+            <label className={labelCls}>Tipo de comida</label>
+            <select className={inputCls} value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>
+              {TIPOS_COMIDA.map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>¿Qué comiste? (con porciones aproximadas) *</label>
+          <textarea className={inputCls} rows={2} placeholder="Ej. 2 tacos de pollo con verdura, 1 vaso de agua de jamaica sin azúcar, 1 plátano" value={f.alimentos} onChange={(e) => set("alimentos", e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Grupos de alimentos presentes (toca los que aplican)</label>
+          <div className="flex flex-wrap gap-1.5">
+            {GRUPOS_ALIM.map((g) => (
+              <button key={g.id} onClick={() => toggleGrupo(g.id)}
+                className={"text-xs px-2.5 py-1.5 rounded-full border transition-colors " +
+                  (f.grupos.includes(g.id)
+                    ? (g.buena ? "bg-emerald-600 border-emerald-600 text-white" : "bg-rose-500 border-rose-500 text-white")
+                    : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")}>
+                {g.label.split(" (")[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div>
+            <label className={labelCls}>Hambre antes (1-5)</label>
+            <select className={inputCls} value={f.hambre} onChange={(e) => set("hambre", e.target.value)}>
+              <option value="1">1 · Nada de hambre</option><option value="2">2 · Poca</option><option value="3">3 · Moderada</option><option value="4">4 · Mucha</option><option value="5">5 · Voraz</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Saciedad después (1-5)</label>
+            <select className={inputCls} value={f.saciedad} onChange={(e) => set("saciedad", e.target.value)}>
+              <option value="1">1 · Quedé con hambre</option><option value="2">2 · Algo satisfecho</option><option value="3">3 · Satisfecho</option><option value="4">4 · Lleno</option><option value="5">5 · Demasiado lleno</option>
+            </select>
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={labelCls}>¿Cómo comiste?</label>
+            <select className={inputCls} value={f.contexto} onChange={(e) => set("contexto", e.target.value)}>
+              <option value="">—</option>
+              {CONTEXTOS_COMIDA.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Notas (opcional)</label>
+          <input className={inputCls} placeholder="Ej. Se me antojó dulce después, comí fuera de casa…" value={f.notas} onChange={(e) => set("notas", e.target.value)} />
+        </div>
+        {err && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2"><IWarn cls="w-4 h-4 shrink-0" /> {err}</div>
+        )}
+        <button onClick={guardar} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2">
+          <IPlus cls="w-5 h-5" /> {editCom ? "Guardar corrección" : "Guardar comida"}
+        </button>
+        <p className="text-xs text-slate-400">Ideal de los expertos: comer con hambre 3-4 y detenerte en saciedad 3 (satisfecho, no lleno). La escala hambre-saciedad y el contexto revelan más hábitos que contar calorías.</p>
+      </section>
+
+      {/* exportar PDF */}
+      {comidas.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 font-bold text-slate-700 text-sm w-full sm:w-auto"><IDownload cls="w-4 h-4 text-emerald-700" /> Diario en PDF para tu nutriólogo</div>
+            <div>
+              <label className={labelCls}>Desde</label>
+              <input type="date" className={inputCls} value={pdfDesde} onChange={(e) => setPdfDesde(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Hasta</label>
+              <input type="date" className={inputCls} value={pdfHasta} onChange={(e) => setPdfHasta(e.target.value)} />
+            </div>
+            <button onClick={exportarComidasPDF} className="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5">
+              <IDownload cls="w-4 h-4" /> Exportar PDF
+            </button>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Incluye cada comida con grupos de alimentos, hambre-saciedad y contexto, más un análisis del periodo: % de comidas con verduras, ultraprocesados, días sin desayuno, comidas por ansiedad y agua promedio.</p>
+        </section>
+      )}
+
+      {/* comidas de hoy */}
+      <section>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-2">Hoy · {deHoy.length} {deHoy.length === 1 ? "comida registrada" : "comidas registradas"}</h2>
+        {deHoy.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">Aún no registras comidas hoy. El registro en el momento (no de memoria en la noche) es el hábito #1 de un buen diario.</div>
+        ) : (
+          <div className="space-y-2">
+            {deHoy.map((c) => <TarjetaComida key={c.id} c={c} />)}
+            <div className="flex flex-wrap gap-1.5 bg-slate-100 rounded-xl px-3 py-2">
+              <span className="text-xs font-bold text-slate-500">Balance del día:</span>
+              {Object.entries(resumenDia(deHoy)).map(([g, n]) => {
+                const gr = GRUPOS_ALIM.find((x) => x.id === g);
+                if (!gr) return null;
+                return <span key={g} className={"text-xs " + (gr.buena ? "text-emerald-700" : "text-rose-600")}>{gr.label.split(" (")[0]} ×{n}</span>;
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* historial de días anteriores */}
+      {fechasPasadas.length > 0 && (
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-2">Días anteriores</h2>
+          <div className="space-y-2">
+            {fechasPasadas.map((fecha) => {
+              const lista = porFecha(fecha);
+              const abierto = diaAbierto === fecha;
+              return (
+                <div key={fecha} className="bg-white rounded-2xl border border-slate-200">
+                  <button onClick={() => setDiaAbierto(abierto ? null : fecha)} className="w-full flex items-center justify-between px-4 py-3 text-sm">
+                    <span className="flex items-center gap-2 font-semibold text-slate-700">
+                      {abierto ? <IChevD cls="w-4 h-4 text-slate-400" /> : <IChevR cls="w-4 h-4 text-slate-400" />}
+                      {fmtDate(fecha)}
+                    </span>
+                    <span className="text-xs text-slate-400">{lista.length} comidas · {agua[fecha] || 0} vasos de agua</span>
+                  </button>
+                  {abierto && <div className="px-4 pb-3 space-y-2">{lista.map((c) => <TarjetaComida key={c.id} c={c} />)}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
 /* ============================================================ */
-function Reporte({ data, now }) {
+function Reporte({ data, now, avisar }) {
   const [mes, setMes] = useState(now.getFullYear() + "-" + pad(now.getMonth() + 1));
   const [y, m] = mes.split("-").map(Number);
   const diasEnMes = new Date(y, m, 0).getDate();
@@ -1920,6 +2472,75 @@ function Reporte({ data, now }) {
   const totVenc = filas.reduce((a, r) => a + (r.prog - r.futuras), 0);
   const adhGlobal = totVenc > 0 ? Math.round((totTom / totVenc) * 100) : null;
 
+  /* patrones de olvido: qué día de la semana y qué hora acumulan más omisiones */
+  const olvidos = useMemo(() => {
+    const porDia = [0, 0, 0, 0, 0, 0, 0];
+    const porHora = {};
+    for (const med of data.meds) {
+      const fin = fechaFin(med);
+      for (let d = 1; d <= diasEnMes; d++) {
+        const fecha = y + "-" + pad(m) + "-" + pad(d);
+        if (fecha < med.startDate || fecha > fin) continue;
+        for (const t of med.times) {
+          if (data.taken[doseKey(med.id, fecha, t)]) continue;
+          if (fecha + "T" + t > nowISO) continue;
+          porDia[parseDate(fecha).getDay()]++;
+          porHora[t] = (porHora[t] || 0) + 1;
+        }
+      }
+    }
+    let diaMax = 0, diaVal = 0;
+    porDia.forEach((v, i) => { if (v > diaVal) { diaVal = v; diaMax = i; } });
+    let horaMax = null, horaVal = 0;
+    Object.keys(porHora).forEach((h) => { if (porHora[h] > horaVal) { horaVal = porHora[h]; horaMax = h; } });
+    return { diaMax, diaVal, horaMax, horaVal, porDia, total: porDia.reduce((a, b) => a + b, 0) };
+  }, [data, y, m, diasEnMes, nowISO]);
+
+  const exportarReportePDF = () => {
+    if (!(window.jspdf && window.jspdf.jsPDF)) { avisar("No se pudo cargar el generador de PDF. Revisa tu conexión a internet y recarga."); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const nombre = (data.perfil && data.perfil.nombre) || "";
+    doc.setFontSize(16); doc.setTextColor(6, 78, 59);
+    doc.text("Reporte mensual de adherencia", 14, 15);
+    doc.setFontSize(9); doc.setTextColor(100);
+    doc.text((nombre ? "Paciente: " + nombre + "  ·  " : "") + "Mes: " + MESES[m - 1] + " " + y + "  ·  Generado: " + fmtDateLong(todayStr()) + "  ·  MediControl", 14, 21);
+    doc.autoTable({
+      head: [["Medicamento", "Dosis", "Frecuencia", "Motivo", "Programadas", "Tomadas", "Omitidas", "Por venir", "Adherencia"]],
+      body: filas.map((r) => [
+        r.med.name, r.med.dose, "cada " + r.med.freqHours + " h", r.med.purpose || "—",
+        String(r.prog), String(r.tom), String(r.omitidas), String(r.futuras),
+        r.adh === null ? "—" : r.adh + "%",
+      ]),
+      startY: 27, styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [4, 120, 87], fontSize: 8 },
+      alternateRowStyles: { fillColor: [245, 250, 248] },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index === 6 && Number(d.cell.raw) > 0) { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+        if (d.section === "body" && d.column.index === 8 && d.cell.raw !== "—") {
+          const v = parseInt(d.cell.raw);
+          d.cell.styles.fontStyle = "bold";
+          d.cell.styles.textColor = v >= 80 ? [4, 120, 87] : [190, 18, 60];
+        }
+      },
+    });
+    let yF = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    doc.setFontSize(11); doc.setTextColor(4, 120, 87);
+    doc.text("ADHERENCIA GLOBAL DEL MES: " + (adhGlobal === null ? "—" : adhGlobal + "%") + "   (" + totTom + " de " + totVenc + " tomas vencidas)", 14, yF);
+    yF += 7;
+    if (olvidos.total > 0) {
+      doc.setFontSize(9); doc.setTextColor(180, 83, 9);
+      doc.text("Patrones de olvido: el día con más omisiones fue " + DIAS_FULL[olvidos.diaMax] + " (" + olvidos.diaVal + ")" + (olvidos.horaMax ? " y la hora con más olvidos fue " + fmt12(olvidos.horaMax) + " (" + olvidos.horaVal + ")." : "."), 14, yF);
+      yF += 5;
+      doc.text("Omitidas por día: " + olvidos.porDia.map((v, i) => DIAS_SEM[i] + " " + v).join("  ·  "), 14, yF);
+      yF += 7;
+    }
+    doc.setFontSize(7); doc.setTextColor(150);
+    doc.text("La adherencia se calcula solo sobre tomas cuya hora ya pasó. Documento informativo; no sustituye la valoración médica.", 14, yF);
+    doc.save("reporte-adherencia-" + y + "-" + pad(m) + ".pdf");
+    avisar("PDF del reporte mensual descargado");
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center justify-between">
@@ -1939,6 +2560,30 @@ function Reporte({ data, now }) {
             <Kpi label="Tomas programadas" valor={totProg} />
             <Kpi label="Tomas confirmadas" valor={totTom} verde />
             <Kpi label="Adherencia" valor={adhGlobal === null ? "—" : adhGlobal + "%"} verde={adhGlobal !== null && adhGlobal >= 80} />
+          </div>
+
+          {olvidos.total > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div className="font-bold text-amber-900 text-sm mb-1.5 flex items-center gap-1.5"><IWarn cls="w-4 h-4" /> Patrones de olvido de {MESES[m - 1]}</div>
+              <p className="text-sm text-amber-900">
+                El día que más se te olvida es <b>{DIAS_FULL[olvidos.diaMax]}</b> ({olvidos.diaVal} {olvidos.diaVal === 1 ? "toma omitida" : "tomas omitidas"})
+                {olvidos.horaMax && <span> y la hora con más olvidos es <b>{fmt12(olvidos.horaMax)}</b> ({olvidos.horaVal})</span>}.
+                Sugerencia: ancla esa toma a una rutina fija (al desayunar, al lavarte los dientes, al llegar del trabajo) o ponle una alarma específica.
+              </p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {olvidos.porDia.map((v, i) => (
+                  <span key={i} className={"text-xs px-2 py-1 rounded-lg border " + (v === 0 ? "bg-white border-slate-200 text-slate-400" : i === olvidos.diaMax ? "bg-rose-100 border-rose-200 text-rose-700 font-bold" : "bg-amber-100 border-amber-200 text-amber-800")}>
+                    {DIAS_SEM[i]}: {v}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button onClick={exportarReportePDF} className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl border border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100">
+              <IDownload cls="w-4 h-4" /> Exportar reporte a PDF
+            </button>
           </div>
 
           <div className="space-y-2">
