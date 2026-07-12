@@ -139,6 +139,7 @@ const ITape = ({ cls }) => <Sv cls={cls} d="M21.3 8.7 15.3 2.7a1 1 0 0 0-1.4 0L2
 const IZap = ({ cls }) => <Sv cls={cls} d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />;
 const IFlame = ({ cls }) => <Sv cls={cls} d="M12 22c4.4 0 7-2.9 7-6.6 0-2.8-1.7-4.8-3.2-6.7C14.5 7 13.5 5.2 13.5 3c-3.2 1.9-4.4 5-4.3 7.2C8 9.4 7.4 8.4 7.3 7 5.8 8.9 5 11.2 5 13.4 5 18 7.6 22 12 22Z" />;
 const IBeaker = ({ cls }) => <Sv cls={cls} d="M9 2h6M10 2v6.3L4.7 17A3.5 3.5 0 0 0 7.8 22h8.4a3.5 3.5 0 0 0 3.1-5L14 8.3V2M7 16h10" />;
+const IToilet = ({ cls }) => <Sv cls={cls} d="M7 3h8a1 1 0 0 1 1 1v7H6V4a1 1 0 0 1 1-1ZM4 11h16a8 8 0 0 1-8 8v0a8 8 0 0 1-8-8ZM12 19v3M8 22h8" />;
 const DIAS_FULL = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 /* ============================================================ */
@@ -157,7 +158,7 @@ function MediControl() {
   useEffect(() => {
     try {
       const v = localStorage.getItem(KEY);
-      if (v) { const p = JSON.parse(v); setData({ meds: p.meds || [], taken: p.taken || {}, inv: p.inv || [], vitals: p.vitals || { readings: [], horarios: null }, perfil: p.perfil || {}, catalogo: p.catalogo || {}, comidas: p.comidas || [], agua: p.agua || {} }); }
+      if (v) { const p = JSON.parse(v); setData({ meds: p.meds || [], taken: p.taken || {}, inv: p.inv || [], vitals: p.vitals || { readings: [], horarios: null }, perfil: p.perfil || {}, catalogo: p.catalogo || {}, comidas: p.comidas || [], agua: p.agua || {}, ultimoRespaldo: p.ultimoRespaldo || null }); }
     } catch (e) { /* sin datos previos */ }
     setLoaded(true);
   }, []);
@@ -345,7 +346,7 @@ function MediControl() {
         {tab === "salud" && <Salud data={data} persist={persist} avisar={avisar} hoy={hoy} />}
         {tab === "comidas" && <Comidas data={data} persist={persist} avisar={avisar} hoy={hoy} />}
         {tab === "saludable" && <Saludable avisar={avisar} />}
-        {tab === "reporte" && <Reporte data={data} now={now} avisar={avisar} />}
+        {tab === "reporte" && <React.Fragment><Reporte data={data} now={now} avisar={avisar} /><Respaldo data={data} persist={persist} avisar={avisar} /></React.Fragment>}
       </main>
 
       {toast && (
@@ -1663,11 +1664,35 @@ const NIVELES_ORINA = [
   { v: 2, label: "2 · Amarillo paja (claro)" },
   { v: 3, label: "3 · Amarillo" },
   { v: 4, label: "4 · Amarillo intenso / naranja" },
+  { v: 5, label: "5 · Ámbar / miel (muy concentrada)" },
+  { v: 6, label: "6 · Café oscuro (color refresco de cola)" },
+  { v: 7, label: "7 · Rosada / roja (con sangre visible)" },
+  { v: 8, label: "8 · Turbia, con espuma persistente o mal olor" },
 ];
+const CTX_ORINA = ["Sin molestias", "Ardor o dolor al orinar", "Urgencia repentina", "Chorro débil o goteo", "Me despertó en la noche (nicturia)"];
+const BRISTOL = [
+  { v: 1, label: "Tipo 1 · Bolitas duras separadas, difíciles de expulsar" },
+  { v: 2, label: "Tipo 2 · Forma de salchicha, dura y grumosa" },
+  { v: 3, label: "Tipo 3 · Salchicha con grietas en la superficie" },
+  { v: 4, label: "Tipo 4 · Salchicha lisa y blanda (ideal)" },
+  { v: 5, label: "Tipo 5 · Trozos blandos con bordes definidos" },
+  { v: 6, label: "Tipo 6 · Trozos esponjosos, pastosa" },
+  { v: 7, label: "Tipo 7 · Totalmente líquida, sin trozos sólidos" },
+];
+const COLORES_HECES = [
+  { v: 1, label: "Café (normal)" },
+  { v: 2, label: "Café oscuro" },
+  { v: 3, label: "Verde" },
+  { v: 4, label: "Amarilla / grasosa / que flota" },
+  { v: 5, label: "Pálida, gris o blanquecina (acolia)" },
+  { v: 6, label: "Negra alquitranada, pegajosa, olor muy fétido (melena)" },
+  { v: 7, label: "Roja o con sangre visible" },
+];
+const CTX_HECES = ["Sin molestias", "Dolor o cólico", "Urgencia", "Sensación de evacuación incompleta", "Con mucho esfuerzo", "Con moco"];
 const DIAGNOSTICOS = ["Sobrepeso", "Obesidad", "Prediabetes", "Diabetes", "Prehipertensión", "Hipertensión", "Dislipidemia", "Hígado graso", "Asma / EPOC", "Hipotiroidismo", "Ansiedad / depresión", "Gastritis / colitis"];
 const PLACE_VALOR = { glucosa: "95", peso: "78.5", spo2: "97", temp: "36.6", fr: "16", cuello: "38" };
-const NOTAS_PH = { glucosa: "Ej. Comí tacos al pastor, me sentí mareado…", dolor: "Ej. Punzante, empeora al moverme, mejora con reposo…", estres: "Ej. Detonante: entrega de trabajo, tráfico…", sueno: "Ej. Desperté 2 veces, tomé café por la tarde…", orina: "Ej. Tomé poca agua hoy, hice ejercicio…", temp: "Ej. Tomé paracetamol a las 3 pm…" };
-const BANDAS_REF = { glucosa: [70, 140], presion: [90, 120], spo2: [95, 100], temp: [36, 37.2], fc: [60, 100], fr: [12, 20], sueno: [7, 9], dolor: [0, 3], estres: [0, 3] };
+const NOTAS_PH = { glucosa: "Ej. Comí tacos al pastor, me sentí mareado…", dolor: "Ej. Punzante, empeora al moverme, mejora con reposo…", estres: "Ej. Detonante: entrega de trabajo, tráfico…", sueno: "Ej. Desperté 2 veces, tomé café por la tarde…", orina: "Ej. Tomé poca agua hoy, comí betabel, tomo complejo B…", heces: "Ej. Comí en la calle ayer, tomé antibiótico, dolor antes de evacuar…", temp: "Ej. Tomé paracetamol a las 3 pm…" };
+const BANDAS_REF = { glucosa: [70, 140], presion: [90, 120], spo2: [95, 100], temp: [36, 37.2], fc: [60, 100], fr: [12, 20], sueno: [7, 9], dolor: [0, 3], estres: [0, 3], heces: [3, 4] };
 
 const METRICAS = {
   glucosa: {
@@ -1731,9 +1756,14 @@ const METRICAS = {
     horariosDefault: [{ hora: "21:00", ctx: "Fin del día" }],
   },
   orina: {
-    label: "Color de orina", unidad: "de 4", Icon: IBeaker, color: "text-yellow-500",
-    guia: "Observa el color a media micción, de preferencia con luz natural y antes de que caiga al agua del inodoro (o en un recipiente claro). La primera orina de la mañana siempre es más concentrada; para valorar tu hidratación usa una muestra de media mañana o de la tarde. Vitaminas del complejo B y algunos alimentos (betabel) pueden alterar el color: anótalo en las notas.",
-    horariosDefault: [{ hora: "11:00", ctx: "Media mañana" }],
+    label: "Orina (color y frecuencia)", unidad: "de 8", Icon: IBeaker, color: "text-yellow-500",
+    guia: "Registra CADA micción del día (o al menos cuéntalas): con eso la app calcula tu frecuencia diaria, un dato que tu médico sí puede usar. Lo normal en un adulto es de 4 a 8 micciones al día. Observa el color a media micción, con luz natural y antes de que caiga al agua (o en un recipiente claro). La primera orina de la mañana siempre es más concentrada. Vitaminas del complejo B, betabel y algunos medicamentos alteran el color: anótalo en las notas. Señales que SIEMPRE debes registrar y comentar con tu médico: color café oscuro (como refresco de cola), rosado/rojo, espuma persistente, ardor o levantarte varias veces en la noche a orinar.",
+    horariosDefault: [],
+  },
+  heces: {
+    label: "Evacuaciones (heces)", unidad: "Bristol", Icon: IToilet, color: "text-amber-700",
+    guia: "Registra CADA evacuación: la frecuencia diaria y semanal se calcula sola. Lo normal va de 3 veces por semana hasta 3 veces por día. Clasifica la forma con la escala de Bristol (1 = muy dura, 4 = ideal, 7 = líquida) y el color observado. Señales de alarma que debes registrar SIEMPRE y que ameritan atención médica: heces negras alquitranadas y de olor muy fétido (melena: posible sangrado digestivo), sangre roja visible, heces pálidas o blanquecinas (acolia: posible problema hepático o biliar) y diarrea con fiebre o con más de 6 evacuaciones al día. Anota en las notas alimentos sospechosos, antibióticos, suplementos de hierro (oscurecen las heces) o si hubo moco.",
+    horariosDefault: [],
   },
 };
 
@@ -1841,7 +1871,25 @@ const clasificar = (tipo, a, b, ctx, extra) => {
     if (v === 1) return { txt: "Exceso de hidratación", cls: bajoCls };
     if (v === 2) return { txt: "Hidratación adecuada", cls: okCls, ok: true };
     if (v === 3) return { txt: "Riesgo de deshidratación — toma agua", cls: medioCls };
-    return { txt: "Deshidratación — hidrátate ya", cls: altoCls, alerta: true };
+    if (v === 4) return { txt: "Deshidratación — hidrátate ya", cls: altoCls, alerta: true };
+    if (v === 5) return { txt: "Deshidratación importante — hidrátate y vigila", cls: altoCls, alerta: true };
+    if (v === 6) return { txt: "Coluria (orina café oscura): posible bilirrubina — consulta a tu médico pronto", cls: altoCls, alerta: true };
+    if (v === 7) return { txt: "Posible sangre en orina (hematuria) — busca atención médica hoy", cls: altoCls, alerta: true };
+    return { txt: "Turbia / espumosa: posible infección o proteínas — consulta a tu médico", cls: medioCls, alerta: true };
+  }
+  if (tipo === "heces") {
+    const forma = Number(a), color = Number(b);
+    if (color === 6) return { txt: "🚨 Melena (negra alquitranada): posible sangrado digestivo — acude a URGENCIAS", cls: altoCls, alerta: true };
+    if (color === 7) return { txt: "🚨 Sangre visible en heces — busca atención médica hoy mismo", cls: altoCls, alerta: true };
+    if (color === 5) return { txt: "Acolia (heces pálidas): posible problema hepático o biliar — consulta pronto", cls: altoCls, alerta: true };
+    if (color === 4) return { txt: "Grasosa / amarilla: posible mala absorción de grasas — coméntalo con tu médico", cls: medioCls };
+    if (forma === 7) return { txt: "Diarrea líquida — hidrátate con suero oral y vigila", cls: altoCls, alerta: true };
+    if (forma === 6) return { txt: "Diarrea leve (heces pastosas)", cls: medioCls };
+    if (forma === 1) return { txt: "Estreñimiento importante", cls: medioCls };
+    if (forma === 2) return { txt: "Estreñimiento", cls: medioCls };
+    if (forma === 5) return { txt: "Blanda: puede faltar fibra", cls: bajoCls };
+    if (color === 3) return { txt: "Forma normal · color verde (usualmente alimentos o tránsito rápido)", cls: bajoCls };
+    return { txt: "Normal (Bristol " + forma + ")", cls: okCls, ok: true };
   }
   return null;
 };
@@ -2101,6 +2149,7 @@ function Salud({ data, persist, avisar, hoy }) {
         const val = t === "presion" ? r.a + "/" + r.b + (r.pulso ? "  ·  " + r.pulso + " lpm" : "")
           : t === "cintura" ? r.a + " cm" + (r.b ? "  ·  cadera " + r.b + " cm" : "")
           : t === "orina" ? (NIVELES_ORINA[r.a - 1] ? NIVELES_ORINA[r.a - 1].label : String(r.a))
+          : t === "heces" ? ("Bristol " + r.a + (COLORES_HECES[r.b - 1] ? " · " + COLORES_HECES[r.b - 1].label : ""))
           : String(r.a);
         const clas = c ? (c.txt + (t === "peso" && c.imc ? " (IMC " + c.imc + ")" : "")) : "—";
         return [fmtDate(r.fecha), fmt12(r.hora), val, r.ctx || "—", clas, r.notas || ""];
@@ -2121,13 +2170,23 @@ function Salud({ data, persist, avisar, hoy }) {
       y = doc.lastAutoTable.finalY + 4;
       const vals = rows.map((r) => r.a);
       const fuera = rows.filter((r) => esFuera(r)).length;
-      const promA = Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10;
-      let resumen = "Resumen: " + rows.length + " mediciones  ·  Promedio: " + promA;
-      if (t === "presion") {
-        const promB = Math.round((rows.reduce((s, r) => s + r.b, 0) / rows.length) * 10) / 10;
-        resumen = "Resumen: " + rows.length + " mediciones  ·  Promedio: " + promA + "/" + promB;
+      let resumen;
+      if (t === "orina" || t === "heces") {
+        const porDia = {};
+        rows.forEach((r) => { porDia[r.fecha] = (porDia[r.fecha] || 0) + 1; });
+        const nDias = Object.keys(porDia).length;
+        const promD = nDias ? Math.round((rows.length / nDias) * 10) / 10 : 0;
+        const maxD = Math.max(...Object.values(porDia));
+        resumen = "Resumen: " + rows.length + " registros en " + nDias + " día(s)  ·  Frecuencia promedio: " + promD + " por día  ·  Máximo en un día: " + maxD + "  ·  Con dato de alerta: " + fuera + (fuera > 0 ? "  (marcados en rojo)" : "");
+      } else {
+        const promA = Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10;
+        resumen = "Resumen: " + rows.length + " mediciones  ·  Promedio: " + promA;
+        if (t === "presion") {
+          const promB = Math.round((rows.reduce((s, r) => s + r.b, 0) / rows.length) * 10) / 10;
+          resumen = "Resumen: " + rows.length + " mediciones  ·  Promedio: " + promA + "/" + promB;
+        }
+        resumen += "  ·  Mín: " + Math.min(...vals) + "  ·  Máx: " + Math.max(...vals) + "  ·  Fuera de rango: " + fuera + (fuera > 0 ? "  (marcadas en rojo)" : "");
       }
-      resumen += "  ·  Mín: " + Math.min(...vals) + "  ·  Máx: " + Math.max(...vals) + "  ·  Fuera de rango: " + fuera + (fuera > 0 ? "  (marcadas en rojo)" : "");
       doc.setFontSize(8); doc.setTextColor(fuera > 0 ? 190 : 60, fuera > 0 ? 18 : 60, fuera > 0 ? 60 : 60);
       doc.text(resumen, 14, y);
       y += 9;
@@ -2144,14 +2203,15 @@ function Salud({ data, persist, avisar, hoy }) {
 
   const guardarVitals = (next) => persist({ ...data, vitals: next });
 
-  const ctxDefault = (t) => t === "glucosa" ? CTX_GLUCOSA[0] : t === "fc" ? CTX_FC[0] : t === "sueno" ? CTX_SUENO[0] : t === "dolor" ? LOC_DOLOR[0] : (horarios[t] && horarios[t][0] ? horarios[t][0].ctx : "");
-  const aDefault = (t) => (t === "dolor" || t === "estres") ? "0" : t === "orina" ? "2" : "";
+  const ctxDefault = (t) => t === "glucosa" ? CTX_GLUCOSA[0] : t === "fc" ? CTX_FC[0] : t === "sueno" ? CTX_SUENO[0] : t === "dolor" ? LOC_DOLOR[0] : t === "orina" ? CTX_ORINA[0] : t === "heces" ? CTX_HECES[0] : (horarios[t] && horarios[t][0] ? horarios[t][0].ctx : "");
+  const aDefault = (t) => (t === "dolor" || t === "estres") ? "0" : t === "orina" ? "2" : t === "heces" ? "4" : "";
+  const bDefault = (t) => t === "heces" ? "1" : "";
 
   const cambiarTipo = (t) => {
     setTipo(t);
     setErr(null);
     setEditRead(null);
-    setF({ a: aDefault(t), b: "", pulso: "", ctx: ctxDefault(t), fecha: hoy, hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()), notas: "" });
+    setF({ a: aDefault(t), b: bDefault(t), pulso: "", ctx: ctxDefault(t), fecha: hoy, hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()), notas: "" });
   };
 
   const editarLectura = (r) => {
@@ -2171,7 +2231,10 @@ function Salud({ data, persist, avisar, hoy }) {
     } else if (tipo === "dolor" || tipo === "estres") {
       if (isNaN(num) || num < 0 || num > 10) return setErr("Selecciona un nivel de 0 a 10 con el control deslizante.");
     } else if (tipo === "orina") {
-      if (!(num >= 1 && num <= 4)) return setErr("Selecciona el color observado.");
+      if (!(num >= 1 && num <= 8)) return setErr("Selecciona el color observado.");
+    } else if (tipo === "heces") {
+      if (!(num >= 1 && num <= 7)) return setErr("Selecciona la forma según la escala de Bristol.");
+      if (!(Number(f.b) >= 1 && Number(f.b) <= 7)) return setErr("Selecciona el color observado.");
     } else if (isNaN(num) || num <= 0) {
       return setErr("Escribe el valor de la medición.");
     }
@@ -2182,7 +2245,7 @@ function Salud({ data, persist, avisar, hoy }) {
     const r = {
       id: editRead || uid(), tipo, fecha: f.fecha, hora: f.hora,
       a: Number(f.a === "" ? 0 : f.a),
-      b: tipo === "presion" ? Number(f.b) : (tipo === "cintura" && f.b ? Number(f.b) : null),
+      b: tipo === "presion" || tipo === "heces" ? Number(f.b) : (tipo === "cintura" && f.b ? Number(f.b) : null),
       pulso: tipo === "presion" && f.pulso ? Number(f.pulso) : null,
       ctx: f.ctx || "", notas: f.notas.trim(), ts: new Date().toISOString(),
     };
@@ -2191,7 +2254,7 @@ function Salud({ data, persist, avisar, hoy }) {
     const c = tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(tipo, r.a, r.b, r.ctx, extraClin);
     avisar((editRead ? "Medición corregida" : "Medición registrada") + (c ? " · " + c.txt : ""));
     setEditRead(null);
-    setF({ ...f, a: aDefault(tipo), b: "", pulso: "", notas: "", hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()) });
+    setF({ ...f, a: aDefault(tipo), b: bDefault(tipo), pulso: "", notas: "", hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()) });
   };
 
   const eliminarLectura = (id) => {
@@ -2258,7 +2321,7 @@ function Salud({ data, persist, avisar, hoy }) {
               <IDownload cls="w-4 h-4" /> Exportar PDF
             </button>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Incluye todas las métricas registradas en el periodo (signos vitales, temperatura, medidas corporales, dolor, sueño, estrés e hidratación), con las mediciones fuera de rango resaltadas en rojo y resumen estadístico por métrica.</p>
+          <p className="text-xs text-slate-400 mt-2">Incluye todas las métricas registradas en el periodo (signos vitales, temperatura, medidas corporales, dolor, sueño, estrés, orina con frecuencia y color, y evacuaciones con escala de Bristol y color), con los datos de alerta resaltados en rojo y resumen por métrica. Es un registro objetivo muy útil para tu médico.</p>
         </section>
       )}
 
@@ -2382,12 +2445,42 @@ function Salud({ data, persist, avisar, hoy }) {
             </React.Fragment>
           )}
           {tipo === "orina" && (
-            <div className="col-span-2">
-              <label className={labelCls}>Color observado</label>
-              <select className={inputCls} value={f.a} onChange={(e) => set("a", e.target.value)}>
-                {NIVELES_ORINA.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
-              </select>
-            </div>
+            <React.Fragment>
+              <div className="col-span-2">
+                <label className={labelCls}>Color observado</label>
+                <select className={inputCls} value={f.a} onChange={(e) => set("a", e.target.value)}>
+                  {NIVELES_ORINA.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className={labelCls}>Molestias al orinar</label>
+                <select className={inputCls} value={f.ctx} onChange={(e) => set("ctx", e.target.value)}>
+                  {CTX_ORINA.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </React.Fragment>
+          )}
+          {tipo === "heces" && (
+            <React.Fragment>
+              <div className="col-span-2">
+                <label className={labelCls}>Forma (escala de Bristol)</label>
+                <select className={inputCls} value={f.a} onChange={(e) => set("a", e.target.value)}>
+                  {BRISTOL.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className={labelCls}>Color observado</label>
+                <select className={inputCls} value={f.b} onChange={(e) => set("b", e.target.value)}>
+                  {COLORES_HECES.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className={labelCls}>Molestias</label>
+                <select className={inputCls} value={f.ctx} onChange={(e) => set("ctx", e.target.value)}>
+                  {CTX_HECES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </React.Fragment>
           )}
           {["glucosa", "peso", "spo2", "temp", "fr", "cuello"].indexOf(tipo) >= 0 && (
             <div className={tipo === "glucosa" ? "" : "col-span-2"}>
@@ -2604,6 +2697,76 @@ function Salud({ data, persist, avisar, hoy }) {
           <b>Tu estrés promedio de la semana es alto ({prom(semana, "a")}/10).</b> El estrés sostenido eleva la presión y la glucosa, y deteriora el sueño. Prueba respiración 4-7-8 (inhala 4 s, sostén 7 s, exhala 8 s, 4 ciclos), camina 20–30 min al día y cuida tu horario de sueño. Si se mantiene alto o interfiere con tu vida diaria, buscar apoyo profesional es una decisión inteligente.
         </section>
       )}
+      {/* frecuencia diaria de orina y evacuaciones */}
+      {(tipo === "orina" || tipo === "heces") && (() => {
+        const hoyN = delTipo.filter((r) => r.fecha === hoy).length;
+        const dias7 = {};
+        semana.forEach((r) => { dias7[r.fecha] = (dias7[r.fecha] || 0) + 1; });
+        const diasConReg = Object.keys(dias7).length;
+        const promDia = diasConReg ? Math.round((semana.length / diasConReg) * 10) / 10 : null;
+        const noct = tipo === "orina" ? delTipo.filter((r) => r.fecha === hoy && (r.ctx || "").indexOf("nicturia") >= 0).length : 0;
+        const liqHoy = tipo === "heces" ? delTipo.filter((r) => r.fecha === hoy && r.a >= 6).length : 0;
+        const sem7 = semana.length;
+        let fr = null;
+        if (tipo === "orina") {
+          if (hoyN === 0) fr = null;
+          else if (hoyN > 8) fr = { txt: "Frecuencia aumentada (más de 8 hoy)", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+          else if (hoyN >= 4) fr = { txt: "Frecuencia normal (4–8 al día)", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+          else fr = { txt: "Pocas micciones hasta ahora", cls: "bg-sky-100 text-sky-700 border-sky-200" };
+        } else {
+          if (hoyN === 0) fr = null;
+          else if (hoyN > 3) fr = { txt: "Más de 3 al día: frecuencia aumentada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
+          else fr = { txt: "Frecuencia dentro de lo normal (hasta 3 al día)", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+        }
+        return (
+          <section className="bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Frecuencia — registra cada {tipo === "orina" ? "micción" : "evacuación"} y este conteo se calcula solo</div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <div className="text-2xl font-extrabold text-slate-800">{hoyN}</div>
+                <div className="text-xs text-slate-500">Veces hoy</div>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-slate-800">{promDia ?? "—"}</div>
+                <div className="text-xs text-slate-500">Promedio por día (últimos 7 días)</div>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-slate-800">{sem7}</div>
+                <div className="text-xs text-slate-500">Total en 7 días</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {fr && <span className={"text-xs px-2 py-0.5 rounded-full border " + fr.cls}>{fr.txt}</span>}
+              {tipo === "orina" && noct > 0 && <span className="text-xs px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">🌙 {noct} vez(es) en la noche (nicturia)</span>}
+              {tipo === "heces" && liqHoy >= 3 && <span className="text-xs px-2 py-0.5 rounded-full border bg-rose-100 text-rose-700 border-rose-200">💧 {liqHoy} evacuaciones líquidas hoy — toma suero oral</span>}
+              {tipo === "heces" && sem7 > 0 && sem7 < 3 && diasConReg >= 5 && <span className="text-xs px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200">Menos de 3 por semana: estreñimiento</span>}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">{tipo === "orina"
+              ? "Referencia: 4–8 micciones al día es lo normal en adultos. Más de 8, ardor, urgencia o despertar varias veces en la noche son datos importantes para tu médico."
+              : "Referencia: de 3 veces por semana a 3 veces por día es normal. Más de 3 al día sugiere diarrea; con fiebre, sangre o más de 6 al día, busca atención médica."}</p>
+          </section>
+        );
+      })()}
+
+      {/* alerta clínica de orina */}
+      {tipo === "orina" && ultima && ultima.a >= 6 && (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          {ultima.a === 6 && <p><b>⚠️ Orina café oscura (coluria):</b> puede indicar bilirrubina elevada por un problema del hígado o vías biliares, en especial si se acompaña de ojos o piel amarillos, heces pálidas o comezón. No es un dato para esperar: <b>coméntalo con tu médico pronto</b> y lleva este registro.</p>}
+          {ultima.a === 7 && <p><b>🚨 Posible sangre en la orina:</b> amerita valoración médica <b>hoy mismo</b>, sobre todo si tienes plaquetas bajas, fiebre o dolor. Antes de alarmarte verifica si comiste betabel o tomaste algún medicamento que pinte la orina, y anótalo.</p>}
+          {ultima.a === 8 && <p><b>⚠️ Orina turbia o con espuma persistente:</b> puede indicar infección urinaria (más probable si hay ardor, urgencia o mal olor) o proteínas en la orina. Si se repite, solicita a tu médico un examen general de orina.</p>}
+        </section>
+      )}
+
+      {/* alerta clínica de evacuaciones */}
+      {tipo === "heces" && ultima && (ultima.b === 6 || ultima.b === 7 || ultima.b === 5 || ultima.a === 7) && (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 space-y-1.5">
+          {ultima.b === 6 && <p><b>🚨 Heces negras alquitranadas (melena):</b> son un dato de <b>posible sangrado del tubo digestivo alto</b> (estómago o duodeno). Con antecedente de gastritis erosiva o plaquetas bajas es una <b>urgencia: acude a un servicio médico de inmediato</b>, no esperes a la siguiente evacuación. Nota: el hierro en pastillas y el bismuto (Pepto-Bismol) también oscurecen las heces, pero sin el olor fétido característico; anótalo si los tomaste.</p>}
+          {ultima.b === 7 && <p><b>🚨 Sangre roja visible:</b> puede venir de hemorroides o fisuras, pero también de sangrado intestinal. <b>Busca valoración médica hoy</b>, sobre todo si es abundante, se repite, o hay mareo, palidez o dolor abdominal.</p>}
+          {ultima.b === 5 && <p><b>⚠️ Heces pálidas o blanquecinas (acolia):</b> sugieren que la bilis no está llegando al intestino (hígado o vía biliar). Si además la orina está oscura o la piel/ojos se ven amarillos, <b>consulta a tu médico pronto</b>.</p>}
+          {ultima.a === 7 && ultima.b !== 6 && ultima.b !== 7 && <p><b>Diarrea líquida:</b> hidrátate con suero oral (Vida Suero Oral) a pequeños tragos frecuentes y dieta blanda. Busca atención si hay fiebre, sangre, más de 6 evacuaciones al día o dura más de 2–3 días.</p>}
+        </section>
+      )}
+
 {/* estadísticas y tendencia */}
       {delTipo.length > 0 && (
         <section className="bg-white rounded-2xl border border-slate-200 p-4">
@@ -2617,10 +2780,10 @@ function Salud({ data, persist, avisar, hoy }) {
             </div>
             <div className="text-center">
               <div className="text-xl font-extrabold text-slate-800">
-                {tipo === "presion" ? (prom(semana, "a") || "—") + "/" + (prom(semana, "b") || "—") : (prom(semana, "a") ?? "—")}
-                <span className="text-xs font-medium text-slate-400"> {M.unidad}</span>
+                {tipo === "presion" ? (prom(semana, "a") || "—") + "/" + (prom(semana, "b") || "—") : (tipo === "orina" || tipo === "heces") ? semana.length : (prom(semana, "a") ?? "—")}
+                <span className="text-xs font-medium text-slate-400"> {(tipo === "orina" || tipo === "heces") ? "veces" : M.unidad}</span>
               </div>
-              <div className="text-xs text-slate-500">Promedio 7 días ({semana.length} med.)</div>
+              <div className="text-xs text-slate-500">{(tipo === "orina" || tipo === "heces") ? "Registros en 7 días" : "Promedio 7 días (" + semana.length + " med.)"}</div>
             </div>
             <div className="text-center">
               {tipo === "peso" && deltaPeso !== null ? (
@@ -2665,8 +2828,10 @@ function Salud({ data, persist, avisar, hoy }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-slate-800 text-lg">
-                        {tipo === "presion" ? r.a + "/" + r.b : tipo === "orina" ? "Nivel " + r.a : r.a} <span className="text-xs font-medium text-slate-400">{tipo === "orina" ? "" : M.unidad}</span>
+                        {tipo === "presion" ? r.a + "/" + r.b : tipo === "orina" ? "Color " + r.a : tipo === "heces" ? "Bristol " + r.a : r.a} <span className="text-xs font-medium text-slate-400">{tipo === "orina" || tipo === "heces" ? "" : M.unidad}</span>
                       </span>
+                      {tipo === "heces" && r.b && COLORES_HECES[r.b - 1] && <span className="text-xs text-slate-500">🎨 {COLORES_HECES[r.b - 1].label}</span>}
+                      {tipo === "orina" && NIVELES_ORINA[r.a - 1] && <span className="text-xs text-slate-500">{NIVELES_ORINA[r.a - 1].label.split("· ")[1]}</span>}
                       {r.pulso && <span className="text-xs text-slate-500">♥ {r.pulso} lpm</span>}
                       {c && <span className={"text-xs px-2 py-0.5 rounded-full border " + c.cls}>{c.txt}{r.tipo === "peso" && c.imc ? " · IMC " + c.imc : ""}</span>}
                     </div>
@@ -3455,6 +3620,116 @@ function MenuSemanal() {
   );
 }
 
+/* ---------- plan por diagnóstico ----------
+   Diagnósticos: esplenomegalia, colitis aguda infecciosa, hígado graso /
+   esteatosis hepática moderada, gastritis crónica erosiva.
+   Laboratorio: plaquetas 94,000 (bajas) · triglicéridos 350 mg/dL (altos). */
+
+const DX_LISTA = ["Esplenomegalia", "Colitis aguda infecciosa", "Hígado graso / esteatosis moderada", "Gastritis crónica erosiva", "Plaquetas bajas (94,000)", "Triglicéridos altos (350)"];
+
+const DX_EVITAR = [
+  { emoji: "🍺", grupo: "Alcohol y tabaco — CERO, sin excepción",
+    porque: "Daña directamente el hígado graso, erosiona más la mucosa gástrica, sube los triglicéridos y reduce la producción y función de las plaquetas.",
+    items: ["Cerveza (incluida la 'light' o sin alcohol con azúcar)", "Vino y sidra", "Tequila, mezcal, whisky, ron, vodka y destilados", "Bebidas preparadas, micheladas y cocteles", "Pulque y bebidas fermentadas", "Cigarro y vapeadores (irritan la mucosa gástrica)"] },
+  { emoji: "🧁", grupo: "Azúcares y harinas refinadas",
+    porque: "El azúcar es la causa principal de triglicéridos en 350 y alimenta la esteatosis hepática: el hígado convierte el exceso de azúcar en grasa.",
+    items: ["Refrescos (normales y de cola)", "Jugos y néctares industrializados", "Jugos naturales colados (aun sin azúcar añadida, concentran fructosa)", "Aguas frescas endulzadas", "Pan dulce, pasteles, pastelitos y donas", "Galletas dulces y rellenas", "Dulces, chocolates, gomitas y caramelos", "Mermelada, cajeta, lechera y ate", "Cereales de caja azucarados y barritas", "Helados, nieves y paletas", "Miel, piloncillo y jarabes en exceso", "Atole, champurrado y chocolate caliente azucarados"] },
+  { emoji: "🍖", grupo: "Grasas saturadas, frituras y embutidos",
+    porque: "Empeoran el hígado graso y los triglicéridos, y retrasan el vaciamiento gástrico, lo que agrava la gastritis erosiva.",
+    items: ["Chicharrón, carnitas y cueritos", "Barbacoa y birria grasosas", "Tocino, chorizo y longaniza", "Salchicha, jamón, mortadela y salami", "Manteca, mantequilla y margarina", "Crema y mayonesa", "Quesos amarillos, manchego, oaxaca y doble crema", "Frituras, papas fritas y botanas empaquetadas", "Empanizados y capeados", "Pizza, hamburguesas y tortas con embutido", "Vísceras (hígado, sesos, moronga)", "Caldos con mucha grasa (consomé sin desgrasar)"] },
+  { emoji: "🌶️", grupo: "Irritantes gástricos",
+    porque: "Con gastritis crónica erosiva la mucosa ya está lastimada; estos alimentos y bebidas la inflaman y retrasan su cicatrización.",
+    items: ["Chile, salsas picantes, chile en polvo con limón", "Pimienta y especias fuertes en exceso", "Café (incluso descafeinado) y té negro", "Refresco de cola y bebidas energéticas", "Jugo de naranja o toronja y limón en ayunas", "Vinagres, encurtidos y escabeches en exceso", "Jitomate crudo abundante y salsas muy ácidas", "Cebolla y ajo crudos", "Menta y hierbabuena concentradas", "Alimentos o bebidas muy calientes o muy fríos"] },
+  { emoji: "🍣", grupo: "Alimentos crudos o de riesgo (¡muy importante!)",
+    porque: "Con plaquetas en 94,000 y una colitis infecciosa activa, cualquier alimento contaminado o crudo representa riesgo alto de infección y complicaciones.",
+    items: ["Sushi, pescado y mariscos crudos", "Ceviche, aguachile y ostiones", "Carne cruda o término medio (carpaccio, tártara)", "Huevo crudo o tibio (y aderezos que lo contengan)", "Lácteos sin pasteurizar y quesos frescos artesanales", "Alimentos de puestos callejeros sin higiene garantizada", "Frutas y verduras sin lavar ni desinfectar", "Hielo y agua de origen dudoso", "Germinados crudos (alfalfa, soya)"] },
+  { emoji: "🫘", grupo: "Difíciles de digerir mientras dure la colitis",
+    porque: "Durante la colitis aguda el intestino está inflamado: la fibra dura, la lactosa y los alimentos que producen gas aumentan el dolor y la diarrea. Se reintroducen poco a poco al mejorar.",
+    items: ["Frijol, haba y lenteja enteros (solo colados o en puré)", "Col, coliflor y brócoli crudos o en exceso", "Elote y palomitas", "Verduras crudas con cáscara y ensaladas abundantes", "Leche entera y quesos grasos (lactosa temporalmente)", "Cacahuates y semillas con cáscara o salados", "Chicles y productos 'sin azúcar' con sorbitol (dan diarrea)", "Frutas con cáscara y semillas (durante la fase aguda)"] },
+  { emoji: "🧂", grupo: "Exceso de sodio y ultraprocesados",
+    porque: "Sobrecargan hígado y circulación, irritan el estómago y suelen traer grasas y azúcares ocultos.",
+    items: ["Sopas instantáneas y ramen", "Consomé en polvo y cubos sazonadores", "Botanas saladas y cacahuates enchilados", "Enlatados altos en sodio", "Salsas envasadas (soya, inglesa, cátsup en exceso)", "Cecina, machaca salada y carnes curadas"] },
+  { emoji: "💊", grupo: "Precaución con suplementos y remedios (por las plaquetas bajas)",
+    porque: "Algunos suplementos interfieren con la coagulación. Con 94,000 plaquetas, consúltalo SIEMPRE con tu médico antes de tomarlos.",
+    items: ["Omega-3 / aceite de pescado en dosis altas", "Vitamina E en dosis altas", "Ginkgo biloba", "Ajo, jengibre y cúrcuma en suplemento concentrado", "Aspirina y antiinflamatorios (ibuprofeno, naproxeno) sin indicación médica: dañan la mucosa gástrica y afectan las plaquetas"] },
+];
+
+const DX_PERMITIDOS = [
+  { emoji: "🥕", grupo: "Verduras (cocidas de preferencia)", racion: "1 taza cocida en comida y en cena",
+    items: ["Calabacita cocida — 1 taza", "Chayote cocido — 1 taza", "Zanahoria cocida — ½ a 1 taza", "Espinaca o acelga cocida — 1 taza", "Nopales cocidos — 1 taza", "Ejotes cocidos — 1 taza", "Betabel cocido — ½ taza", "Chilacayote y calabaza de castilla — 1 taza", "Brócoli bien cocido — ½ taza (solo si no te inflama)", "Puré de verduras o cremas sin crema añadida — 1 taza"] },
+  { emoji: "🍎", grupo: "Frutas (enteras, lavadas y desinfectadas; nunca en jugo)", racion: "2 a 3 raciones al día",
+    items: ["Papaya picada — 1 taza", "Plátano — ½ a 1 pieza", "Manzana o pera sin cáscara (o cocida) — 1 pieza", "Guayaba sin semillas — 2 piezas", "Melón picado — 1 taza", "Durazno — 2 piezas", "Mango — ½ pieza (si no hay diarrea activa)", "Sandía — 1 taza", "Fresas desinfectadas — 1 taza (al mejorar la colitis)"] },
+  { emoji: "🌽", grupo: "Cereales y tubérculos", racion: "1 ración por tiempo de comida",
+    items: ["Tortilla de maíz — 2 piezas por comida", "Arroz cocido (blanco durante la colitis) — ¼ a ½ taza", "Avena — ⅓ de taza en seco (cocida con agua o leche descremada)", "Pan de caja tostado o bolillo sin migajón — 1 a 2 piezas", "Pasta cocida — ½ taza", "Papa o camote cocidos — 1 pieza chica", "Galletas habaneras o de animalitos sin azúcar añadida — 4 a 5 piezas", "Tostadas horneadas (no fritas) — 2 piezas"] },
+  { emoji: "🫛", grupo: "Leguminosas", racion: "½ taza caldosas · coladas o en puré mientras dure la colitis",
+    items: ["Frijoles caldosos colados — ½ taza", "Lenteja en puré o caldosa colada — ½ taza", "Garbanzo cocido y machacado — ½ taza (al mejorar)", "Alubias caldosas — ½ taza (al mejorar)"] },
+  { emoji: "🍗", grupo: "Proteína magra — SIEMPRE bien cocida", racion: "1 ración en comida y una porción menor en cena",
+    items: ["Pechuga de pollo sin piel — 60 a 90 g (asada, cocida o en caldo desgrasado)", "Pescado blanco bien cocido (tilapia, huachinango, robalo) — 80 a 100 g", "Atún en agua — ⅓ de lata (30 g)", "Pavo natural (no embutido comercial graso) — 2 rebanadas", "Huevo bien cocido — 1 a 2 piezas (duro, en salsa suave no picante)", "Res magra (bistec, pulpa) — 60 g, máximo 1–2 veces por semana", "Queso panela, requesón o cottage — 40 g", "Claras de huevo — 2 a 3 piezas"] },
+  { emoji: "🥛", grupo: "Lácteos descremados y sin azúcar", racion: "1 a 2 raciones al día · deslactosados mientras dure la colitis",
+    items: ["Leche descremada (deslactosada por ahora) — 1 taza", "Yogur natural sin azúcar — 1 taza (ayuda a recuperar la flora intestinal)", "Jocoque natural bajo en grasa — ½ taza"] },
+  { emoji: "🥑", grupo: "Grasas buenas (con medida: son sanas pero concentradas)", racion: "2 a 3 raciones pequeñas al día",
+    items: ["Aguacate — ⅓ de pieza", "Aceite de oliva o canola — 1 a 2 cucharaditas por comida (para cocinar, no freír)", "Almendras — 10 piezas (al mejorar la colitis)", "Nueces — 3 a 4 mitades (al mejorar la colitis)", "Cacahuates naturales sin sal — 14 piezas (solo sin colitis activa)"] },
+  { emoji: "💧", grupo: "Bebidas permitidas", racion: "6 a 8 vasos de agua simple al día como base",
+    items: ["Agua simple hervida, purificada o embotellada — 6 a 8 vasos", "Agua de limón o jamaica SIN azúcar — 1 a 2 vasos", "Té de manzanilla — 1 a 2 tazas (calma el estómago)", "Suero oral (Vida Suero Oral o electrolitos sin azúcar excesiva) — si hay diarrea o vómito", "Agua de avena colada sin azúcar — 1 vaso", "Caldo de pollo o verduras desgrasado — 1 taza"] },
+];
+
+function PlanDiagnostico() {
+  const [openDx, setOpenDx] = useState(null);
+  const toggleDx = (id) => setOpenDx(openDx === id ? null : id);
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4">
+      <h3 className="font-bold text-slate-800 flex items-center gap-2">🩺 Plan de alimentación según tu diagnóstico</h3>
+      <p className="text-xs text-slate-500 mt-1">Listas adaptadas a estos diagnósticos y resultados de laboratorio:</p>
+      <div className="flex flex-wrap gap-1.5 mt-2 text-[11px] font-semibold">
+        {DX_LISTA.map((d) => <span key={d} className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">{d}</span>)}
+      </div>
+      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 space-y-1">
+        <div className="font-bold uppercase tracking-wide text-[11px]">⭐ Reglas de oro para este caso</div>
+        <div>1. <b>Cero alcohol y cero azúcar añadida</b> (triglicéridos 350 e hígado graso).</div>
+        <div>2. <b>Todo bien cocido, lavado y desinfectado</b> (plaquetas 94,000 + colitis infecciosa = riesgo alto de infección).</div>
+        <div>3. <b>5 tiempos de comida pequeños</b> en horario fijo; no dejar el estómago vacío muchas horas (gastritis erosiva).</div>
+        <div>4. Preparaciones <b>asadas, cocidas, al vapor u horneadas</b>; nada frito, empanizado ni capeado.</div>
+        <div>5. <b>No tomar aspirina, ibuprofeno ni suplementos sin autorización de tu médico</b> (afectan plaquetas y estómago).</div>
+      </div>
+      <div className="space-y-2 mt-3">
+        <Desplegable emoji="🚫" tone="text-rose-700" titulo="Alimentos, comidas y bebidas que DEBES EVITAR" subtitulo="Organizado por grupo, con la razón según cada diagnóstico"
+          abierto={openDx === "dx-evitar"} onToggle={() => toggleDx("dx-evitar")}>
+          <div className="space-y-2.5">
+            {DX_EVITAR.map((g) => (
+              <div key={g.grupo} className="rounded-xl border border-rose-100 bg-rose-50/50 p-3">
+                <div className="text-sm font-bold text-rose-900">{g.emoji} {g.grupo}</div>
+                <p className="text-[11px] text-rose-700 mt-0.5 mb-2">{g.porque}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.items.map((it) => <span key={it} className="bg-white border border-rose-200 text-rose-800 rounded-full px-2.5 py-1 text-[11px]">{it}</span>)}
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-slate-400">Los alimentos marcados como temporales por la colitis se pueden reintroducir gradualmente cuando tu médico confirme que la infección cedió.</p>
+          </div>
+        </Desplegable>
+        <Desplegable emoji="✅" tone="text-emerald-700" titulo="Alimentos y bebidas que SÍ puedes consumir, con sus porciones" subtitulo="Cada grupo indica la ración recomendada por tiempo de comida o por día"
+          abierto={openDx === "dx-si"} onToggle={() => toggleDx("dx-si")}>
+          <div className="space-y-2.5">
+            {DX_PERMITIDOS.map((g) => (
+              <div key={g.grupo} className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+                <div className="text-sm font-bold text-emerald-900">{g.emoji} {g.grupo}</div>
+                <div className="text-[11px] font-semibold text-emerald-700 mt-0.5 mb-2">Ración: {g.racion}</div>
+                <ul className="text-xs text-slate-700 space-y-1">
+                  {g.items.map((it) => <li key={it}>• {it}</li>)}
+                </ul>
+              </div>
+            ))}
+            <div className="rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 text-[11px] text-sky-900">
+              <b>Estructura sugerida del día:</b> desayuno + colación matutina (fruta) + comida + colación vespertina (fruta o yogur natural) + cena ligera. Última comida al menos 2 horas antes de dormir para no irritar el estómago.
+            </div>
+          </div>
+        </Desplegable>
+      </div>
+      <p className="text-[11px] text-slate-400 mt-3">Esta guía es educativa y general para estos diagnósticos. Con plaquetas en 94,000 y triglicéridos en 350, el plan definitivo, los medicamentos y los suplementos deben ser indicados y vigilados por tu médico tratante y un profesional de la nutrición.</p>
+    </div>
+  );
+}
+
 /* ---------- sección principal ---------- */
 function Saludable({ avisar }) {
   const [open, setOpen] = useState(null);
@@ -3474,6 +3749,8 @@ function Saludable({ avisar }) {
       </div>
 
       <CalcNutricion />
+
+      <PlanDiagnostico />
 
       {/* Método de la mano */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4">
@@ -3723,6 +4000,173 @@ function Saludable({ avisar }) {
   );
 }
 
+
+/* ============================================================
+   Respaldo y restauración de datos (exportar / importar todo)
+   ============================================================ */
+function Respaldo({ data, persist, avisar }) {
+  const [preview, setPreview] = useState(null);
+  const [errImp, setErrImp] = useState(null);
+  const fileRef = React.useRef(null);
+
+  /* mismos valores por defecto que la carga inicial: garantiza restauración íntegra
+     y conserva cualquier clave extra del archivo para compatibilidad futura */
+  const normalizar = (d) => ({
+    ...d,
+    meds: Array.isArray(d.meds) ? d.meds : [],
+    taken: d.taken && typeof d.taken === "object" ? d.taken : {},
+    inv: Array.isArray(d.inv) ? d.inv : [],
+    vitals: d.vitals && typeof d.vitals === "object" ? { ...d.vitals, readings: Array.isArray(d.vitals.readings) ? d.vitals.readings : [], horarios: d.vitals.horarios || null } : { readings: [], horarios: null },
+    perfil: d.perfil && typeof d.perfil === "object" ? d.perfil : {},
+    catalogo: d.catalogo && typeof d.catalogo === "object" ? d.catalogo : {},
+    comidas: Array.isArray(d.comidas) ? d.comidas : [],
+    agua: d.agua && typeof d.agua === "object" ? d.agua : {},
+  });
+
+  const contar = (d) => ({
+    meds: (d.meds || []).length,
+    tomas: Object.keys(d.taken || {}).length,
+    inv: (d.inv || []).length,
+    mediciones: ((d.vitals || {}).readings || []).length,
+    horarios: Object.values((d.vitals || {}).horarios || {}).reduce((s, l) => s + (Array.isArray(l) ? l.length : 0), 0),
+    comidas: (d.comidas || []).length,
+    agua: Object.keys(d.agua || {}).length,
+    catalogo: Object.keys(d.catalogo || {}).length,
+    perfil: !!(d.perfil && Object.keys(d.perfil).length > 0),
+  });
+
+  const exportar = () => {
+    const payload = { app: "MediControl", formato: KEY, exportadoEl: new Date().toISOString(), data };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "medicontrol-respaldo-" + todayStr() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    persist({ ...data, ultimoRespaldo: new Date().toISOString() });
+    avisar("Respaldo completo descargado — guárdalo en un lugar seguro");
+  };
+
+  const leerArchivo = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setErrImp(null);
+    setPreview(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result);
+        const d = json && json.data && typeof json.data === "object" ? json.data : json;
+        const parece = d && typeof d === "object" && (Array.isArray(d.meds) || Array.isArray(d.comidas) || (d.vitals && typeof d.vitals === "object") || (d.taken && typeof d.taken === "object"));
+        if (!parece) { setErrImp("Este archivo no parece ser un respaldo de MediControl. Verifica que sea el archivo .json exportado desde esta app."); return; }
+        setPreview({ d: normalizar(d), fecha: json.exportadoEl || null, nombre: file.name });
+      } catch (err) {
+        setErrImp("No se pudo leer el archivo: no es un JSON válido o está dañado.");
+      }
+    };
+    reader.onerror = () => setErrImp("No se pudo leer el archivo. Intenta de nuevo.");
+    reader.readAsText(file);
+  };
+
+  const restaurar = () => {
+    persist(preview.d);
+    setPreview(null);
+    avisar("Restauración completa: todos tus datos fueron recuperados");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const actual = contar(data);
+  const hayDatos = actual.meds + actual.tomas + actual.mediciones + actual.comidas + actual.inv + actual.agua > 0;
+  const diasSinRespaldo = data.ultimoRespaldo ? Math.floor((Date.now() - new Date(data.ultimoRespaldo).getTime()) / 86400000) : null;
+  const pedirRespaldo = hayDatos && (diasSinRespaldo === null || diasSinRespaldo >= 7);
+
+  const Chips = ({ c }) => (
+    <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">💊 {c.meds} medicamentos</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">✅ {c.tomas} tomas registradas</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">📦 {c.inv} artículos de inventario</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">🩺 {c.mediciones} mediciones de salud</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">⏰ {c.horarios} horarios de medición</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">🍽️ {c.comidas} comidas</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">💧 {c.agua} días de hidratación</span>
+      <span className="bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">👤 Perfil {c.perfil ? "incluido" : "vacío"}</span>
+    </div>
+  );
+
+  return (
+    <div className="mt-4 space-y-4">
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold text-slate-700 flex items-center gap-2">💾 Respaldo y restauración de datos</h2>
+        <p className="text-xs text-slate-500">Tus datos se guardan únicamente en este navegador y en este dispositivo. Si borras el historial de navegación, cambias de teléfono o el navegador limpia el almacenamiento, se pierden. Exporta un respaldo con regularidad y guárdalo en un lugar seguro (correo, nube o memoria USB): con ese archivo puedes recuperar el 100% de tu información aquí o en cualquier otro dispositivo.</p>
+
+        {pedirRespaldo && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" />
+            {diasSinRespaldo === null ? "Aún no has creado ningún respaldo y ya tienes información registrada. Descarga uno ahora: toma 5 segundos." : "Tu último respaldo fue hace " + diasSinRespaldo + " días. Te recomendamos exportar uno nuevo."}
+          </div>
+        )}
+        {diasSinRespaldo !== null && diasSinRespaldo < 7 && (
+          <div className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">✅ Último respaldo: {fmtDateLong(data.ultimoRespaldo.slice(0, 10))}{diasSinRespaldo === 0 ? " (hoy)" : " (hace " + diasSinRespaldo + " día" + (diasSinRespaldo === 1 ? "" : "s") + ")"}</div>
+        )}
+
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Lo que incluye tu respaldo hoy</div>
+          <Chips c={actual} />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-2">
+          <button onClick={exportar} className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2">
+            <IDownload cls="w-5 h-5" /> Exportar respaldo completo (.json)
+          </button>
+          <button onClick={() => fileRef.current && fileRef.current.click()} className="bg-white border-2 border-emerald-700 text-emerald-800 hover:bg-emerald-50 font-bold py-3 rounded-2xl flex items-center justify-center gap-2">
+            <IUpload cls="w-5 h-5" /> Importar / restaurar respaldo
+          </button>
+          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={leerArchivo} />
+        </div>
+
+        {errImp && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" /> {errImp}
+          </div>
+        )}
+
+        {preview && (() => {
+          const cf = contar(preview.d);
+          return (
+            <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
+              <div className="font-bold text-slate-800 text-sm flex items-center gap-2"><IUpload cls="w-4 h-4 text-amber-700" /> Respaldo listo para restaurar</div>
+              <div className="text-xs text-slate-600">
+                Archivo: <b>{preview.nombre}</b>{preview.fecha ? <span> · Exportado el <b>{fmtDateLong(preview.fecha.slice(0, 10))}</b></span> : <span> · Sin fecha de exportación registrada</span>}
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Contenido del archivo</div>
+                <Chips c={cf} />
+              </div>
+              <div className="bg-white border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-900">
+                <b>⚠️ Importante:</b> restaurar reemplazará <b>todos</b> los datos actuales de la app por los del archivo. {hayDatos ? "Si quieres conservar lo que tienes ahora, primero descarga un respaldo de lo actual con el botón de abajo." : "Actualmente no tienes datos registrados, así que no perderás nada."}
+              </div>
+              {hayDatos && (
+                <button onClick={exportar} className="w-full bg-white border border-slate-300 text-slate-700 hover:border-emerald-400 text-sm font-semibold py-2 rounded-xl flex items-center justify-center gap-1.5">
+                  <IDownload cls="w-4 h-4" /> Descargar primero un respaldo de mis datos actuales
+                </button>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={restaurar} className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-xl">Restaurar todo</button>
+                <button onClick={() => setPreview(null)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2.5 rounded-xl">Cancelar</button>
+              </div>
+            </div>
+          );
+        })()}
+
+        <p className="text-[11px] text-slate-400">El archivo de respaldo contiene información de salud personal: guárdalo en un lugar privado y no lo compartas. Para máxima seguridad, exporta un respaldo al menos una vez por semana y siempre antes de actualizar tu teléfono o limpiar el navegador.</p>
+      </section>
+    </div>
+  );
+}
 
 function Reporte({ data, now, avisar }) {
   const [mes, setMes] = useState(now.getFullYear() + "-" + pad(now.getMonth() + 1));
