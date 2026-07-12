@@ -130,6 +130,15 @@ const IUser = ({ cls }) => <Sv cls={cls} d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-
 const IDownload = ({ cls }) => <Sv cls={cls} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />;
 const IUpload = ({ cls }) => <Sv cls={cls} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />;
 const IFood = ({ cls }) => <Sv cls={cls} d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />;
+const ILeaf = ({ cls }) => <Sv cls={cls} d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />;
+const IChevron = ({ cls }) => <Sv cls={cls} d="m6 9 6 6 6-6" />;
+const IThermo = ({ cls }) => <Sv cls={cls} d="M14 4a2 2 0 1 0-4 0v10.54a4 4 0 1 0 4 0V4Z M12 9v6" />;
+const IHeart = ({ cls }) => <Sv cls={cls} d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8Z" />;
+const IWind = ({ cls }) => <Sv cls={cls} d="M9.6 4.6A2 2 0 1 1 11 8H2m10.6 11.4A2 2 0 1 0 14 16H2m15.7-8.3A2.5 2.5 0 1 1 19.5 12H2" />;
+const ITape = ({ cls }) => <Sv cls={cls} d="M21.3 8.7 15.3 2.7a1 1 0 0 0-1.4 0L2.7 13.9a1 1 0 0 0 0 1.4l6 6a1 1 0 0 0 1.4 0l11.2-11.2a1 1 0 0 0 0-1.4ZM7.5 10.5l2 2m1-5 2 2m1-5 2 2" />;
+const IZap = ({ cls }) => <Sv cls={cls} d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />;
+const IFlame = ({ cls }) => <Sv cls={cls} d="M12 22c4.4 0 7-2.9 7-6.6 0-2.8-1.7-4.8-3.2-6.7C14.5 7 13.5 5.2 13.5 3c-3.2 1.9-4.4 5-4.3 7.2C8 9.4 7.4 8.4 7.3 7 5.8 8.9 5 11.2 5 13.4 5 18 7.6 22 12 22Z" />;
+const IBeaker = ({ cls }) => <Sv cls={cls} d="M9 2h6M10 2v6.3L4.7 17A3.5 3.5 0 0 0 7.8 22h8.4a3.5 3.5 0 0 0 3.1-5L14 8.3V2M7 16h10" />;
 const DIAS_FULL = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 /* ============================================================ */
@@ -229,6 +238,7 @@ function MediControl() {
     { id: "inv", label: "Inventario", Icon: IBox },
     { id: "salud", label: "Salud", Icon: IActivity },
     { id: "comidas", label: "Comidas", Icon: IFood },
+    { id: "saludable", label: "Saludable", Icon: ILeaf },
     { id: "reporte", label: "Reporte", Icon: IChart },
   ];
 
@@ -334,6 +344,7 @@ function MediControl() {
         {tab === "inv" && <Inventario data={data} persist={persist} avisar={avisar} />}
         {tab === "salud" && <Salud data={data} persist={persist} avisar={avisar} hoy={hoy} />}
         {tab === "comidas" && <Comidas data={data} persist={persist} avisar={avisar} hoy={hoy} />}
+        {tab === "saludable" && <Saludable avisar={avisar} />}
         {tab === "reporte" && <Reporte data={data} now={now} avisar={avisar} />}
       </main>
 
@@ -873,6 +884,26 @@ const SEED_MEDS = [
 ];
 const normTxt = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+/* ---- lotes por caducidad: un mismo código puede tener varias fechas ---- */
+const conLotes = (i) => {
+  if (i.lotes && i.lotes.length) return i.lotes;
+  return [{ id: "L0", caducidad: i.caducidad || "", cantidad: i.cantidad || 0 }];
+};
+const sincLotes = (i, lotes) => {
+  const act = lotes.filter((l) => Number(l.cantidad) > 0)
+    .slice().sort((a, b) => ((a.caducidad || "9999-12-31") < (b.caducidad || "9999-12-31") ? -1 : 1));
+  return { ...i, lotes: act, cantidad: act.reduce((s, l) => s + Number(l.cantidad), 0), caducidad: act[0] ? act[0].caducidad : "" };
+};
+const lotesTexto = (i, hoy0) => {
+  const ls = conLotes(i).filter((l) => l.cantidad > 0);
+  if (!ls.length) return "—";
+  return ls.map((l) => {
+    if (!l.caducidad) return l.cantidad + "x sin fecha";
+    const venc = parseDate(l.caducidad) < hoy0;
+    return l.cantidad + "x " + fmtDate(l.caducidad) + (venc ? " CADUCADO" : "");
+  }).join("  ·  ");
+};
+
 function Inventario({ data, persist, avisar }) {
   const inv = data.inv || [];
   const [codigo, setCodigo] = useState("");
@@ -883,6 +914,8 @@ function Inventario({ data, persist, avisar }) {
   const [sugOpen, setSugOpen] = useState(false);
   const [scanErr, setScanErr] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [loteScan, setLoteScan] = useState(null);
+  const [loteFecha, setLoteFecha] = useState("");
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
@@ -901,8 +934,12 @@ function Inventario({ data, persist, avisar }) {
     if (!c) return;
     const item = inv.find((i) => i.code === c);
     if (item) {
-      guardarInv(inv.map((i) => (i.code === c ? { ...i, cantidad: i.cantidad + 1 } : i)));
-      avisar("+1 " + item.envase.toLowerCase() + " de " + item.name + " · total: " + (item.cantidad + 1));
+      /* mismo código, pero cada unidad física puede tener caducidad distinta: preguntar antes de sumar */
+      setBusca("");
+      setLoteScan(item.key);
+      setLoteFecha("");
+      avisar("Reconocido: " + item.name + " — confirma la caducidad de esta unidad");
+      setTimeout(() => { const el = document.getElementById("inv-" + item.key); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
     } else if (catalogo[c]) {
       const cat = catalogo[c];
       setF({ ...vacio, code: c, name: cat.name || "", presentation: cat.presentation || "Tabletas", envase: cat.envase || "Caja", contenido: cat.contenido || 1, unidad: cat.unidad || "tabletas", precio: cat.precio || "", imagen: cat.imagen || "", stockMin: cat.stockMin || 1 });
@@ -955,13 +992,47 @@ function Inventario({ data, persist, avisar }) {
 
   useEffect(() => () => detener(), []);
 
-  /* sumar o restar envases */
+  /* recibir una unidad indicando su caducidad: misma fecha suma al lote, fecha nueva crea lote */
+  const recibirUnidad = (key, fecha) => {
+    const item = inv.find((i) => i.key === key);
+    if (!item) return;
+    const lotes = conLotes(item).map((l) => ({ ...l }));
+    const ex = lotes.find((l) => (l.caducidad || "") === (fecha || ""));
+    if (ex) ex.cantidad += 1; else lotes.push({ id: uid(), caducidad: fecha || "", cantidad: 1 });
+    const nuevo = sincLotes(item, lotes);
+    guardarInv(inv.map((i) => (i.key === key ? nuevo : i)));
+    avisar("+1 " + item.envase.toLowerCase() + " de " + item.name + (fecha ? " · caducidad " + fmtDate(fecha) : " · sin fecha") + " · total: " + nuevo.cantidad);
+    setLoteScan(null);
+    setLoteFecha("");
+  };
+
+  /* descontar 1 de un lote específico */
+  const quitarDeLote = (key, loteId) => {
+    const item = inv.find((i) => i.key === key);
+    if (!item) return;
+    const lotes = conLotes(item).map((l) => (l.id === loteId ? { ...l, cantidad: Math.max(0, l.cantidad - 1) } : l));
+    const nuevo = sincLotes(item, lotes);
+    guardarInv(inv.map((i) => (i.key === key ? nuevo : i)));
+    avisar(nuevo.cantidad === 0 ? item.name + " agotado — considera reabastecer" : "Se descontó 1 " + item.envase.toLowerCase() + " de " + item.name);
+  };
+
+  /* sumar (pide caducidad) o restar (FEFO: sale primero el lote que caduca primero) */
   const ajustar = (key, delta) => {
     const item = inv.find((i) => i.key === key);
     if (!item) return;
-    const nueva = Math.max(0, item.cantidad + delta);
-    guardarInv(inv.map((i) => (i.key === key ? { ...i, cantidad: nueva } : i)));
-    if (delta < 0) avisar(nueva === 0 ? item.name + " agotado — considera reabastecer" : "Se descontó 1 " + item.envase.toLowerCase() + " de " + item.name);
+    if (delta > 0) { setLoteScan(key); setLoteFecha(""); return; }
+    const lotes = conLotes(item).map((l) => ({ ...l }));
+    const hoyS = todayStr();
+    let obj = lotes.find((l) => l.cantidad > 0 && (!l.caducidad || l.caducidad >= hoyS));
+    const soloCaducados = !obj;
+    if (!obj) obj = lotes.find((l) => l.cantidad > 0);
+    if (!obj) return;
+    obj.cantidad -= 1;
+    const nuevo = sincLotes(item, lotes);
+    guardarInv(inv.map((i) => (i.key === key ? nuevo : i)));
+    avisar(nuevo.cantidad === 0
+      ? item.name + " agotado — considera reabastecer"
+      : "Se descontó 1 " + item.envase.toLowerCase() + " de " + item.name + (obj.caducidad ? " (lote que caduca " + fmtDate(obj.caducidad) + ")" : "") + (soloCaducados ? " · ⚠️ esa unidad ya estaba CADUCADA, no la consumas" : ""));
   };
 
   const eliminar = (key) => {
@@ -1014,9 +1085,17 @@ function Inventario({ data, persist, avisar }) {
       caducidad: f.caducidad, notas: f.notas.trim(), stockMin: Math.max(1, Number(f.stockMin) || 1),
       imagen: f.imagen || "", precio: Math.max(0, Number(f.precio) || 0),
     };
+    const prevItem = editKey ? inv.find((i) => i.key === editKey) : null;
+    const prevMulti = prevItem ? conLotes(prevItem).filter((l) => l.cantidad > 0).length > 1 : false;
     const nextInv = editKey
-      ? inv.map((i) => (i.key === editKey ? { ...i, ...base } : i))
-      : [...inv, { key: uid(), ...base, createdAt: new Date().toISOString() }];
+      ? inv.map((i) => {
+          if (i.key !== editKey) return i;
+          /* con varios lotes activos, cantidad y caducidad se administran por lote en la tarjeta */
+          return prevMulti
+            ? sincLotes({ ...i, ...base }, conLotes(i))
+            : sincLotes({ ...i, ...base }, [{ id: uid(), caducidad: f.caducidad || "", cantidad: base.cantidad }]);
+        })
+      : [...inv, sincLotes({ key: uid(), ...base, createdAt: new Date().toISOString() }, [{ id: uid(), caducidad: f.caducidad || "", cantidad: base.cantidad }])];
     /* el catálogo maestro acumula todos los códigos con su información y precio, para reconocerlos en el futuro */
     const nextCat = { ...catalogo, [code]: {
       name: base.name, presentation: base.presentation, envase: base.envase, contenido: base.contenido,
@@ -1058,12 +1137,19 @@ function Inventario({ data, persist, avisar }) {
     e.target.value = "";
   };
 
-  /* estado combinado de un producto para el PDF */
+  /* estado combinado de un producto para el PDF, contando envases por lote */
   const estadoProducto = (i) => {
     const partes = [];
-    const c = estadoCad(i.caducidad);
-    if (c.nivel === 2) partes.push("CADUCADO");
-    else if (c.nivel === 1) partes.push("Por caducar");
+    const h0 = parseDate(todayStr());
+    const ls = conLotes(i).filter((l) => l.cantidad > 0);
+    const nCad = ls.filter((l) => l.caducidad && parseDate(l.caducidad) < h0).reduce((s, l) => s + l.cantidad, 0);
+    const nPor = ls.filter((l) => {
+      if (!l.caducidad) return false;
+      const d = Math.round((parseDate(l.caducidad) - h0) / 86400000);
+      return d >= 0 && d <= 60;
+    }).reduce((s, l) => s + l.cantidad, 0);
+    if (nCad) partes.push(nCad + " CADUCADO" + (nCad > 1 ? "S" : ""));
+    if (nPor) partes.push(nPor + " por caducar");
     if (i.cantidad === 0) partes.push("Agotado");
     else if (i.cantidad <= (i.stockMin || 1)) partes.push("Stock bajo");
     return partes.length ? partes.join(" · ") : "OK";
@@ -1086,7 +1172,7 @@ function Inventario({ data, persist, avisar }) {
       i.code, i.name, i.presentation, i.envase + " · " + i.contenido + " " + i.unidad,
       String(i.cantidad), (i.cantidad * i.contenido) + " " + i.unidad,
       i.precio ? fmtMoney(i.precio) : "—", fmtMoney((i.precio || 0) * i.cantidad),
-      diasCadTexto(i.caducidad), estadoProducto(i),
+      lotesTexto(i, parseDate(todayStr())), estadoProducto(i),
     ]);
     doc.autoTable({
       head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Envases", "Total disponible", "Precio c/u", "Valor", "Caducidad", "Estado"]],
@@ -1096,7 +1182,7 @@ function Inventario({ data, persist, avisar }) {
       alternateRowStyles: { fillColor: [245, 250, 248] },
       didParseCell: (d) => {
         if (d.section === "body" && d.column.index === 9 && d.cell.raw !== "OK") { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
-        if (d.section === "body" && d.column.index === 8 && String(d.cell.raw).indexOf("VENCIDO") === 0) { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+        if (d.section === "body" && d.column.index === 8 && String(d.cell.raw).indexOf("CADUCADO") >= 0) { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
       },
     });
     const yFin = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
@@ -1105,7 +1191,7 @@ function Inventario({ data, persist, avisar }) {
     doc.text("VALOR TOTAL DEL INVENTARIO: " + fmtMoney(valorTotal) + " MXN", 14, yFin);
     doc.setFontSize(9);
     doc.setTextColor(60);
-    doc.text("Resumen: " + inv.length + " productos  ·  " + agotados + " agotados  ·  " + stockBajo.length + " con stock bajo  ·  " + porCaducar + " por caducar  ·  " + caducados + " caducados", 14, yFin + 6);
+    doc.text("Resumen: " + inv.length + " productos  ·  " + agotados + " agotados  ·  " + stockBajo.length + " con stock bajo  ·  " + porCaducar + " envases por caducar  ·  " + caducados + " envases caducados", 14, yFin + 6);
     doc.setFontSize(7);
     doc.setTextColor(150);
     doc.text("Documento informativo generado por MediControl. Ordenado por ID/código ascendente.", 14, yFin + 11);
@@ -1149,12 +1235,13 @@ function Inventario({ data, persist, avisar }) {
     .sort((a, b) => ((a.caducidad || "9999-12-31") < (b.caducidad || "9999-12-31") ? -1 : 1));
 
   const hoy0 = parseDate(todayStr());
-  const caducados = inv.filter((i) => i.caducidad && parseDate(i.caducidad) < hoy0).length;
-  const porCaducar = inv.filter((i) => {
-    if (!i.caducidad) return false;
-    const d = Math.round((parseDate(i.caducidad) - hoy0) / 86400000);
+  const lotesActivos = inv.flatMap((i) => conLotes(i).filter((l) => l.cantidad > 0));
+  const caducados = lotesActivos.filter((l) => l.caducidad && parseDate(l.caducidad) < hoy0).reduce((s, l) => s + l.cantidad, 0);
+  const porCaducar = lotesActivos.filter((l) => {
+    if (!l.caducidad) return false;
+    const d = Math.round((parseDate(l.caducidad) - hoy0) / 86400000);
     return d >= 0 && d <= 60;
-  }).length;
+  }).reduce((s, l) => s + l.cantidad, 0);
   const agotados = inv.filter((i) => i.cantidad === 0).length;
   const stockBajo = inv.filter((i) => i.cantidad > 0 && i.cantidad <= (i.stockMin || 1));
   const agotadosList = inv.filter((i) => i.cantidad === 0);
@@ -1163,6 +1250,9 @@ function Inventario({ data, persist, avisar }) {
 
   const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white";
   const labelCls = "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1";
+
+  const editItem = editKey ? inv.find((i) => i.key === editKey) : null;
+  const multiLoteEdit = editItem ? conLotes(editItem).filter((l) => l.cantidad > 0).length > 1 : false;
 
   return (
     <div className="space-y-4">
@@ -1190,7 +1280,7 @@ function Inventario({ data, persist, avisar }) {
             <ICamera cls="w-4 h-4" /> {scanning ? "Detener" : "Cámara"}
           </button>
         </div>
-        <p className="text-xs text-slate-400">Si el código ya existe se suma <b>+1 envase</b> automáticamente. Si es nuevo, se abre el formulario con el código prellenado. Compatible con lectores USB de código de barras (escanean directo al campo).</p>
+        <p className="text-xs text-slate-400">Si el código ya existe, te preguntará la <b>caducidad de esa unidad</b>: misma fecha suma al lote existente, fecha distinta crea un lote nuevo. Si el código es nuevo, se abre el formulario prellenado. Compatible con lectores USB (escanean directo al campo).</p>
         {scanning && (
           <div className="rounded-xl overflow-hidden border border-emerald-300 bg-black">
             <video ref={videoRef} className="w-full max-h-64 object-cover" muted playsInline />
@@ -1221,8 +1311,8 @@ function Inventario({ data, persist, avisar }) {
           <Kpi label="Productos" valor={inv.length} />
           <Kpi label="Stock bajo" valor={stockBajo.length} verde={stockBajo.length === 0} />
           <Kpi label="Agotados" valor={agotados} verde={agotados === 0} />
-          <Kpi label="Por caducar" valor={porCaducar} verde={porCaducar === 0} />
-          <Kpi label="Caducados" valor={caducados} verde={caducados === 0} />
+          <Kpi label="Env. por caducar" valor={porCaducar} verde={porCaducar === 0} />
+          <Kpi label="Env. caducados" valor={caducados} verde={caducados === 0} />
         </div>
       )}
 
@@ -1320,16 +1410,22 @@ function Inventario({ data, persist, avisar }) {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelCls}>Envases que tienes</label>
-                  <input type="number" min="0" className={inputCls} value={f.cantidad} onChange={(e) => set("cantidad", e.target.value)} />
+              {multiLoteEdit ? (
+                <div className="bg-sky-50 border border-sky-100 rounded-xl px-3 py-2.5 text-xs text-sky-900">
+                  <b>Este producto tiene {conLotes(editItem).filter((l) => l.cantidad > 0).length} lotes con caducidades distintas</b> ({conLotes(editItem).filter((l) => l.cantidad > 0).map((l) => l.cantidad + "× " + (l.caducidad ? fmtDate(l.caducidad) : "sin fecha")).join(" · ")}). Las cantidades y fechas se administran por lote desde la tarjeta del producto; aquí solo se editan nombre, envase, precio y demás datos.
                 </div>
-                <div>
-                  <label className={labelCls}>Fecha de caducidad</label>
-                  <input type="date" className={inputCls} value={f.caducidad} onChange={(e) => set("caducidad", e.target.value)} />
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Envases que tienes</label>
+                    <input type="number" min="0" className={inputCls} value={f.cantidad} onChange={(e) => set("cantidad", e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Fecha de caducidad</label>
+                    <input type="date" className={inputCls} value={f.caducidad} onChange={(e) => set("caducidad", e.target.value)} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -1400,7 +1496,7 @@ function Inventario({ data, persist, avisar }) {
             const cad = estadoCad(i.caducidad);
             const total = i.cantidad * i.contenido;
             return (
-              <div key={i.key} className={"bg-white rounded-2xl border p-4 " + (cad.nivel === 2 ? "border-rose-300" : cad.nivel === 1 ? "border-amber-300" : "border-slate-200")}>
+              <div key={i.key} id={"inv-" + i.key} className={"bg-white rounded-2xl border p-4 " + (loteScan === i.key ? "border-emerald-400 ring-2 ring-emerald-200" : cad.nivel === 2 ? "border-rose-300" : cad.nivel === 1 ? "border-amber-300" : "border-slate-200")}>
                 <div className="flex items-start gap-3">
                   {i.imagen ? (
                     <img src={i.imagen} alt={i.name} className={"w-11 h-11 rounded-xl object-cover border shrink-0 " + (i.cantidad === 0 ? "border-slate-200 opacity-60" : "border-emerald-200")} />
@@ -1420,8 +1516,24 @@ function Inventario({ data, persist, avisar }) {
                       {i.presentation} · {i.envase} con {i.contenido} {i.unidad} · disponible: <b className="text-slate-700">{total} {i.unidad}</b>
                       {i.precio > 0 && <span> · {fmtMoney(i.precio)} c/u · <b className="text-emerald-700">{fmtMoney(i.precio * i.cantidad)}</b> en stock</span>}
                     </div>
-                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                      <span className={"text-xs px-2 py-0.5 rounded-full border " + cad.cls}>{cad.txt}</span>
+                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                      {conLotes(i).filter((l) => l.cantidad > 0).map((l) => {
+                        const ec = estadoCad(l.caducidad);
+                        const etiqueta = !l.caducidad ? "sin fecha"
+                          : ec.nivel === 2 ? "CADUCADO · " + fmtDate(l.caducidad)
+                          : ec.nivel === 1 ? "caduca " + fmtDate(l.caducidad)
+                          : "cad " + fmtDate(l.caducidad);
+                        return (
+                          <span key={l.id} className={"text-xs pl-2 pr-1 py-0.5 rounded-full border inline-flex items-center gap-1 " + ec.cls}>
+                            <b>{l.cantidad}×</b> {etiqueta}
+                            <button onClick={() => quitarDeLote(i.key, l.id)} title="Descontar 1 envase de este lote"
+                              className="w-4 h-4 rounded-full hover:bg-white/70 flex items-center justify-center">
+                              <IMinus cls="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                      {i.cantidad === 0 && <span className="text-xs px-2 py-0.5 rounded-full border bg-slate-100 text-slate-500 border-slate-200">sin existencias</span>}
                       {i.notas && <span className="text-xs text-slate-400">{i.notas}</span>}
                     </div>
                   </div>
@@ -1458,6 +1570,32 @@ function Inventario({ data, persist, avisar }) {
                     )}
                   </div>
                 </div>
+                {loteScan === i.key && (
+                  <div className="mt-3 pt-3 border-t border-emerald-200">
+                    <div className="text-sm font-semibold text-emerald-900 mb-2">➕ Recibir 1 {i.envase.toLowerCase()} de {i.name} — ¿cuál es su fecha de caducidad?</div>
+                    {conLotes(i).filter((l) => l.cantidad > 0).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {conLotes(i).filter((l) => l.cantidad > 0).map((l) => (
+                          <button key={l.id} onClick={() => recibirUnidad(i.key, l.caducidad)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100">
+                            {l.caducidad ? "Misma: " + fmtDate(l.caducidad) : "Sin fecha"} · tienes {l.cantidad}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div>
+                        <label className={labelCls}>Caducidad distinta (lote nuevo)</label>
+                        <input type="date" className={inputCls} value={loteFecha} onChange={(e) => setLoteFecha(e.target.value)} />
+                      </div>
+                      <button onClick={() => { if (!loteFecha) { avisar("Elige la fecha, o toca un lote existente arriba"); return; } recibirUnidad(i.key, loteFecha); }}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-xl">Agregar</button>
+                      <button onClick={() => recibirUnidad(i.key, "")} className="text-sm px-3 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50">Sin fecha</button>
+                      <button onClick={() => { setLoteScan(null); setLoteFecha(""); }} className="text-sm px-3 py-2 text-slate-500 hover:text-slate-700">Cancelar</button>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">Si la fecha coincide con un lote existente, se suma ahí; si es distinta, se crea un lote nuevo. Así sabrás exactamente cuántos envases caducan y cuándo.</p>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1517,6 +1655,19 @@ function Inventario({ data, persist, avisar }) {
    Monitoreo de salud: glucosa, presión, peso, oxigenación
    ============================================================ */
 const CTX_GLUCOSA = ["En ayunas", "Antes de alimento", "2 h después de alimento", "Antes de dormir"];
+const CTX_FC = ["En reposo", "Después de actividad"];
+const CTX_SUENO = ["Reparador", "Interrumpido", "Me costó dormir"];
+const LOC_DOLOR = ["Cabeza", "Pecho", "Abdomen", "Espalda baja", "Articulaciones", "Muscular", "Otro"];
+const NIVELES_ORINA = [
+  { v: 1, label: "1 · Muy claro (transparente)" },
+  { v: 2, label: "2 · Amarillo paja (claro)" },
+  { v: 3, label: "3 · Amarillo" },
+  { v: 4, label: "4 · Amarillo intenso / naranja" },
+];
+const DIAGNOSTICOS = ["Sobrepeso", "Obesidad", "Prediabetes", "Diabetes", "Prehipertensión", "Hipertensión", "Dislipidemia", "Hígado graso", "Asma / EPOC", "Hipotiroidismo", "Ansiedad / depresión", "Gastritis / colitis"];
+const PLACE_VALOR = { glucosa: "95", peso: "78.5", spo2: "97", temp: "36.6", fr: "16", cuello: "38" };
+const NOTAS_PH = { glucosa: "Ej. Comí tacos al pastor, me sentí mareado…", dolor: "Ej. Punzante, empeora al moverme, mejora con reposo…", estres: "Ej. Detonante: entrega de trabajo, tráfico…", sueno: "Ej. Desperté 2 veces, tomé café por la tarde…", orina: "Ej. Tomé poca agua hoy, hice ejercicio…", temp: "Ej. Tomé paracetamol a las 3 pm…" };
+const BANDAS_REF = { glucosa: [70, 140], presion: [90, 120], spo2: [95, 100], temp: [36, 37.2], fc: [60, 100], fr: [12, 20], sueno: [7, 9], dolor: [0, 3], estres: [0, 3] };
 
 const METRICAS = {
   glucosa: {
@@ -1539,36 +1690,158 @@ const METRICAS = {
     guia: "Mide en reposo, sentado y tras 5 minutos de calma, con la mano tibia y sin esmalte de uñas (dedo índice o medio). Mide mañana y noche a la misma hora para detectar patrones, y adicionalmente si tienes síntomas como fatiga o falta de aire. Espera a que la lectura se estabilice (20-30 segundos).",
     horariosDefault: [{ hora: "08:00", ctx: "Mañana en reposo" }, { hora: "20:00", ctx: "Noche en reposo" }],
   },
+  temp: {
+    label: "Temperatura", unidad: "°C", Icon: IThermo, color: "text-orange-500",
+    guia: "Reposa 15 min antes de medir y evita alimentos o bebidas calientes/frías 15 min antes si es medición oral. Axilar: seca la axila y mantén el termómetro hasta el aviso (digital) o 3-5 min (mercurio/galinstan). Si das seguimiento a una fiebre, mide cada 4-6 horas y registra si tomaste antipirético en las notas.",
+    horariosDefault: [],
+  },
+  fc: {
+    label: "Frec. cardiaca (FC)", unidad: "lpm", Icon: IHeart, color: "text-pink-600",
+    guia: "Mide en reposo: sentado, tras 5 min de calma, sin cafeína, cigarro ni ejercicio en los 30 min previos. Coloca los dedos índice y medio (nunca el pulgar) en la muñeca del lado del pulgar o a un lado del cuello; cuenta los latidos durante 30 segundos y multiplica por 2. La FC en reposo al despertar es la más comparable día con día. Si mides con oxímetro o reloj, espera a que se estabilice.",
+    horariosDefault: [{ hora: "07:30", ctx: "En reposo" }],
+  },
+  fr: {
+    label: "Frec. respiratoria (FR)", unidad: "rpm", Icon: IWind, color: "text-sky-600",
+    guia: "En reposo, sentado. Cuenta cuántas veces sube el pecho durante 60 segundos completos. Truco importante: la respiración cambia cuando sabes que la estás contando; pide a alguien que la cuente sin avisarte, o cuéntala justo después de tomarte el pulso, sin cambiar de posición. No la midas después de esfuerzo, llanto o hablar.",
+    horariosDefault: [],
+  },
+  cintura: {
+    label: "Cintura y cadera", unidad: "cm", Icon: ITape, color: "text-violet-600",
+    guia: "De pie, con el abdomen descubierto y relajado. Cintura: coloca la cinta entre la última costilla y el borde superior del hueso de la cadera, paralela al piso, y mide al final de una exhalación normal, sin apretar la piel. Cadera (opcional pero recomendada): en la parte más ancha de los glúteos. Mide 1 vez por semana, el mismo día, a la misma hora y en ayunas; medirla a diario solo agrega ruido.",
+    horariosDefault: [],
+  },
+  cuello: {
+    label: "Cuello", unidad: "cm", Icon: IUser, color: "text-slate-500",
+    guia: "De pie, con la cabeza recta y mirando al frente. Mide justo por debajo de la prominencia laríngea (la 'manzana de Adán'), con la cinta perpendicular al eje del cuello, sin apretar. Una medición al mes es suficiente: esta medida cambia lento y se usa para valorar riesgo metabólico y de apnea del sueño.",
+    horariosDefault: [],
+  },
+  dolor: {
+    label: "Dolor", unidad: "de 10", Icon: IZap, color: "text-amber-600",
+    guia: "Califica de 0 (sin dolor) a 10 (el peor dolor imaginable) cómo se siente AHORA, no el promedio del día. Registra dónde duele y describe en las notas cómo es (punzante, ardoroso, opresivo, cólico), qué lo desencadena y qué lo mejora o empeora. Esa descripción vale tanto como el número para tu médico. Registra también cuando tomes analgésico, para ver si funciona.",
+    horariosDefault: [],
+  },
+  sueno: {
+    label: "Sueño", unidad: "h", Icon: IMoon, color: "text-indigo-400",
+    guia: "Registra al despertar las horas realmente dormidas (no las horas que pasaste en cama) y cómo despertaste. Si despertaste durante la noche, réstalo aproximadamente. El promedio semanal importa más que una mala noche aislada; sé constante con el registro matutino.",
+    horariosDefault: [{ hora: "07:00", ctx: "Al despertar" }],
+  },
+  estres: {
+    label: "Estrés", unidad: "de 10", Icon: IFlame, color: "text-red-500",
+    guia: "Al final del día, califica de 0 (nada) a 10 (máximo) tu estrés percibido general. Anota en las notas el detonante principal (trabajo, dinero, familia, salud…): identificar patrones y detonantes vale más que el número aislado. Si un día tuvo un pico puntual, regístralo con su hora.",
+    horariosDefault: [{ hora: "21:00", ctx: "Fin del día" }],
+  },
+  orina: {
+    label: "Color de orina", unidad: "de 4", Icon: IBeaker, color: "text-yellow-500",
+    guia: "Observa el color a media micción, de preferencia con luz natural y antes de que caiga al agua del inodoro (o en un recipiente claro). La primera orina de la mañana siempre es más concentrada; para valorar tu hidratación usa una muestra de media mañana o de la tarde. Vitaminas del complejo B y algunos alimentos (betabel) pueden alterar el color: anótalo en las notas.",
+    horariosDefault: [{ hora: "11:00", ctx: "Media mañana" }],
+  },
 };
 
-const clasificar = (tipo, a, b, ctx) => {
+const clasificar = (tipo, a, b, ctx, extra) => {
+  const x = extra || {};
+  const okCls = "bg-emerald-100 text-emerald-700 border-emerald-200";
+  const bajoCls = "bg-sky-100 text-sky-700 border-sky-200";
+  const medioCls = "bg-amber-100 text-amber-700 border-amber-200";
+  const altoCls = "bg-rose-100 text-rose-700 border-rose-200";
   if (tipo === "glucosa") {
     const v = Number(a);
     const post = ctx === "2 h después de alimento";
-    if (v < 70) return { txt: "Baja (hipoglucemia)", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    if (v < 70) return { txt: "Baja (hipoglucemia)", cls: altoCls, alerta: true };
     if (post) {
-      if (v < 140) return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
-      if (v < 200) return { txt: "Elevada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
-      return { txt: "Alta", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+      if (v < 140) return { txt: "Normal", cls: okCls, ok: true };
+      if (v < 200) return { txt: "Elevada", cls: medioCls };
+      return { txt: "Alta", cls: altoCls, alerta: true };
     }
-    if (v < 100) return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
-    if (v < 126) return { txt: "Elevada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
-    return { txt: "Alta", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
+    if (v < 100) return { txt: "Normal", cls: okCls, ok: true };
+    if (v < 126) return { txt: "Elevada", cls: medioCls };
+    return { txt: "Alta", cls: altoCls, alerta: true };
   }
   if (tipo === "presion") {
     const s = Number(a), d = Number(b);
-    if (s >= 180 || d >= 120) return { txt: "Crisis — busca atención médica", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
-    if (s >= 140 || d >= 90) return { txt: "Hipertensión etapa 2", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
-    if (s >= 130 || d >= 80) return { txt: "Hipertensión etapa 1", cls: "bg-amber-100 text-amber-700 border-amber-200" };
-    if (s >= 120) return { txt: "Elevada", cls: "bg-amber-100 text-amber-700 border-amber-200" };
-    if (s < 90 || d < 60) return { txt: "Baja", cls: "bg-sky-100 text-sky-700 border-sky-200" };
-    return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+    if (s >= 180 || d >= 120) return { txt: "Crisis — busca atención médica", cls: altoCls, alerta: true };
+    if (s >= 140 || d >= 90) return { txt: "Hipertensión etapa 2", cls: altoCls, alerta: true };
+    if (s >= 130 || d >= 80) return { txt: "Hipertensión etapa 1", cls: medioCls };
+    if (s >= 120) return { txt: "Elevada", cls: medioCls };
+    if (s < 90 || d < 60) return { txt: "Baja", cls: bajoCls };
+    return { txt: "Normal", cls: okCls, ok: true };
   }
   if (tipo === "spo2") {
     const v = Number(a);
-    if (v < 90) return { txt: "Muy baja — busca atención médica", cls: "bg-rose-100 text-rose-700 border-rose-200", alerta: true };
-    if (v < 95) return { txt: "Baja", cls: "bg-amber-100 text-amber-700 border-amber-200" };
-    return { txt: "Normal", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+    if (v < 90) return { txt: "Muy baja — busca atención médica", cls: altoCls, alerta: true };
+    if (v < 95) return { txt: "Baja", cls: medioCls };
+    return { txt: "Normal", cls: okCls, ok: true };
+  }
+  if (tipo === "temp") {
+    const v = Number(a);
+    if (v < 35) return { txt: "Hipotermia — busca atención", cls: altoCls, alerta: true };
+    if (v < 36) return { txt: "Baja", cls: bajoCls };
+    if (v <= 37.2) return { txt: "Normal", cls: okCls, ok: true };
+    if (v < 38) return { txt: "Febrícula", cls: medioCls };
+    if (v < 39) return { txt: "Fiebre", cls: altoCls };
+    if (v < 40) return { txt: "Fiebre alta", cls: altoCls, alerta: true };
+    return { txt: "Fiebre muy alta — busca atención", cls: altoCls, alerta: true };
+  }
+  if (tipo === "fc") {
+    if (ctx === "Después de actividad") return null;
+    const v = Number(a);
+    if (v < 40) return { txt: "Muy baja — consulta a tu médico", cls: altoCls, alerta: true };
+    if (v < 60) return { txt: "Baja (puede ser normal en personas entrenadas)", cls: bajoCls };
+    if (v <= 100) return { txt: "Normal", cls: okCls, ok: true };
+    if (v <= 120) return { txt: "Elevada (taquicardia leve)", cls: medioCls };
+    return { txt: "Alta — reposa 10 min y repite; si persiste, consulta", cls: altoCls, alerta: true };
+  }
+  if (tipo === "fr") {
+    const v = Number(a);
+    if (v < 10) return { txt: "Muy baja — busca atención", cls: altoCls, alerta: true };
+    if (v < 12) return { txt: "Baja", cls: bajoCls };
+    if (v <= 20) return { txt: "Normal", cls: okCls, ok: true };
+    if (v <= 24) return { txt: "Elevada", cls: medioCls };
+    return { txt: "Alta — si hay falta de aire, busca atención", cls: altoCls, alerta: true };
+  }
+  if (tipo === "cintura") {
+    if (!x.sexo) return null;
+    const lim = x.sexo === "Hombre" ? 90 : 80;
+    if (Number(a) <= lim) return { txt: "Normal", cls: okCls, ok: true };
+    return { txt: "Obesidad central (riesgo cardiometabólico)", cls: altoCls };
+  }
+  if (tipo === "cuello") {
+    if (!x.sexo) return null;
+    const v = Number(a);
+    if (x.sexo === "Hombre") {
+      if (v < 40) return { txt: "Normal", cls: okCls, ok: true };
+      if (v < 43) return { txt: "Elevada", cls: medioCls };
+      return { txt: "Alta (riesgo de apnea del sueño)", cls: altoCls };
+    }
+    if (v < 36) return { txt: "Normal", cls: okCls, ok: true };
+    if (v < 38) return { txt: "Elevada", cls: medioCls };
+    return { txt: "Alta (riesgo de apnea del sueño)", cls: altoCls };
+  }
+  if (tipo === "dolor") {
+    const v = Number(a);
+    if (v === 0) return { txt: "Sin dolor", cls: okCls, ok: true };
+    if (v <= 3) return { txt: "Dolor leve", cls: medioCls };
+    if (v <= 6) return { txt: "Dolor moderado", cls: medioCls };
+    return { txt: "Dolor severo", cls: altoCls, alerta: true };
+  }
+  if (tipo === "sueno") {
+    const v = Number(a);
+    if (v < 5) return { txt: "Muy insuficiente", cls: altoCls };
+    if (v < 7) return { txt: "Insuficiente", cls: medioCls };
+    if (v <= 9) return { txt: "Óptimo (7–9 h)", cls: okCls, ok: true };
+    return { txt: "Prolongado", cls: medioCls };
+  }
+  if (tipo === "estres") {
+    const v = Number(a);
+    if (v <= 3) return { txt: "Bajo", cls: okCls, ok: true };
+    if (v <= 6) return { txt: "Moderado", cls: medioCls };
+    return { txt: "Alto", cls: altoCls };
+  }
+  if (tipo === "orina") {
+    const v = Number(a);
+    if (v === 1) return { txt: "Exceso de hidratación", cls: bajoCls };
+    if (v === 2) return { txt: "Hidratación adecuada", cls: okCls, ok: true };
+    if (v === 3) return { txt: "Riesgo de deshidratación — toma agua", cls: medioCls };
+    return { txt: "Deshidratación — hidrátate ya", cls: altoCls, alerta: true };
   }
   return null;
 };
@@ -1649,8 +1922,9 @@ const calcEdad = (fechaNac) => {
 function Perfil({ data, persist, avisar }) {
   const perfil = data.perfil || {};
   const [open, setOpen] = useState(!perfil.estatura);
-  const [p, setP] = useState({ nombre: perfil.nombre || "", fechaNac: perfil.fechaNac || "", sexo: perfil.sexo || "", estatura: perfil.estatura || "", condiciones: perfil.condiciones || "", alergias: perfil.alergias || "", contacto: perfil.contacto || "" });
+  const [p, setP] = useState({ nombre: perfil.nombre || "", fechaNac: perfil.fechaNac || "", sexo: perfil.sexo || "", estatura: perfil.estatura || "", dx: perfil.dx || [], condiciones: perfil.condiciones || "", alergias: perfil.alergias || "", contacto: perfil.contacto || "" });
   const set = (k, v) => setP((prev) => ({ ...prev, [k]: v }));
+  const toggleDx = (d) => setP((prev) => ({ ...prev, dx: (prev.dx || []).indexOf(d) >= 0 ? prev.dx.filter((x) => x !== d) : [...(prev.dx || []), d] }));
   const fileRef = React.useRef(null);
 
   const guardar = () => {
@@ -1693,7 +1967,7 @@ function Perfil({ data, persist, avisar }) {
         <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
           <IUser cls="w-4 h-4 text-emerald-700" />
           {perfil.nombre ? perfil.nombre : "Perfil del paciente"}
-          {perfil.estatura && <span className="text-xs font-normal text-slate-400">· {perfil.estatura} cm{edad !== null ? " · " + edad + " años" : ""}{perfil.sexo ? " · " + perfil.sexo : ""}</span>}
+          {perfil.estatura && <span className="text-xs font-normal text-slate-400">· {perfil.estatura} cm{edad !== null ? " · " + edad + " años" : ""}{perfil.sexo ? " · " + perfil.sexo : ""}{(perfil.dx || []).length > 0 ? " · " + (perfil.dx || []).slice(0, 2).join(", ") + ((perfil.dx || []).length > 2 ? " +" + ((perfil.dx || []).length - 2) : "") : ""}</span>}
           {!perfil.estatura && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">completa tu estatura para calcular tu IMC</span>}
         </span>
         {open ? <IChevD cls="w-4 h-4 text-slate-400" /> : <IChevR cls="w-4 h-4 text-slate-400" />}
@@ -1708,6 +1982,7 @@ function Perfil({ data, persist, avisar }) {
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Fecha de nacimiento</label>
               <input type="date" className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" value={p.fechaNac} onChange={(e) => set("fechaNac", e.target.value)} />
+              {p.fechaNac && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Edad: {calcEdad(p.fechaNac)} años</p>}
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Sexo</label>
@@ -1719,9 +1994,24 @@ function Perfil({ data, persist, avisar }) {
               <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Estatura (cm) *</label>
               <input type="number" min="50" max="250" className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="170" value={p.estatura} onChange={(e) => set("estatura", e.target.value)} />
             </div>
+            <div className="col-span-2 sm:col-span-4">
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Diagnósticos (toca para marcar)</label>
+              <div className="flex flex-wrap gap-1.5">
+                {DIAGNOSTICOS.map((d) => {
+                  const on = (p.dx || []).indexOf(d) >= 0;
+                  return (
+                    <button key={d} type="button" onClick={() => toggleDx(d)}
+                      className={"text-xs px-2.5 py-1.5 rounded-full border transition-colors " + (on ? "bg-emerald-700 border-emerald-700 text-white" : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")}>
+                      {on ? "✓ " : ""}{d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Aparecen en el reporte PDF para tu médico y dan contexto a tus mediciones.</p>
+            </div>
             <div className="col-span-2 sm:col-span-3">
-              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Condiciones / diagnósticos (opcional)</label>
-              <input className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="Ej. Hipertensión, diabetes tipo 2…" value={p.condiciones} onChange={(e) => set("condiciones", e.target.value)} />
+              <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Otros diagnósticos (opcional)</label>
+              <input className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white" placeholder="Ej. Migraña, artritis, gota…" value={p.condiciones} onChange={(e) => set("condiciones", e.target.value)} />
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">Alergias (opcional)</label>
@@ -1752,12 +2042,7 @@ function Perfil({ data, persist, avisar }) {
 function Salud({ data, persist, avisar, hoy }) {
   const vitals = data.vitals || { readings: [], horarios: null };
   const readings = vitals.readings || [];
-  const horarios = vitals.horarios || {
-    glucosa: METRICAS.glucosa.horariosDefault,
-    presion: METRICAS.presion.horariosDefault,
-    peso: METRICAS.peso.horariosDefault,
-    spo2: METRICAS.spo2.horariosDefault,
-  };
+  const horarios = vitals.horarios || Object.fromEntries(Object.keys(METRICAS).map((t) => [t, METRICAS[t].horariosDefault]));
 
   const [tipo, setTipo] = useState("glucosa");
   const [guiaOpen, setGuiaOpen] = useState(false);
@@ -1766,6 +2051,10 @@ function Salud({ data, persist, avisar, hoy }) {
   const [editRead, setEditRead] = useState(null);
   const [err, setErr] = useState(null);
   const estatura = (data.perfil && Number(data.perfil.estatura)) || null;
+  const perfilS = data.perfil || {};
+  const sexo = perfilS.sexo || "";
+  const edadP = calcEdad(perfilS.fechaNac);
+  const extraClin = { sexo, estatura, edad: edadP };
   const ahora = new Date();
   const horaActual = pad(ahora.getHours()) + ":" + pad(ahora.getMinutes());
   const [f, setF] = useState({ a: "", b: "", pulso: "", ctx: CTX_GLUCOSA[0], fecha: hoy, hora: horaActual, notas: "" });
@@ -1777,8 +2066,8 @@ function Salud({ data, persist, avisar, hoy }) {
 
   const esFuera = (r) => {
     if (r.tipo === "peso") { const c = clasIMC(r.a, estatura); return c ? c.dir !== null : false; }
-    const c = clasificar(r.tipo, r.a, r.b, r.ctx);
-    return c ? c.txt !== "Normal" : false;
+    const c = clasificar(r.tipo, r.a, r.b, r.ctx, extraClin);
+    return c ? !c.ok : false;
   };
 
   const exportarSaludPDF = () => {
@@ -1795,8 +2084,9 @@ function Salud({ data, persist, avisar, hoy }) {
     const linea1 = (perfil.nombre ? "Paciente: " + perfil.nombre : "Paciente") + (edad !== null ? "  ·  " + edad + " años" : "") + (perfil.sexo ? "  ·  " + perfil.sexo : "") + (estatura ? "  ·  Estatura: " + estatura + " cm" : "");
     doc.text(linea1, 14, 21);
     doc.text("Periodo: " + fmtDateLong(pdfDesde) + " — " + fmtDateLong(pdfHasta) + "  ·  Generado: " + fmtDateLong(todayStr()) + "  ·  MediControl", 14, 26);
-    if (perfil.condiciones) doc.text("Condiciones: " + perfil.condiciones, 14, 31);
-    let y = perfil.condiciones ? 37 : 33;
+    const dxTxt = [...(perfil.dx || []), perfil.condiciones].filter(Boolean).join(", ");
+    if (dxTxt) doc.text("Diagnósticos: " + dxTxt, 14, 31);
+    let y = dxTxt ? 37 : 33;
 
     Object.keys(METRICAS).forEach((t) => {
       const m = METRICAS[t];
@@ -1805,9 +2095,13 @@ function Salud({ data, persist, avisar, hoy }) {
       if (y > 250) { doc.addPage(); y = 15; }
       doc.setFontSize(12); doc.setTextColor(4, 120, 87);
       doc.text(m.label + " (" + m.unidad + ")", 14, y);
+      const marca = rows.map((r) => esFuera(r));
       const body = rows.map((r) => {
-        const c = t === "peso" ? clasIMC(r.a, estatura) : clasificar(t, r.a, r.b, r.ctx);
-        const val = t === "presion" ? r.a + "/" + r.b + (r.pulso ? "  ·  " + r.pulso + " lpm" : "") : String(r.a);
+        const c = t === "peso" ? clasIMC(r.a, estatura) : clasificar(t, r.a, r.b, r.ctx, extraClin);
+        const val = t === "presion" ? r.a + "/" + r.b + (r.pulso ? "  ·  " + r.pulso + " lpm" : "")
+          : t === "cintura" ? r.a + " cm" + (r.b ? "  ·  cadera " + r.b + " cm" : "")
+          : t === "orina" ? (NIVELES_ORINA[r.a - 1] ? NIVELES_ORINA[r.a - 1].label : String(r.a))
+          : String(r.a);
         const clas = c ? (c.txt + (t === "peso" && c.imc ? " (IMC " + c.imc + ")" : "")) : "—";
         return [fmtDate(r.fecha), fmt12(r.hora), val, r.ctx || "—", clas, r.notas || ""];
       });
@@ -1819,8 +2113,7 @@ function Salud({ data, persist, avisar, hoy }) {
         alternateRowStyles: { fillColor: [245, 250, 248] },
         didParseCell: (d) => {
           if (d.section === "body" && d.column.index === 4) {
-            const raw = String(d.cell.raw);
-            if (raw.indexOf("Normal") !== 0 && raw !== "—") { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
+            if (marca[d.row.index]) { d.cell.styles.textColor = [190, 18, 60]; d.cell.styles.fontStyle = "bold"; }
             else { d.cell.styles.textColor = [4, 120, 87]; }
           }
         },
@@ -1842,7 +2135,7 @@ function Salud({ data, persist, avisar, hoy }) {
 
     if (y > 270) { doc.addPage(); y = 15; }
     doc.setFontSize(7); doc.setTextColor(150);
-    doc.text("Rangos de referencia generales para adultos (ADA/AHA). Este reporte es informativo y no sustituye la valoración médica.", 14, y);
+    doc.text("Rangos de referencia generales para adultos. Este reporte es informativo y no sustituye la valoración médica.", 14, y);
     doc.save("reporte-salud-" + pdfDesde + "-a-" + pdfHasta + ".pdf");
     avisar("Reporte de salud en PDF descargado");
   };
@@ -1851,37 +2144,54 @@ function Salud({ data, persist, avisar, hoy }) {
 
   const guardarVitals = (next) => persist({ ...data, vitals: next });
 
+  const ctxDefault = (t) => t === "glucosa" ? CTX_GLUCOSA[0] : t === "fc" ? CTX_FC[0] : t === "sueno" ? CTX_SUENO[0] : t === "dolor" ? LOC_DOLOR[0] : (horarios[t] && horarios[t][0] ? horarios[t][0].ctx : "");
+  const aDefault = (t) => (t === "dolor" || t === "estres") ? "0" : t === "orina" ? "2" : "";
+
   const cambiarTipo = (t) => {
     setTipo(t);
     setErr(null);
     setEditRead(null);
-    setF({ a: "", b: "", pulso: "", ctx: t === "glucosa" ? CTX_GLUCOSA[0] : (horarios[t][0] ? horarios[t][0].ctx : ""), fecha: hoy, hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()), notas: "" });
+    setF({ a: aDefault(t), b: "", pulso: "", ctx: ctxDefault(t), fecha: hoy, hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()), notas: "" });
   };
 
   const editarLectura = (r) => {
     setTipo(r.tipo);
     setEditRead(r.id);
     setErr(null);
-    setF({ a: r.a, b: r.b || "", pulso: r.pulso || "", ctx: r.ctx || (r.tipo === "glucosa" ? CTX_GLUCOSA[0] : ""), fecha: r.fecha, hora: r.hora, notas: r.notas || "" });
+    setF({ a: r.a, b: r.b || "", pulso: r.pulso || "", ctx: r.ctx || ctxDefault(r.tipo), fecha: r.fecha, hora: r.hora, notas: r.notas || "" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const registrar = () => {
-    if (!f.a || Number(f.a) <= 0) return setErr(tipo === "presion" ? "Escribe la presión sistólica (número de arriba)." : "Escribe el valor de la medición.");
-    if (tipo === "presion" && (!f.b || Number(f.b) <= 0)) return setErr("Escribe la presión diastólica (número de abajo).");
+    const num = f.a === "" ? NaN : Number(f.a);
+    if (tipo === "presion") {
+      if (!f.a || num <= 0) return setErr("Escribe la presión sistólica (número de arriba).");
+      if (!f.b || Number(f.b) <= 0) return setErr("Escribe la presión diastólica (número de abajo).");
+      if (num < 50 || num > 260 || Number(f.b) < 30 || Number(f.b) > 160) return setErr("Esos valores de presión están fuera de lo esperable (sistólica 50–260, diastólica 30–160). Verifica la medición.");
+    } else if (tipo === "dolor" || tipo === "estres") {
+      if (isNaN(num) || num < 0 || num > 10) return setErr("Selecciona un nivel de 0 a 10 con el control deslizante.");
+    } else if (tipo === "orina") {
+      if (!(num >= 1 && num <= 4)) return setErr("Selecciona el color observado.");
+    } else if (isNaN(num) || num <= 0) {
+      return setErr("Escribe el valor de la medición.");
+    }
+    const rangos = { glucosa: [20, 600], peso: [20, 400], spo2: [50, 100], temp: [30, 45], fc: [20, 250], fr: [4, 60], cintura: [40, 200], cuello: [20, 70], sueno: [0.5, 24] };
+    if (rangos[tipo] && !isNaN(num) && (num < rangos[tipo][0] || num > rangos[tipo][1])) return setErr("El valor " + num + " " + M.unidad + " está fuera de lo esperable (" + rangos[tipo][0] + "–" + rangos[tipo][1] + "). Verifica la medición o la unidad.");
+    if (tipo === "cintura" && f.b && (Number(f.b) < 40 || Number(f.b) > 220)) return setErr("La cadera debe estar entre 40 y 220 cm, o déjala vacía.");
     setErr(null);
     const r = {
       id: editRead || uid(), tipo, fecha: f.fecha, hora: f.hora,
-      a: Number(f.a), b: tipo === "presion" ? Number(f.b) : null,
+      a: Number(f.a === "" ? 0 : f.a),
+      b: tipo === "presion" ? Number(f.b) : (tipo === "cintura" && f.b ? Number(f.b) : null),
       pulso: tipo === "presion" && f.pulso ? Number(f.pulso) : null,
       ctx: f.ctx || "", notas: f.notas.trim(), ts: new Date().toISOString(),
     };
     const nuevas = editRead ? readings.map((x) => (x.id === editRead ? r : x)) : [...readings, r];
     guardarVitals({ ...vitals, readings: nuevas, horarios });
-    const c = tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(tipo, r.a, r.b, r.ctx);
+    const c = tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(tipo, r.a, r.b, r.ctx, extraClin);
     avisar((editRead ? "Medición corregida" : "Medición registrada") + (c ? " · " + c.txt : ""));
     setEditRead(null);
-    setF({ ...f, a: "", b: "", pulso: "", notas: "", hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()) });
+    setF({ ...f, a: aDefault(tipo), b: "", pulso: "", notas: "", hora: pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()) });
   };
 
   const eliminarLectura = (id) => {
@@ -1948,12 +2258,12 @@ function Salud({ data, persist, avisar, hoy }) {
               <IDownload cls="w-4 h-4" /> Exportar PDF
             </button>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Incluye glucosa, presión arterial, peso y oxigenación del periodo, con las mediciones fuera de rango resaltadas en rojo y resumen estadístico por métrica.</p>
+          <p className="text-xs text-slate-400 mt-2">Incluye todas las métricas registradas en el periodo (signos vitales, temperatura, medidas corporales, dolor, sueño, estrés e hidratación), con las mediciones fuera de rango resaltadas en rojo y resumen estadístico por métrica.</p>
         </section>
       )}
 
       {/* selector de métrica */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
         {Object.keys(METRICAS).map((t) => {
           const m = METRICAS[t];
           const activo = tipo === t;
@@ -1996,7 +2306,7 @@ function Salud({ data, persist, avisar, hoy }) {
           </div>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {tipo === "presion" ? (
+          {tipo === "presion" && (
             <React.Fragment>
               <div>
                 <label className={labelCls}>Sistólica (arriba)</label>
@@ -2011,11 +2321,79 @@ function Salud({ data, persist, avisar, hoy }) {
                 <input type="number" min="1" className={inputCls} placeholder="72" value={f.pulso} onChange={(e) => set("pulso", e.target.value)} />
               </div>
             </React.Fragment>
-          ) : (
+          )}
+          {tipo === "cintura" && (
+            <React.Fragment>
+              <div>
+                <label className={labelCls}>Cintura (cm)</label>
+                <input type="number" min="1" step="0.5" className={inputCls} placeholder="92" value={f.a} onChange={(e) => set("a", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Cadera (cm) · opcional</label>
+                <input type="number" min="1" step="0.5" className={inputCls} placeholder="100" value={f.b} onChange={(e) => set("b", e.target.value)} />
+              </div>
+            </React.Fragment>
+          )}
+          {tipo === "fc" && (
+            <React.Fragment>
+              <div>
+                <label className={labelCls}>Latidos por minuto</label>
+                <input type="number" min="1" className={inputCls} placeholder="72" value={f.a} onChange={(e) => set("a", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Contexto</label>
+                <select className={inputCls} value={f.ctx} onChange={(e) => set("ctx", e.target.value)}>
+                  {CTX_FC.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </React.Fragment>
+          )}
+          {tipo === "sueno" && (
+            <React.Fragment>
+              <div>
+                <label className={labelCls}>Horas dormidas</label>
+                <input type="number" min="0" max="24" step="0.5" className={inputCls} placeholder="7.5" value={f.a} onChange={(e) => set("a", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>¿Cómo despertaste?</label>
+                <select className={inputCls} value={f.ctx} onChange={(e) => set("ctx", e.target.value)}>
+                  {CTX_SUENO.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+            </React.Fragment>
+          )}
+          {(tipo === "dolor" || tipo === "estres") && (
+            <React.Fragment>
+              <div className="col-span-2">
+                <label className={labelCls}>{tipo === "dolor" ? "Intensidad del dolor ahora" : "Nivel de estrés del día"}: <span className="text-emerald-700 text-sm">{f.a === "" ? 0 : f.a} / 10</span></label>
+                <input type="range" min="0" max="10" step="1" className="w-full accent-emerald-700" value={f.a === "" ? 0 : f.a} onChange={(e) => set("a", e.target.value)} />
+                <div className="flex justify-between text-[10px] text-slate-400">
+                  <span>{tipo === "dolor" ? "0 · sin dolor" : "0 · nada"}</span><span>{tipo === "dolor" ? "10 · el peor imaginable" : "10 · máximo"}</span>
+                </div>
+              </div>
+              {tipo === "dolor" && (
+                <div>
+                  <label className={labelCls}>¿Dónde duele?</label>
+                  <select className={inputCls} value={f.ctx} onChange={(e) => set("ctx", e.target.value)}>
+                    {LOC_DOLOR.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+            </React.Fragment>
+          )}
+          {tipo === "orina" && (
+            <div className="col-span-2">
+              <label className={labelCls}>Color observado</label>
+              <select className={inputCls} value={f.a} onChange={(e) => set("a", e.target.value)}>
+                {NIVELES_ORINA.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
+              </select>
+            </div>
+          )}
+          {["glucosa", "peso", "spo2", "temp", "fr", "cuello"].indexOf(tipo) >= 0 && (
             <div className={tipo === "glucosa" ? "" : "col-span-2"}>
               <label className={labelCls}>Valor ({M.unidad})</label>
-              <input type="number" min="1" step={tipo === "peso" ? "0.1" : "1"} className={inputCls}
-                placeholder={tipo === "glucosa" ? "95" : tipo === "peso" ? "78.5" : "97"}
+              <input type="number" min="1" step={tipo === "peso" || tipo === "temp" || tipo === "cuello" ? "0.1" : "1"} className={inputCls}
+                placeholder={PLACE_VALOR[tipo]}
                 value={f.a} onChange={(e) => set("a", e.target.value)} />
             </div>
           )}
@@ -2038,7 +2416,7 @@ function Salud({ data, persist, avisar, hoy }) {
         </div>
         <div>
           <label className={labelCls}>Notas (opcional)</label>
-          <input className={inputCls} placeholder={tipo === "glucosa" ? "Ej. Comí tacos al pastor, me sentí mareado…" : "Ej. Después de caminar, con dolor de cabeza…"} value={f.notas} onChange={(e) => set("notas", e.target.value)} />
+          <input className={inputCls} placeholder={NOTAS_PH[tipo] || "Ej. Después de caminar, con dolor de cabeza…"} value={f.notas} onChange={(e) => set("notas", e.target.value)} />
         </div>
         {err && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2">
@@ -2134,7 +2512,99 @@ function Salud({ data, persist, avisar, hoy }) {
         )
       )}
 
-      {/* estadísticas y tendencia */}
+      {/* análisis de cintura, cadera y cuello */}
+      {(tipo === "cintura" || tipo === "cuello") && ultima && (
+        sexo ? (() => {
+          const c = clasificar(tipo, ultima.a, ultima.b, ultima.ctx, extraClin);
+          const icc = tipo === "cintura" && ultima.b ? Math.round((ultima.a / ultima.b) * 100) / 100 : null;
+          const limIcc = sexo === "Hombre" ? 0.90 : 0.85;
+          const ice = tipo === "cintura" && estatura ? Math.round((ultima.a / estatura) * 100) / 100 : null;
+          return (
+            <section className={"rounded-2xl border p-4 " + (c && c.ok ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200")}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-slate-800">{M.label}: {ultima.a} cm</span>
+                {c && <span className={"text-xs px-2 py-0.5 rounded-full border " + c.cls}>{c.txt}</span>}
+                <span className="text-xs text-slate-500">{tipo === "cintura" ? (sexo === "Hombre" ? "Meta: 90 cm o menos" : "Meta: 80 cm o menos") : (sexo === "Hombre" ? "Referencia: menos de 40 cm" : "Referencia: menos de 36 cm")}</span>
+              </div>
+              {tipo === "cintura" && (icc !== null || ice !== null) && (
+                <div className="grid sm:grid-cols-2 gap-2 mt-2 text-xs">
+                  {icc !== null && (
+                    <div className={"rounded-xl border px-3 py-2 bg-white " + (icc >= limIcc ? "border-amber-300 text-amber-800" : "border-emerald-200 text-emerald-800")}>
+                      <b>Índice cintura-cadera: {icc}</b> · {icc >= limIcc ? "riesgo cardiometabólico aumentado" : "dentro de lo recomendable"} (límite {sexo === "Hombre" ? "0.90" : "0.85"}).
+                    </div>
+                  )}
+                  {ice !== null && (
+                    <div className={"rounded-xl border px-3 py-2 bg-white " + (ice >= 0.5 ? "border-amber-300 text-amber-800" : "border-emerald-200 text-emerald-800")}>
+                      <b>Índice cintura-estatura: {ice}</b> · {ice < 0.5 ? "saludable" : ice < 0.6 ? "riesgo aumentado" : "riesgo alto"}. Regla simple: tu cintura debe medir menos de la mitad de tu estatura.
+                    </div>
+                  )}
+                </div>
+              )}
+              {tipo === "cintura" && !ultima.b && <p className="text-[11px] text-slate-500 mt-2">Consejo: registra también la cadera para calcular tu índice cintura-cadera, un predictor de riesgo cardiovascular mejor que la cintura sola.</p>}
+              {tipo === "cuello" && <p className="text-xs text-slate-600 mt-1.5">Un cuello por arriba de la referencia se asocia con mayor riesgo cardiometabólico y de apnea del sueño (ronquido con pausas al respirar). Si además roncas fuerte o despiertas cansado, coméntalo con tu médico.</p>}
+            </section>
+          );
+        })() : (
+          <section className="bg-amber-50 rounded-2xl border border-amber-200 p-4 text-sm text-amber-800 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" /> Para interpretar esta medida indica tu <b>sexo</b> en el Perfil del paciente (los límites de referencia son distintos para hombres y mujeres).
+          </section>
+        )
+      )}
+
+      {/* FC máxima y zonas de entrenamiento */}
+      {tipo === "fc" && (
+        edadP !== null ? (() => {
+          const fcMax = 220 - edadP;
+          const zMod = [Math.round(fcMax * 0.64), Math.round(fcMax * 0.76)];
+          const zVig = [Math.round(fcMax * 0.77), Math.round(fcMax * 0.93)];
+          return (
+            <section className="bg-white rounded-2xl border border-slate-200 p-4">
+              <div className="font-bold text-slate-800 text-sm mb-2">Tus zonas de frecuencia cardiaca ({edadP} años)</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5"><div className="text-lg font-extrabold text-slate-800">{fcMax}</div><div className="text-slate-500 mt-0.5">FC máxima estimada (220 − edad)</div></div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5"><div className="text-lg font-extrabold text-emerald-800">{zMod[0]}–{zMod[1]}</div><div className="text-emerald-700 mt-0.5">Zona de ejercicio moderado (64–76%)</div></div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5"><div className="text-lg font-extrabold text-amber-800">{zVig[0]}–{zVig[1]}</div><div className="text-amber-700 mt-0.5">Zona de ejercicio vigoroso (77–93%)</div></div>
+              </div>
+              <p className="text-xs text-slate-400 mt-2">La clasificación (normal 60–100 lpm) aplica solo a mediciones en reposo. Una FC en reposo consistentemente mayor a 100, o menor a 50 con mareo o fatiga, amerita valoración médica.</p>
+            </section>
+          );
+        })() : (
+          <section className="bg-amber-50 rounded-2xl border border-amber-200 p-4 text-sm text-amber-800 flex items-center gap-2">
+            <IWarn cls="w-4 h-4 shrink-0" /> Completa tu <b>fecha de nacimiento</b> en el Perfil para calcular tu FC máxima y tus zonas de entrenamiento.
+          </section>
+        )
+      )}
+
+      {/* alerta y consejo de dolor */}
+      {tipo === "dolor" && ultima && ultima.a > 0 && (
+        <section className={"rounded-2xl border p-4 text-sm " + ((ultima.ctx === "Pecho" || ultima.a >= 7) ? "bg-rose-50 border-rose-200 text-rose-800" : "bg-sky-50 border-sky-100 text-sky-900")}>
+          {ultima.ctx === "Pecho" ? (
+            <p><b>⚠️ Dolor de pecho:</b> si es opresivo, aparece con el esfuerzo, o se acompaña de falta de aire, sudoración fría, náusea o se corre al brazo izquierdo o la mandíbula, <b>busca atención médica de inmediato</b>. No esperes a que pase.</p>
+          ) : ultima.a >= 7 ? (
+            <p><b>Dolor severo ({ultima.a}/10):</b> un dolor de esta intensidad —sobre todo si es nuevo, no cede con tu analgésico habitual o dura más de 24–48 h— amerita valoración médica.</p>
+          ) : (
+            <p><b>Consejo:</b> registra el dolor a horas similares y anota qué lo mejora o empeora. La tendencia y los detonantes le sirven más a tu médico que un valor aislado.</p>
+          )}
+        </section>
+      )}
+
+      {/* análisis de sueño */}
+      {tipo === "sueno" && semana.length >= 3 && (() => {
+        const promS = prom(semana, "a");
+        return (
+          <section className={"rounded-2xl border p-4 text-sm " + (promS >= 7 && promS <= 9 ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-amber-50 border-amber-200 text-amber-900")}>
+            <b>Promedio de la semana: {promS} h.</b> {promS >= 7 && promS <= 9 ? "Estás en el rango recomendado para adultos (7–9 h). Mantén horarios regulares de dormir y despertar para conservarlo." : promS < 7 ? "Estás por debajo de las 7–9 h recomendadas. Dormir poco de forma sostenida se asocia con más apetito, glucosa y presión más difíciles de controlar y peor estado de ánimo. Prueba adelantar tu hora de dormir 30 min y evitar pantallas y cafeína en la tarde-noche." : "Duermes más de 9 h en promedio; si aun así despiertas cansado, coméntalo con tu médico."}
+          </section>
+        );
+      })()}
+
+      {/* análisis de estrés */}
+      {tipo === "estres" && semana.length >= 3 && prom(semana, "a") >= 7 && (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          <b>Tu estrés promedio de la semana es alto ({prom(semana, "a")}/10).</b> El estrés sostenido eleva la presión y la glucosa, y deteriora el sueño. Prueba respiración 4-7-8 (inhala 4 s, sostén 7 s, exhala 8 s, 4 ciclos), camina 20–30 min al día y cuida tu horario de sueño. Si se mantiene alto o interfiere con tu vida diaria, buscar apoyo profesional es una decisión inteligente.
+        </section>
+      )}
+{/* estadísticas y tendencia */}
       {delTipo.length > 0 && (
         <section className="bg-white rounded-2xl border border-slate-200 p-4">
           <div className="grid grid-cols-3 gap-3 mb-2">
@@ -2172,7 +2642,7 @@ function Salud({ data, persist, avisar, hoy }) {
             <React.Fragment>
               <Sparkline puntos={ultimas.map((r) => r.a)} puntos2={tipo === "presion" ? ultimas.map((r) => r.b) : null}
                 unidad={M.unidad} fechas={ultimas.map((r) => r.fecha)}
-                banda={tipo === "glucosa" ? [70, 140] : tipo === "presion" ? [90, 120] : tipo === "spo2" ? [95, 100] : (estatura ? rangoPesoSaludable(estatura) : null)} />
+                banda={tipo === "peso" ? (estatura ? rangoPesoSaludable(estatura) : null) : (BANDAS_REF[tipo] || null)} />
               <div className="text-xs text-slate-400 text-center">Tendencia de las últimas {ultimas.length} mediciones{tipo === "presion" ? " (verde: sistólica · gris punteada: diastólica)" : ""}</div>
             </React.Fragment>
           )}
@@ -2189,19 +2659,19 @@ function Salud({ data, persist, avisar, hoy }) {
         ) : (
           <div className="space-y-2">
             {delTipo.slice().reverse().slice(0, 30).map((r) => {
-              const c = r.tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(r.tipo, r.a, r.b, r.ctx);
+              const c = r.tipo === "peso" ? clasIMC(r.a, estatura) : clasificar(r.tipo, r.a, r.b, r.ctx, extraClin);
               return (
                 <div key={r.id} className="bg-white rounded-2xl border border-slate-200 p-3.5 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-slate-800 text-lg">
-                        {tipo === "presion" ? r.a + "/" + r.b : r.a} <span className="text-xs font-medium text-slate-400">{M.unidad}</span>
+                        {tipo === "presion" ? r.a + "/" + r.b : tipo === "orina" ? "Nivel " + r.a : r.a} <span className="text-xs font-medium text-slate-400">{tipo === "orina" ? "" : M.unidad}</span>
                       </span>
                       {r.pulso && <span className="text-xs text-slate-500">♥ {r.pulso} lpm</span>}
                       {c && <span className={"text-xs px-2 py-0.5 rounded-full border " + c.cls}>{c.txt}{r.tipo === "peso" && c.imc ? " · IMC " + c.imc : ""}</span>}
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                      {fmtDate(r.fecha)} · {fmt12(r.hora)}{r.ctx ? " · " + r.ctx : ""}{r.notas ? " · " + r.notas : ""}
+                      {fmtDate(r.fecha)} · {fmt12(r.hora)}{r.ctx ? " · " + r.ctx : ""}{r.tipo === "cintura" && r.b ? " · cadera " + r.b + " cm" : ""}{r.notas ? " · " + r.notas : ""}
                     </div>
                   </div>
                   {confirmDel === r.id ? (
@@ -2222,7 +2692,7 @@ function Salud({ data, persist, avisar, hoy }) {
         )}
       </section>
 
-      <p className="text-xs text-slate-400 text-center">Los rangos mostrados son referencias generales para adultos. No sustituyen la valoración de tu médico; si obtienes valores en zona de alerta o síntomas, busca atención médica.</p>
+      <p className="text-xs text-slate-400 text-center">Los rangos mostrados son referencias generales para adultos y pueden variar según tu edad, embarazo, medicamentos y diagnósticos; tu médico puede fijarte metas distintas. Si obtienes valores en zona de alerta o tienes síntomas, busca atención médica.</p>
     </div>
   );
 }
@@ -2565,6 +3035,695 @@ function Comidas({ data, persist, avisar, hoy }) {
 }
 
 /* ============================================================ */
+/* ============================================================
+   SALUDABLE — Guía de alimentación, ejercicio e hidratación
+   ============================================================ */
+
+const GRUPOS = {
+  verdura:    { label: "Verduras",                  emoji: "🥦", color: "emerald", desc: "Vitaminas, minerales, alta cantidad de fibra y agua. Inclúyelas en cada comida." },
+  fruta:      { label: "Frutas",                    emoji: "🍎", color: "lime",    desc: "Energía, carbohidratos, fibra, agua, vitaminas y minerales." },
+  cereal:     { label: "Cereales y tubérculos",     emoji: "🌽", color: "amber",   desc: "Principal fuente de energía; vitaminas, minerales y carbohidratos." },
+  aoa:        { label: "Alimentos de origen animal",emoji: "🍗", color: "rose",    desc: "Proteínas, vitaminas y grasas: pollo, pescado, res, cerdo, queso y huevo." },
+  leche:      { label: "Leche y yogur natural",     emoji: "🥛", color: "sky",     desc: "Carbohidratos, proteínas, grasas, vitaminas y minerales." },
+  leguminosa: { label: "Leguminosas",               emoji: "🫘", color: "orange",  desc: "Carbohidratos, proteínas, fibra y minerales como el hierro." },
+  grasa:      { label: "Aceites y grasas",          emoji: "🥑", color: "yellow",  desc: "Prefiere las de origen vegetal (aceites, aguacate, semillas); evita las de origen animal." },
+};
+
+/* [nombre, cantidad por 1 ración, unidad] — unidad singular; "g" no se pluraliza */
+const ALIMENTOS = {
+  verdura: [
+    ["Acelga cocida",0.5,"taza"],["Apio",1,"taza"],["Brócoli cocido",0.5,"taza"],["Calabacita",1,"pieza"],
+    ["Champiñón cocido",0.5,"taza"],["Chayote cocido",0.5,"taza"],["Chile poblano",0.5,"pieza"],["Chícharo cocido",0.25,"taza"],
+    ["Col cruda",2,"taza"],["Coliflor cocida",1,"taza"],["Ejote cocido",0.5,"taza"],["Espinaca cocida",0.5,"taza"],
+    ["Flor de calabaza",1,"taza"],["Germen de alfalfa",3,"taza"],["Huitlacoche cocido",1/3,"taza"],["Jícama",0.5,"taza"],
+    ["Jitomate",1,"pieza"],["Lechuga",3,"taza"],["Nopal cocido",1,"taza"],["Pepino",1,"taza"],
+    ["Pimiento cocido",0.5,"taza"],["Seta cocida",0.5,"taza"],["Verdolagas cocidas",1,"taza"],["Zanahoria",0.5,"taza"],
+  ],
+  fruta: [
+    ["Arándano seco",0.5,"taza"],["Chabacano",4,"pieza"],["Chicozapote",0.5,"pieza"],["Ciruela",3,"pieza"],
+    ["Durazno amarillo",2,"pieza"],["Fresa entera",17,"pieza"],["Granada roja",1,"pieza"],["Guayaba",3,"pieza"],
+    ["Higo",2,"pieza"],["Kiwi",1.5,"pieza"],["Mamey",1/3,"pieza"],["Mandarina",2,"pieza"],
+    ["Mango ataúlfo",0.5,"pieza"],["Manzana",1,"pieza"],["Melón",1,"taza"],["Naranja",2,"pieza"],
+    ["Papaya",1,"taza"],["Pasas",10,"pieza"],["Pera",0.5,"pieza"],["Piña",0.75,"taza"],
+    ["Plátano",0.5,"pieza"],["Plátano dominico",3,"pieza"],["Sandía",1,"taza"],["Toronja",1,"pieza"],
+    ["Tuna",2,"pieza"],["Uva",18,"pieza"],
+  ],
+  aoa: [
+    ["Atún en lata",1/3,"lata"],["Atún fresco",30,"g"],["Bistec de res o cerdo",30,"g"],["Clara de huevo",2,"pieza"],
+    ["Carne de pollo, res o cerdo",40,"g"],["Carne molida de res o cerdo",30,"g"],["Charales frescos",30,"g"],
+    ["Filete de pescado",40,"g"],["Huevo",1,"pieza"],["Jamón de pavo",2,"rebanada"],["Jocoque",3.5,"cucharada"],
+    ["Maciza de res",25,"g"],["Trucha fresca",35,"g"],["Pechuga de pollo sin piel",30,"g"],["Pollo deshebrado",0.25,"taza"],
+    ["Pavo",45,"g"],["Queso cottage o requesón",3,"cucharada"],["Queso oaxaca",35,"g"],["Queso panela",40,"g"],
+    ["Queso blanco",35,"g"],["Sardina en tomate",1,"pieza"],
+  ],
+  cereal: [
+    ["Amaranto tostado",0.25,"taza"],["Arroz cocido",0.25,"taza"],["Avena cocida",0.75,"taza"],["Bolillo sin migajón",0.5,"pieza"],
+    ["Bollo de hamburguesa",1/3,"pieza"],["Camote",0.5,"taza"],["Cereal de caja sin azúcar",0.5,"taza"],["Elote cocido",1.5,"pieza"],
+    ["Elote desgranado cocido",0.5,"taza"],["Espagueti cocido",1/3,"taza"],["Galleta habanera",4,"pieza"],
+    ["Galletas de maíz horneadas sin grasa",3,"pieza"],["Galleta maría",5,"pieza"],["Granola baja en grasa",3,"cucharada"],
+    ["Palomitas de maíz sin grasa",2.5,"taza"],["Pan de caja",1,"rebanada"],["Pan tostado",1,"rebanada"],["Papa",0.5,"pieza"],
+    ["Pasta cocida",0.5,"taza"],["Salvado de trigo",8,"cucharada"],["Sope de maíz",0.5,"pieza"],["Telera sin migajón",1/3,"pieza"],
+    ["Tortilla de maíz",1,"pieza"],["Tostada de maíz horneada",2,"pieza"],
+  ],
+  leche: [
+    ["Leche descremada",1,"taza"],["Yogur descremado",0.75,"taza"],["Yogur natural sin azúcar",1,"taza"],
+  ],
+  leguminosa: [
+    ["Alubia",0.5,"taza"],["Alverjón",0.5,"taza"],["Frijol entero",0.5,"taza"],["Frijol machacado",1/3,"taza"],
+    ["Garbanzo",0.5,"taza"],["Haba",0.5,"taza"],["Lenteja",0.5,"taza"],
+  ],
+  grasa: [
+    ["Aceite",1,"cucharadita"],["Aceite de oliva",1,"cucharadita"],["Aceituna sin hueso",5,"pieza"],["Aguacate",1/3,"pieza"],
+    ["Guacamole",2,"cucharada"],["Almendra",10,"pieza"],["Cacahuate",14,"pieza"],["Nuez",3,"pieza"],
+    ["Semilla de girasol",4,"cucharadita"],["Semillas de calabaza",1.5,"cucharada"],
+  ],
+};
+
+/* Porciones por tiempo de comida (plan de referencia de 1,500 kcal/día) */
+const PLAN_COMIDAS = {
+  desayuno:  { label: "Desayuno",            emoji: "🌅", porciones: { verdura:1, fruta:1, cereal:2, aoa:2, leche:1, grasa:1 },
+    ejemplo: "Huevos a la mexicana (2 huevos con 1 jitomate y 1 cucharadita de aceite), 2 piezas de pan tostado, 1 taza de leche descremada y 1 taza de papaya picada." },
+  colacionM: { label: "Colación matutina",   emoji: "🍏", porciones: { fruta:1 },
+    ejemplo: "1 pieza de manzana." },
+  comida:    { label: "Comida",              emoji: "🍲", porciones: { verdura:2, cereal:3, leguminosa:1, aoa:2, grasa:2 },
+    ejemplo: "Bistec en salsa verde (60 g de bistec de res, 1 taza de nopales picados y 2 cucharaditas de aceite), ½ taza de frijoles de la olla y 3 tortillas de maíz." },
+  colacionV: { label: "Colación vespertina", emoji: "🍑", porciones: { fruta:1 },
+    ejemplo: "2 piezas de durazno amarillo." },
+  cena:      { label: "Cena",                emoji: "🌙", porciones: { verdura:1, fruta:1, cereal:2, aoa:1, grasa:1 },
+    ejemplo: "Ensalada de atún (30 g de atún, 3 tazas de lechuga y 1 cucharadita de aceite de oliva), 8 galletas habaneras y 2 mandarinas." },
+};
+
+/* Método de la mano */
+const METODO_MANO = [
+  { mano: "✌️ 2 palmas ahuecadas", equivale: "1 taza (240 ml)",  grupo: "Verduras",              ej: "2 palmas ahuecadas de brócoli, nopales o verduras mixtas = 1 taza." },
+  { mano: "✊ 1 puño",             equivale: "1 taza (240 ml)",  grupo: "Frutas",                ej: "1 puño de papaya, melón o sandía picada = 1 taza." },
+  { mano: "🤛 ½ puño",             equivale: "½ taza (120 ml)",  grupo: "Cereales o leguminosas",ej: "½ puño de arroz, pasta o frijoles cocidos = ½ taza." },
+  { mano: "👍 1 pulgar",           equivale: "1 cucharadita (5 ml)", grupo: "Grasa",             ej: "1 pulgar de aceite, guacamole o crema de cacahuate = 1 cucharadita." },
+  { mano: "✊ 1 puño",             equivale: "1 taza (240 ml)",  grupo: "Leche",                 ej: "1 puño equivale a 1 vaso de leche descremada." },
+  { mano: "🖐️ ⅓ de palma (grosor del meñique)", equivale: "1 porción de 30 g", grupo: "Carne",  ej: "⅓ de palma = 30 g de carne. La palma completa = 3 porciones (≈90 g)." },
+];
+
+const fmtFrac = (x) => {
+  const ent = Math.floor(x + 0.0001);
+  const dec = x - ent;
+  const map = [[0,""],[0.25,"¼"],[1/3,"⅓"],[0.5,"½"],[2/3,"⅔"],[0.75,"¾"]];
+  let best = map[0];
+  for (const m of map) if (Math.abs(dec - m[0]) < Math.abs(dec - best[0])) best = m;
+  if (Math.abs(dec - best[0]) > 0.05) return String(Math.round(x * 100) / 100);
+  if (ent === 0 && best[1]) return best[1];
+  return best[1] ? ent + " " + best[1] : String(ent);
+};
+
+const fmtCantidad = (qty, unidad, mult) => {
+  const total = qty * mult;
+  if (unidad === "g") return Math.round(total) + " g";
+  const plural = total > 1.001;
+  const u = plural ? (unidad === "lata" ? "latas" : unidad + "s") : unidad;
+  return fmtFrac(total) + " " + u;
+};
+
+/* ---------- desplegable reutilizable ---------- */
+function Desplegable({ titulo, subtitulo, emoji, abierto, onToggle, children, tone }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 transition-colors">
+        <span className="text-xl leading-none">{emoji}</span>
+        <span className="flex-1 min-w-0">
+          <span className={"block font-semibold text-sm " + (tone || "text-slate-800")}>{titulo}</span>
+          {subtitulo && <span className="block text-xs text-slate-500 mt-0.5">{subtitulo}</span>}
+        </span>
+        <IChevron cls={"w-4 h-4 text-slate-400 transition-transform " + (abierto ? "rotate-180" : "")} />
+      </button>
+      {abierto && <div className="px-4 pb-4 border-t border-slate-100 pt-3">{children}</div>}
+    </div>
+  );
+}
+
+function TablaRaciones({ items }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
+            <th className="text-left px-3 py-2 font-semibold">Alimento</th>
+            <th className="text-right px-3 py-2 font-semibold">1 ración =</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={it[0]} className={i % 2 ? "bg-slate-50/50" : "bg-white"}>
+              <td className="px-3 py-1.5 text-slate-700">{it[0]}</td>
+              <td className="px-3 py-1.5 text-right font-medium text-slate-800 whitespace-nowrap">{fmtCantidad(it[1], it[2], 1)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ---------- calculadora de IMC y cintura ---------- */
+function CalcNutricion() {
+  const [peso, setPeso] = useState("");
+  const [estatura, setEstatura] = useState("");
+  const [cintura, setCintura] = useState("");
+  const [sexo, setSexo] = useState("hombre");
+
+  const p = parseFloat(peso), e = parseFloat(estatura), c = parseFloat(cintura);
+  const imc = p > 0 && e > 0 ? p / (e * e) : null;
+
+  const clasifIMC = (v) => {
+    if (v < 18.5) return { t: "Bajo peso", cls: "bg-sky-100 text-sky-800 border-sky-200" };
+    if (v < 25)   return { t: "Peso saludable", cls: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+    if (v < 30)   return { t: "Sobrepeso", cls: "bg-amber-100 text-amber-800 border-amber-200" };
+    if (v < 35)   return { t: "Obesidad grado I", cls: "bg-orange-100 text-orange-800 border-orange-200" };
+    if (v < 40)   return { t: "Obesidad grado II", cls: "bg-rose-100 text-rose-800 border-rose-200" };
+    return { t: "Obesidad grado III", cls: "bg-red-100 text-red-800 border-red-200" };
+  };
+
+  const limiteCintura = sexo === "hombre" ? 90 : 80;
+  const cinturaOk = c > 0 ? c <= limiteCintura : null;
+  const meta = imc && imc >= 25 && p > 0 ? Math.round(p * 0.10 * 10) / 10 : null;
+  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4">
+      <h3 className="font-bold text-slate-800 flex items-center gap-2"><IScale cls="w-5 h-5 text-emerald-700" /> Conoce tu estado de nutrición</h3>
+      <p className="text-xs text-slate-500 mt-1 mb-3">IMC = peso (kg) ÷ estatura × estatura (m). Clasificación por semáforo.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <label className="text-xs text-slate-600 font-medium">Peso (kg)
+          <input type="number" min="0" step="0.1" className={inputCls + " mt-1"} placeholder="Ej. 82" value={peso} onChange={(ev) => setPeso(ev.target.value)} />
+        </label>
+        <label className="text-xs text-slate-600 font-medium">Estatura (m)
+          <input type="number" min="0" step="0.01" className={inputCls + " mt-1"} placeholder="Ej. 1.70" value={estatura} onChange={(ev) => setEstatura(ev.target.value)} />
+        </label>
+        <label className="text-xs text-slate-600 font-medium">Cintura (cm)
+          <input type="number" min="0" step="0.5" className={inputCls + " mt-1"} placeholder="Ej. 92" value={cintura} onChange={(ev) => setCintura(ev.target.value)} />
+        </label>
+        <label className="text-xs text-slate-600 font-medium">Sexo
+          <select className={inputCls + " mt-1"} value={sexo} onChange={(ev) => setSexo(ev.target.value)}>
+            <option value="hombre">Hombre</option>
+            <option value="mujer">Mujer</option>
+          </select>
+        </label>
+      </div>
+
+      {imc && (
+        <div className="mt-4 grid sm:grid-cols-3 gap-3">
+          <div className={"rounded-xl border p-3 text-center " + clasifIMC(imc).cls}>
+            <div className="text-2xl font-extrabold">{(Math.round(imc * 10) / 10).toFixed(1)}</div>
+            <div className="text-xs font-semibold mt-0.5">IMC · {clasifIMC(imc).t}</div>
+          </div>
+          {cinturaOk !== null && (
+            <div className={"rounded-xl border p-3 text-center " + (cinturaOk ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-rose-100 text-rose-800 border-rose-200")}>
+              <div className="text-2xl font-extrabold">{c} cm</div>
+              <div className="text-xs font-semibold mt-0.5">{cinturaOk ? "Cintura normal" : "Obesidad central"} (límite {limiteCintura} cm)</div>
+            </div>
+          )}
+          {meta && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-emerald-900">
+              <div className="text-2xl font-extrabold">−{meta} kg</div>
+              <div className="text-xs font-semibold mt-0.5">Meta saludable: 10% de tu peso en 6 meses</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-3 text-xs text-slate-500 grid sm:grid-cols-2 gap-x-6 gap-y-1">
+        <span>🟢 Peso saludable: 18.5 – 24.9 kg/m²</span>
+        <span>🟡 Sobrepeso: 25.0 – 29.9 kg/m²</span>
+        <span>🟠 Obesidad I: 30.0 – 34.9 · II: 35.0 – 39.9</span>
+        <span>🔴 Obesidad III: 40.0 kg/m² o más</span>
+      </div>
+      <p className="text-[11px] text-slate-400 mt-3">Cómo medir tu cintura: descubre el abdomen, coloca la cinta entre la última costilla y el borde del hueso de la cadera, respira profundo y mide al sacar el aire.</p>
+    </div>
+  );
+}
+
+/* ---------- calculadora de porciones por comida ---------- */
+function CalcPorciones({ avisar }) {
+  const [comida, setComida] = useState("desayuno");
+  const [extra, setExtra] = useState(false);
+  const [sel, setSel] = useState({});
+
+  const plan = PLAN_COMIDAS[comida];
+  const porciones = useMemo(() => {
+    const base = { ...plan.porciones };
+    if (extra) {
+      if (comida === "colacionV") base.fruta = (base.fruta || 0) + 1;
+      if (comida === "comida") base.aoa = (base.aoa || 0) + 1;
+      if (comida === "cena") base.cereal = (base.cereal || 0) + 1;
+    }
+    return base;
+  }, [comida, extra]);
+
+  const elegir = (grupo, idx) => setSel((s) => ({ ...s, [comida + "|" + grupo]: idx }));
+  const sugerir = () => {
+    const next = { ...sel };
+    for (const g of Object.keys(porciones)) next[comida + "|" + g] = Math.floor(Math.random() * ALIMENTOS[g].length);
+    setSel(next);
+    avisar("Menú sugerido al azar 🍽️");
+  };
+
+  const totalPorc = Object.values(porciones).reduce((a, b) => a + b, 0);
+  const selectCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white";
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4">
+      <h3 className="font-bold text-slate-800 flex items-center gap-2"><IFood cls="w-5 h-5 text-emerald-700" /> ¿Cuántas porciones debo consumir en cada comida?</h3>
+      <p className="text-xs text-slate-500 mt-1">Basado en un plan de 1,500 calorías al día para bajar de peso de forma segura. Elige el tiempo de comida y arma tu plato con la lista de intercambio.</p>
+
+      <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1">
+        {Object.entries(PLAN_COMIDAS).map(([id, c]) => (
+          <button key={id} onClick={() => setComida(id)}
+            className={"px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors " +
+              (comida === id ? "bg-emerald-700 text-white border-emerald-700" : "bg-white text-slate-600 border-slate-300 hover:border-emerald-400")}>
+            {c.emoji} {c.label}
+          </button>
+        ))}
+      </div>
+
+      <label className="flex items-start gap-2 mt-3 text-xs text-slate-600 cursor-pointer">
+        <input type="checkbox" className="mt-0.5 accent-emerald-700" checked={extra} onChange={(e) => setExtra(e.target.checked)} />
+        <span><b>Requerimiento mayor</b> (adolescentes, hombres o actividad física intensa): +1 fruta en la colación vespertina, +1 origen animal en la comida y +1 cereal en la cena.</span>
+      </label>
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="text-sm font-semibold text-slate-700">{plan.emoji} {plan.label} · {totalPorc} {totalPorc === 1 ? "porción" : "porciones"}</div>
+        <button onClick={sugerir} className="text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full px-3 py-1.5 hover:bg-emerald-100 transition-colors">🎲 Sugerir menú</button>
+      </div>
+
+      <div className="mt-3 space-y-3">
+        {Object.entries(porciones).map(([g, n]) => {
+          const idx = sel[comida + "|" + g];
+          const item = idx != null ? ALIMENTOS[g][idx] : null;
+          return (
+            <div key={g} className="rounded-xl border border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-sm font-semibold text-slate-800">{GRUPOS[g].emoji} {GRUPOS[g].label}</span>
+                <span className="text-xs font-bold bg-slate-100 text-slate-600 rounded-full px-2.5 py-1">{n} {n === 1 ? "porción" : "porciones"}</span>
+              </div>
+              <select className={selectCls} value={idx != null ? idx : ""} onChange={(e) => elegir(g, Number(e.target.value))}>
+                <option value="" disabled>Elige un alimento de este grupo…</option>
+                {ALIMENTOS[g].map((it, i) => (
+                  <option key={it[0]} value={i}>{it[0]} — 1 ración = {fmtCantidad(it[1], it[2], 1)}</option>
+                ))}
+              </select>
+              {item && (
+                <div className="mt-2 text-sm bg-emerald-50 border border-emerald-100 text-emerald-900 rounded-lg px-3 py-2">
+                  ✅ Come <b>{fmtCantidad(item[1], item[2], n)}</b> de <b>{item[0]}</b>{n > 1 && <span className="text-emerald-700"> ({n} × {fmtCantidad(item[1], item[2], 1)})</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 text-xs text-slate-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+        <b>Ejemplo de menú para {plan.label.toLowerCase()}:</b> {plan.ejemplo}
+      </div>
+      <p className="text-[11px] text-slate-400 mt-2">Si no tienes un alimento, sustitúyelo por otro del mismo grupo (ej. sin manzana, usa 1 taza de papaya). Acude con un profesional de la nutrición para un plan de alimentación personalizado.</p>
+    </div>
+  );
+}
+
+/* ---------- menú saludable de 14 días ---------- */
+const MENU14 = [
+  { d:["Sándwich de queso blanco: pan de caja (2 rebanadas), queso blanco (70 g), aguacate (⅓), jitomate (1 pieza), lechuga (1 taza)","Manzana (1 pieza)","Leche descremada (1 taza)"],
+    cm:"Manzana (1 pieza)",
+    co:["Sopa de fideo con brócoli: fideo cocido (½ taza), brócoli cocido (½ taza)","Alambre de res: carne de res (60 g), verduras mixtas (1 taza), aceite (2 cucharaditas)","Tortilla de maíz (2 piezas) y frijoles caldosos (½ taza)"],
+    cv:"Plátano dominico (3 piezas)",
+    ce:["Tostadas de tinga de pollo: pechuga deshebrada (30 g), aceite (1 cucharadita), jitomate y cebolla (1 taza), tostadas horneadas (4 piezas)","Naranja (2 piezas)"] },
+  { d:["Huevo en salsa verde con nopales: huevo (2 piezas), nopales cocidos (1 taza), tortilla (2 piezas), aceite (1 cucharadita)","Papaya picada (1 taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Guayabas chicas (3 piezas)",
+    co:["Sopa de verduras: verduras mixtas (1 taza)","Pescado empapelado con ensalada: filete (80 g), verduras mixtas (½ taza), arroz rojo (¼ taza), aceite (2 cucharaditas)","Tortilla de maíz (2 piezas) y alubias caldosas (½ taza)"],
+    cv:"Mandarina (2 piezas)",
+    ce:["Ceviche de atún: atún (30 g), pico de gallo (1 taza), limón, aguacate (⅓), tostadas horneadas (4 piezas)","Piña picada (¾ de taza)"] },
+  { d:["Quesadillas con flor de calabaza: flor de calabaza (1 taza), queso panela (80 g), tortilla (2 piezas), aceite (1 cucharadita)","Melón picado (1 taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Sandía picada (1 taza)",
+    co:["Sopa de moñito con verduras: pasta cocida (½ taza), verduras mixtas (1 taza), aceite (1 cucharadita)","Tacos de carne asada: res (60 g), tortilla (2 piezas), pico de gallo (1 taza), aguacate (⅓)","Frijoles caldosos (½ taza)"],
+    cv:"Manzana (1 pieza)",
+    ce:["Tostadas de queso panela: panela (40 g), aguacate (⅓), pico de gallo (1 taza), tostadas horneadas (2 piezas)","Papaya picada (1 taza) con granola baja en grasa (3 cucharadas)"] },
+  { d:["Tacos de queso blanco: tortilla (2 piezas), queso blanco (70 g), aguacate (⅓), pico de gallo (1 taza), salsa al gusto","Fresa rebanada (1 taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Toronja (1 pieza)",
+    co:["Sopa poblana: rajas de poblano (½ taza), champiñones (½ taza), elote desgranado (½ taza), caldo de pollo sin grasa","Pollo en salsa verde: pieza sin piel (60 g), nopales cocidos (1 taza), aceite (2 cucharaditas)","Tortilla de maíz (2 piezas) y frijoles caldosos (½ taza)"],
+    cv:"Naranja (2 piezas)",
+    ce:["Huevo a la mexicana: huevo (1 pieza), jitomate, cebolla y chile serrano (1 taza), aceite (1 cucharadita), tortilla (2 piezas)","Plátano tabasco (½ pieza)"] },
+  { d:["Enchiladas de pollo: pechuga deshebrada (60 g), aceite (1 cucharadita), salsa verde o roja, pico de gallo (1 taza), tortilla (2 piezas)","Durazno amarillo (2 piezas)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Naranja (2 piezas)",
+    co:["Consomé de verduras: verduras mixtas (1 taza), garbanzo (½ taza), arroz blanco (¼ de taza)","Carne de cerdo en salsa morita: maciza (70 g), aceite (2 cucharaditas), tortilla (2 piezas)"],
+    cv:"Guayabas chicas (3 piezas) y cacahuates naturales (14 piezas)",
+    ce:["Nopales asados con queso: panela (40 g), nopales asados (2 piezas), tortilla (2 piezas), guacamole (2 cucharadas)","Mandarina (2 piezas)"] },
+  { d:["Quesadillas de champiñones: tortilla (2 piezas), champiñones (½ taza), queso blanco (70 g), aguacate (⅓), pico de gallo (1 taza)","Pera (½ pieza)","Leche descremada (1 taza)"],
+    cm:"Mandarina (2 piezas)",
+    co:["Sopa de pasta con espinacas: pasta cocida (½ taza), espinaca cocida (½ taza), aceite (1 cucharadita)","Fajitas de pollo: pollo (60 g), pimiento rojo y cebolla (1 taza), aceite (1 cucharadita)","Tortilla de maíz (2 piezas) y frijoles caldosos (½ taza)"],
+    cv:"Piña picada (¾ de taza)",
+    ce:["Omelette de verduras mixtas: claras de huevo (2 piezas), verduras mixtas (1 taza), aceite (1 cucharadita), tortilla (2 piezas)","Fresa rebanada (1 taza)"] },
+  { d:["Calabacitas a la mexicana: calabacita picada (½ taza), elote desgranado (½ taza), jitomate y cebolla (1 taza), aceite (1 cucharadita), queso panela (80 g), tortilla (1 pieza)","Arándanos secos (½ taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Ciruela roja o amarilla (3 piezas)",
+    co:["Sopa de lentejas: lenteja cocida (½ taza), acelga cocida (½ taza), aceite (1 cucharadita)","Picadillo de res: pulpa molida (60 g), verduras mixtas (1 taza), aceite (1 cucharadita), tortilla (3 piezas)"],
+    cv:"Durazno amarillo (2 piezas)",
+    ce:["Pan tostado con aguacate y queso: pan integral (2 piezas), aguacate (⅓), queso panela (40 g), jitomate en rodajas (1 pieza)","Melón picado (1 taza)"] },
+  { d:["Machaca a la mexicana: machaca de res (60 g), jitomate y cebolla, calabacita y zanahoria hervidas (1 taza), tortilla (2 piezas), aceite (1 cucharadita)","Fresa rebanada (1 taza)","Leche descremada (1 taza)"],
+    cm:"Uva (18 piezas)",
+    co:["Sopa de alubias: alubias caldosas (½ taza), aceite (1 cucharadita)","Pollo con verdolagas: pollo (60 g), verdolagas (1 taza), arroz rojo (¼ de taza), aceite (1 cucharadita), tortilla (2 piezas)"],
+    cv:"Mandarina (2 piezas)",
+    ce:["Sopes: sope de maíz (2 piezas), pollo deshebrado (30 g), aguacate (⅓), ensalada de nopales (1 taza)","Melón picado (1 taza)"] },
+  { d:["Mollete: queso panela (80 g), pico de gallo (1 taza), telera sin migajón (⅔ de pieza), aguacate (⅓), frijoles machacados (⅓ de taza)","Manzana (1 pieza)"],
+    cm:"Durazno amarillo (2 piezas)",
+    co:["Arroz con verdura: arroz (¼ de taza), zanahoria y chícharos (½ taza), aceite (1 cucharadita)","Bistec de res a la mexicana: bistec (60 g), pico de gallo (1 taza), tortilla (2 piezas), aguacate (⅓)"],
+    cv:"Fresa rebanada (1 taza)",
+    ce:["Omelette de espinacas: huevo (1 pieza), espinaca (½ taza), aceite (1 cucharadita), tortilla (2 piezas)","Durazno amarillo (2 piezas)","Yogur natural sin azúcar (1 taza)"] },
+  { d:["Chayote con queso: chayote hervido (½ taza), queso panela (80 g), tortilla (2 piezas), aguacate (⅓)","Melón picado (1 taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Guayabas chicas (3 piezas)",
+    co:["Fideo seco con salsa de frijol y morita: fideo cocido (½ taza), frijoles caldosos (½ taza), aguacate (⅓)","Pescado a la plancha: filete (80 g), verduras mixtas (1 taza), aceite (1 cucharadita), tortilla (2 piezas)"],
+    cv:"Pera (½ pieza)",
+    ce:["Jitomates rellenos de atún: jitomate (2 piezas), atún (30 g), elote desgranado (½ taza), aceitunas (3 piezas), tostadas horneadas (2 piezas)","Sandía picada (1 taza)"] },
+  { d:["Huevo sobre pan tostado: pan tostado (2 piezas), frijoles (½ taza), huevo (2 piezas), aceite (1 cucharadita), ejote (½ taza), salsa al gusto","Ciruela (3 piezas)"],
+    cm:"Piña picada (¾ de taza)",
+    co:["Pollo a la parrilla: pollo (60 g), arroz (¼ de taza), aceite (2 cucharaditas), tortilla (2 piezas)","Ensalada de verduras mixtas: lechugas (1½ tazas), zanahoria (¼ de taza)"],
+    cv:"Plátano tabasco (½ pieza)",
+    ce:["Sándwich de queso: pan de caja (2 rebanadas), queso blanco (35 g), espinaca cocida (½ taza), aguacate (⅓)","Manzana (1 pieza)","Leche descremada (1 taza)"] },
+  { d:["Chilaquiles rojos o verdes con pollo: pechuga deshebrada (60 g), salsa al gusto, tortilla horneada (2 piezas), verdura hervida (1 taza), aguacate (⅓)","Papaya picada (1 taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Mango (½ pieza)",
+    co:["Sopa de verduras: verduras mixtas (1 taza), caldo de pollo","Cerdo en pasilla: carne magra (60 g), nopales (1 taza), salsa pasilla, arroz rojo (¼ de taza), aceite (1 cucharadita)","Tortilla (2 piezas), frijoles caldosos (½ taza) y aguacate (⅓)"],
+    cv:"Arándanos secos (½ taza) y almendras (10 piezas)",
+    ce:["Quesadilla de huitlacoche: tortilla (2 piezas), huitlacoche cocido (½ taza), queso blanco (35 g), aguacate (⅓)","Toronja (1 pieza)"] },
+  { d:["Caldo tlalpeño: verduras mixtas (1 taza), pechuga deshebrada (60 g), arroz (¼ de taza), aceite (1 cucharadita), tortilla (1 pieza)","Uvas (18 piezas)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Tuna (2 piezas)",
+    co:["Ceviche de pescado: filete (80 g), pico de gallo (1 taza), jugo de limón, aguacate (⅔ de pieza), tostadas horneadas (6 piezas)"],
+    cv:"Piña picada (¾ de taza)",
+    ce:["Calabacitas a la mexicana: calabacita (½ taza), elote (½ taza), jitomate y cebolla (1 taza), aceite (1 cucharadita), queso panela (40 g), tortilla (1 pieza), frijoles caldosos (½ taza)","Arándanos secos (½ taza)"] },
+  { d:["Sándwich de queso: pan de caja (2 rebanadas), queso panela (80 g), aguacate (⅓), jitomate (1 pieza), lechuga (1 taza)","Melón picado (1 taza)","Yogur natural sin azúcar (1 taza)"],
+    cm:"Tangerina (2 piezas)",
+    co:["Caldo de hongos con pollo: pierna o muslo sin piel (60 g), hongos o setas (½ taza), aceite (2 cucharaditas), jitomate, guajillo y epazote","Garbanzo cocido (½ taza) y tortilla de maíz (3 piezas)"],
+    cv:"Higo (2 piezas)",
+    ce:["Tostadas de picadillo de res: pulpa molida (30 g), verduras mixtas (½ taza), aceite (1 cucharadita), jitomate y cebolla (1 taza), tostadas horneadas (4 piezas)","Naranja (2 piezas)"] },
+];
+
+function MenuSemanal() {
+  const [dia, setDia] = useState(0);
+  const m = MENU14[dia];
+  const Bloque = ({ titulo, emoji, items, tone }) => (
+    <div className={"rounded-xl border p-3 " + tone}>
+      <div className="text-xs font-bold uppercase tracking-wide mb-1.5">{emoji} {titulo}</div>
+      {Array.isArray(items)
+        ? <ul className="text-xs space-y-1">{items.map((it, i) => <li key={i}>• {it}</li>)}</ul>
+        : <div className="text-xs">• {items}</div>}
+    </div>
+  );
+  return (
+    <div>
+      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3">
+        {MENU14.map((_, i) => (
+          <button key={i} onClick={() => setDia(i)}
+            className={"w-9 h-9 shrink-0 rounded-full text-xs font-bold border transition-colors " +
+              (dia === i ? "bg-emerald-700 text-white border-emerald-700" : "bg-white text-slate-600 border-slate-300 hover:border-emerald-400")}>
+            {i + 1}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <Bloque titulo="Desayuno" emoji="🌅" items={m.d} tone="bg-emerald-50/60 border-emerald-100 text-emerald-900" />
+        <Bloque titulo="Colación matutina" emoji="🍏" items={m.cm} tone="bg-slate-50 border-slate-200 text-slate-700" />
+        <Bloque titulo="Comida" emoji="🍲" items={m.co} tone="bg-amber-50/60 border-amber-100 text-amber-900" />
+        <Bloque titulo="Colación vespertina" emoji="🍑" items={m.cv} tone="bg-slate-50 border-slate-200 text-slate-700" />
+        <Bloque titulo="Cena" emoji="🌙" items={m.ce} tone="bg-sky-50/60 border-sky-100 text-sky-900" />
+      </div>
+      <p className="text-[11px] text-slate-400 mt-3">Puedes intercambiar el desayuno, comida o cena de un día por el de otro, y sustituir cualquier alimento por otro del mismo grupo según la lista de intercambio. Todas las preparaciones llevan salsa, especias, limón, cebolla y ajo al gusto.</p>
+    </div>
+  );
+}
+
+/* ---------- sección principal ---------- */
+function Saludable({ avisar }) {
+  const [open, setOpen] = useState(null);
+  const toggle = (id) => setOpen(open === id ? null : id);
+
+  return (
+    <div className="space-y-4">
+      {/* Portada */}
+      <div className="bg-gradient-to-br from-emerald-700 to-emerald-900 text-white rounded-2xl p-5">
+        <h2 className="text-lg font-bold flex items-center gap-2">🥗 Alimentación saludable y ejercicio</h2>
+        <p className="text-emerald-100 text-sm mt-1">Guía práctica de alimentación, ejercicio e hidratación. <b>¡Controlo mi peso, mejoro mi salud!</b></p>
+        <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+          <div className="bg-white/10 rounded-xl px-2 py-2.5"><div className="text-xl">🥦</div><div className="text-[11px] font-semibold mt-1">1) Alimentación saludable</div></div>
+          <div className="bg-white/10 rounded-xl px-2 py-2.5"><div className="text-xl">🏃</div><div className="text-[11px] font-semibold mt-1">2) Practica ejercicio</div></div>
+          <div className="bg-white/10 rounded-xl px-2 py-2.5"><div className="text-xl">💧</div><div className="text-[11px] font-semibold mt-1">3) Agua simple (6–8 vasos)</div></div>
+        </div>
+      </div>
+
+      <CalcNutricion />
+
+      {/* Método de la mano */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+        <h3 className="font-bold text-slate-800 flex items-center gap-2">🖐️ Método de la mano</h3>
+        <p className="text-xs text-slate-500 mt-1 mb-3">Tus manos son la herramienta más sencilla para medir una ración: cierra o ahueca la mano y compárala con la cantidad servida en tu plato. Sin básculas ni tazas medidoras.</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {METODO_MANO.map((m) => (
+            <div key={m.grupo + m.mano} className="rounded-xl border border-slate-200 p-3">
+              <div className="text-sm font-bold text-slate-800">{m.mano}</div>
+              <div className="text-xs text-emerald-800 font-semibold mt-0.5">= {m.equivale} de {m.grupo}</div>
+              <div className="text-xs text-slate-500 mt-1.5">{m.ej}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="bg-slate-100 text-slate-700 rounded-full px-3 py-1.5 font-medium">🥤 Taza = 240 ml</span>
+          <span className="bg-slate-100 text-slate-700 rounded-full px-3 py-1.5 font-medium">🥄 Cucharada = 15 ml</span>
+          <span className="bg-slate-100 text-slate-700 rounded-full px-3 py-1.5 font-medium">🫖 Cucharadita = 5 ml</span>
+        </div>
+      </div>
+
+      <CalcPorciones avisar={avisar} />
+
+      {/* Listas de intercambio */}
+      <div>
+        <h3 className="font-bold text-slate-800 px-1 mb-2">📋 Lista para intercambio de alimentos del mismo grupo</h3>
+        <p className="text-xs text-slate-500 px-1 mb-3">Cada tabla muestra a cuánto equivale <b>1 ración</b>. Puedes cambiar cualquier alimento por otro del mismo grupo sin alterar tu plan.</p>
+        <div className="space-y-2">
+          {Object.entries(GRUPOS).map(([id, g]) => (
+            <Desplegable key={id} emoji={g.emoji} titulo={"1 ración de " + g.label.toLowerCase() + " es igual a…"} subtitulo={g.desc}
+              abierto={open === "lista-" + id} onToggle={() => toggle("lista-" + id)}>
+              <TablaRaciones items={ALIMENTOS[id]} />
+            </Desplegable>
+          ))}
+        </div>
+      </div>
+
+      {/* Guías del PDF */}
+      <div>
+        <h3 className="font-bold text-slate-800 px-1 mb-2">📚 Guías rápidas de salud</h3>
+        <div className="space-y-2">
+
+          <Desplegable emoji="🍽️" titulo="Menú saludable de 14 días" subtitulo="Menús completos listos para seguir: desayuno, colaciones, comida y cena (~1,500 kcal/día)" abierto={open === "menu14"} onToggle={() => toggle("menu14")}>
+            <MenuSemanal />
+          </Desplegable>
+
+          <Desplegable emoji="🤸" titulo="Ejercicio sin riesgo a lesionarte" subtitulo="Siempre en 3 fases para evitar lesiones y dolor muscular" abierto={open === "fases"} onToggle={() => toggle("fases")}>
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+                <div className="text-xs font-bold text-emerald-900 uppercase tracking-wide">1. Calentamiento · 5 a 10 min</div>
+                <p className="text-xs mt-1">Prepara músculos y articulaciones para el esfuerzo y evita lesiones. Involucra las zonas que vas a ejercitar; inicia con movimientos suaves.</p>
+                <ul className="text-xs mt-2 space-y-1">
+                  <li>🦵 Flexión de cadera y rodillas.</li>
+                  <li>💪 Círculos de hombros hacia adelante y atrás, también con los brazos extendidos.</li>
+                  <li>🙆 Círculos con la cabeza en ambas direcciones, lenta y suavemente.</li>
+                </ul>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
+                <div className="text-xs font-bold text-amber-900 uppercase tracking-wide">2. Actividad principal · 30 a 60 min</div>
+                <p className="text-xs mt-1">Su objetivo es aumentar el ritmo cardiaco y el gasto de energía: movimientos de grandes músculos (piernas, brazos y abdomen) a intensidad moderada, con mayor duración y repeticiones.</p>
+                <div className="flex flex-wrap gap-1.5 mt-2 text-[11px] font-semibold">
+                  <span className="bg-white border border-amber-200 rounded-full px-2.5 py-1">🚲 Bicicleta</span>
+                  <span className="bg-white border border-amber-200 rounded-full px-2.5 py-1">🏊 Nadar</span>
+                  <span className="bg-white border border-amber-200 rounded-full px-2.5 py-1">🏋️ Pesas</span>
+                  <span className="bg-white border border-amber-200 rounded-full px-2.5 py-1">🚶 Caminar o bailar</span>
+                  <span className="bg-white border border-amber-200 rounded-full px-2.5 py-1">🧘 Yoga o pilates</span>
+                </div>
+              </div>
+              <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-3">
+                <div className="text-xs font-bold text-sky-900 uppercase tracking-wide">3. Enfriamiento · 5 a 10 min</div>
+                <p className="text-xs mt-1">Reduce la actividad poco a poco y normaliza el ritmo cardiaco con movimientos suaves y estiramientos.</p>
+                <ul className="text-xs mt-2 space-y-1">
+                  <li>🔄 Gira tu cintura.</li>
+                  <li>↔️ Realiza extensión lateral del tronco.</li>
+                  <li>🙌 De puntitas, estira los brazos como si trataras de alcanzar algo.</li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Mide la intensidad con el habla</div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="bg-emerald-100 text-emerald-800 rounded-full px-3 py-1">😀 Ligera: platicas tranquilo</span>
+                  <span className="bg-amber-100 text-amber-800 rounded-full px-3 py-1">😅 Moderada: te cuesta un poco</span>
+                  <span className="bg-rose-100 text-rose-800 rounded-full px-3 py-1">🥵 Intensa: te cuesta mucho</span>
+                </div>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-1.5">
+                <li>🩺 Antes de iniciar un programa, acude a valoración médica.</li>
+                <li>👟 Usa ropa cómoda y calzado adecuado.</li>
+                <li>💧 Toma agua simple antes, durante y después; evita bebidas azucaradas o energizantes.</li>
+                <li>📓 Lleva un registro: tipo de ejercicio, minutos y días de la semana.</li>
+                <li>🐢 Si nunca has hecho ejercicio, empieza gradual: muévete más y evita estar inactivo.</li>
+              </ul>
+            </div>
+          </Desplegable>
+
+          <Desplegable emoji="📅" titulo="Programa de 8 semanas de ejercicio" subtitulo="De caminata ligera a correr, aumentando poco a poco" abierto={open === "programa"} onToggle={() => toggle("programa")}>
+            <div className="space-y-3 text-sm text-slate-700">
+              <div className="grid sm:grid-cols-2 gap-2 text-xs">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3"><b className="text-emerald-900">Adultos:</b> al menos 150 min/semana (ej. 5 días × 30 min). Si tu meta es reducir peso: 60 min diarios.</div>
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3"><b className="text-emerald-900">Adolescentes:</b> mínimo 60 min diarios. Elige actividades que te gusten y sean fáciles de realizar.</div>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 text-xs">
+                <table className="w-full">
+                  <thead><tr className="bg-slate-50 text-slate-500"><th className="px-2 py-1.5 text-left">Semanas</th><th className="px-2 py-1.5 text-left">Etapa e intensidad</th><th className="px-2 py-1.5 text-left">Estructura del día</th><th className="px-2 py-1.5 text-left">Frecuencia</th></tr></thead>
+                  <tbody>
+                    <tr className="bg-white"><td className="px-2 py-1.5 font-semibold">1–2</td><td className="px-2 py-1.5">😀 ¡Para comenzar! Ligera (caminar)</td><td className="px-2 py-1.5">5' calentar + 20' actividad + 5' enfriar = 30 min</td><td className="px-2 py-1.5">3 días/sem</td></tr>
+                    <tr className="bg-slate-50/50"><td className="px-2 py-1.5 font-semibold">3–4</td><td className="px-2 py-1.5">😅 ¡Sigue adelante! Moderada (caminata)</td><td className="px-2 py-1.5">5' + 30' + 5' = 40 min</td><td className="px-2 py-1.5">3–4 días/sem</td></tr>
+                    <tr className="bg-white"><td className="px-2 py-1.5 font-semibold">5–6</td><td className="px-2 py-1.5">😅 ¡Lo estás logrando! Moderada (trotar)</td><td className="px-2 py-1.5">5' + 40' + 5' = 50 min</td><td className="px-2 py-1.5">4–5 días/sem</td></tr>
+                    <tr className="bg-slate-50/50"><td className="px-2 py-1.5 font-semibold">7–8</td><td className="px-2 py-1.5">🥵 ¡Mantente así! Moderada (correr, si no hay contraindicación)</td><td className="px-2 py-1.5">10' + 45' + 5' = 60 min</td><td className="px-2 py-1.5">5–6 días/sem</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-amber-900"><b>Desde la semana 5:</b> agrega ejercicios de fuerza 2 a 3 días por semana durante 20 min, como sentadillas, lagartijas en la pared o abdominales.</p>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Beneficios de hacer ejercicio diariamente</div>
+                <ul className="text-xs space-y-1">
+                  <li>⚖️ Previene y controla el sobrepeso y la obesidad.</li>
+                  <li>🩸 Ayuda a mantener controlada la glucosa en sangre.</li>
+                  <li>🎗️ Previene algunos tipos de cáncer, como el de mama y colon.</li>
+                  <li>💪 Fortalece músculos y mejora tu resistencia sin fatigarte.</li>
+                  <li>🦴 Fortalece huesos y aumenta la densidad ósea, evitando fracturas.</li>
+                  <li>😊 Mejora el estado de ánimo, disminuye estrés y ansiedad, y aumenta la autoestima.</li>
+                </ul>
+              </div>
+            </div>
+          </Desplegable>
+
+          <Desplegable emoji="💧" titulo="Agua simple: función en el cuerpo e hidratación" subtitulo="6 a 8 vasos al día · aprende a leer las señales de tu cuerpo" abierto={open === "agua"} onToggle={() => toggle("agua")}>
+            <div className="text-sm text-slate-700 space-y-3">
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Función del agua en el cuerpo</div>
+                <ul className="text-xs space-y-1.5">
+                  <li>🍽️ <b>Digestión:</b> produce saliva, absorbe nutrimentos y forma las heces. <i>Ej.: un vaso de agua con cada comida facilita la digestión y evita el estreñimiento.</i></li>
+                  <li>❤️ <b>Circulación:</b> ayuda a la sangre a transportar nutrimentos a órganos como el cerebro y el corazón. <i>Ej.: bien hidratado piensas y te concentras mejor.</i></li>
+                  <li>🫁 <b>Respiración:</b> los pulmones pierden agua al respirar, por eso hay que reponerla durante todo el día.</li>
+                  <li>🌡️ <b>Temperatura:</b> la regula por medio del sudor. <i>Ej.: en días calurosos o al hacer ejercicio necesitas más agua de lo habitual.</i></li>
+                  <li>🚰 <b>Riñones:</b> forman la orina, eliminan toxinas y equilibran los electrolitos.</li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">El color de tu orina refleja tu hidratación</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px] font-semibold">
+                  <div className="rounded-xl border p-2 bg-slate-50 text-slate-600">Muy claro<br /><span className="font-normal">Exceso de hidratación</span></div>
+                  <div className="rounded-xl border p-2 bg-emerald-50 text-emerald-800">Amarillo paja<br /><span className="font-normal">Hidratación adecuada ✅</span></div>
+                  <div className="rounded-xl border p-2 bg-amber-50 text-amber-800">Amarillo<br /><span className="font-normal">Riesgo de deshidratación</span></div>
+                  <div className="rounded-xl border p-2 bg-orange-50 text-orange-800">Naranja intenso<br /><span className="font-normal">Deshidratación ⚠️</span></div>
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Signos de alarma en la deshidratación (de menor a mayor)</div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><b>1.</b> Sensación de sed.</div>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"><b>2.</b> Sed intensa, pérdida de apetito, malestar y labios resecos.</div>
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2"><b>3.</b> Aumento del esfuerzo para realizar actividades cotidianas.</div>
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2"><b>4.</b> Dificultad de concentración.</div>
+                </div>
+                <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2 mt-2"><b>La deshidratación es un problema grave.</b> Toda la familia debe mantenerse hidratada a diario y, en especial, cuando haya vómito o diarrea.</p>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Ejemplos para lograr tus 6–8 vasos</div>
+                <ul className="text-xs space-y-1">
+                  <li>⏰ Toma 1 vaso al despertar y 1 con cada comida y colación (ya llevas 6).</li>
+                  <li>🎒 Carga una botella contigo en el trabajo o al salir.</li>
+                  <li>🏃 Bebe antes, durante y después del ejercicio.</li>
+                  <li>🍋 Si te aburre, agrégale rodajas de limón o pepino, sin azúcar.</li>
+                </ul>
+                <p className="text-xs mt-2"><b>Ninguna bebida sustituye al agua simple:</b> refrescos, jugos, néctares y bebidas azucaradas son un riesgo para tu salud.</p>
+              </div>
+            </div>
+          </Desplegable>
+
+          <Desplegable emoji="🚫" titulo="Ultraprocesados y sellos de advertencia" subtitulo="Qué significa cada sello, ejemplos y por qué evitarlos" abierto={open === "ultra"} onToggle={() => toggle("ultra")}>
+            <div className="text-sm text-slate-700 space-y-3">
+              <p className="text-xs">Son productos industriales a los que se les añaden sustancias para cambiar su consistencia, composición y sabor. Contienen en exceso calorías, azúcar, grasas saturadas, grasas trans y sodio, además de saborizantes y colorantes. Su consumo frecuente es una de las <b>causas principales del sobrepeso y la obesidad</b>.</p>
+              <div className="text-xs rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <b>Cómo identificarlos:</b> empaque muy colorido o llamativo, sellos octagonales negros, lista enorme de ingredientes difíciles de leer, sabores muy intensos y caducidad de meses o incluso años.
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Los sellos, su daño y ejemplos de productos que los llevan</div>
+                <div className="space-y-2 text-xs">
+                  <div className="rounded-xl border p-2.5"><b>⬛ EXCESO CALORÍAS:</b> aumenta la grasa corporal → sobrepeso y obesidad. <i>Ej.: frituras, pastelitos, chocolates, galletas rellenas.</i></div>
+                  <div className="rounded-xl border p-2.5"><b>⬛ EXCESO AZÚCARES:</b> sube los triglicéridos en sangre y el riesgo de diabetes. <i>Ej.: refrescos, jugos y néctares envasados, cereales de caja azucarados, yogur bebible azucarado.</i></div>
+                  <div className="rounded-xl border p-2.5"><b>⬛ EXCESO GRASAS SATURADAS:</b> sube el colesterol malo (LDL) y baja el bueno (HDL). <i>Ej.: helados, pan dulce empaquetado, galletas con crema, pizza congelada.</i></div>
+                  <div className="rounded-xl border p-2.5"><b>⬛ EXCESO GRASAS TRANS:</b> aumenta el riesgo de enfermedades del corazón. <i>Ej.: margarinas, bollería industrial, botanas fritas empaquetadas.</i></div>
+                  <div className="rounded-xl border p-2.5"><b>⬛ EXCESO SODIO:</b> riesgo de hipertensión y enfermedades del corazón. <i>Ej.: sopas instantáneas, embutidos, botanas saladas, consomé en polvo, salsas envasadas.</i></div>
+                  <div className="rounded-xl border p-2.5 bg-slate-900 text-white"><b>CONTIENE CAFEÍNA – EVITAR EN NIÑOS:</b> dificulta dormir, causa inquietud, mala calidad de sueño y alteraciones del crecimiento. <i>Ej.: refrescos de cola, bebidas energizantes, tés embotellados.</i></div>
+                  <div className="rounded-xl border p-2.5 bg-slate-900 text-white"><b>CONTIENE EDULCORANTES – NO RECOMENDABLE EN NIÑOS:</b> alteran el apetito y acostumbran a niñas y niños a los sabores dulces. <i>Ej.: refrescos "light" o "sin azúcar", aguas saborizadas, polvos para preparar bebidas.</i></div>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2">Si el producto es pequeño, los sellos pueden aparecer como un número (1 a 5 sellos): entre más sellos, peor para tu salud.</p>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">El consumo frecuente también provoca</div>
+                <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                  <span className="bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1">Adicción a lo dulce/salado</span>
+                  <span className="bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1">Hiperactividad</span>
+                  <span className="bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1">Falta de concentración</span>
+                  <span className="bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1">Anemia</span>
+                  <span className="bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1">Cambios de ánimo</span>
+                </div>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1.5">Cámbialo por…</div>
+                <ul className="text-xs space-y-1">
+                  <li>🥤➡️💧 Refresco o jugo envasado → agua simple o agua con limón sin azúcar.</li>
+                  <li>🍬➡️🍎 Dulces y pastelitos → fruta fresca de temporada.</li>
+                  <li>🍟➡️🍿 Frituras → palomitas naturales sin grasa o cacahuates naturales.</li>
+                  <li>🥣➡️🌾 Cereal azucarado → avena natural con fruta.</li>
+                  <li>🌭➡️🍗 Embutidos → pollo o pavo natural preparado en casa.</li>
+                </ul>
+              </div>
+              <p className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">Si el producto tiene sellos, es dañino para la salud. Prefiere alimentos naturales, frescos, de temporada y de producción local. 🌽</p>
+            </div>
+          </Desplegable>
+
+          <Desplegable emoji="⭐" titulo="Las 9 reglas de oro de la alimentación" subtitulo="Lo esencial de toda la guía en 9 puntos" abierto={open === "resumen"} onToggle={() => toggle("resumen")}>
+            <ol className="text-xs text-slate-700 space-y-2 list-decimal list-inside">
+              <li><b>3 comidas completas</b> en horarios fijos + refrigerio saludable a media mañana y media tarde.</li>
+              <li>Al menos <b>un alimento de cada grupo</b> de El Plato del Bien Comer en cada comida principal; cuida raciones.</li>
+              <li>Prefiere <b>verduras y frutas de temporada</b>; evita alimentos industrializados.</li>
+              <li>Prefiere <b>carnes blancas</b> (pescado, atún, sardina, pavo, pollo sin piel); carnes rojas con menor frecuencia. Asadas, horneadas, cocidas o en salsa.</li>
+              <li><b>Leche o yogur descremados sin azúcar</b> y quesos blancos bajos en grasa (panela, requesón, cottage).</li>
+              <li><b>Agua simple y fruta de postre</b>; evita refrescos, jugos, mermeladas, pasteles, pan dulce y dulces.</li>
+              <li><b>Grasas buenas</b> (almendras, aguacate); evita crema, mayonesa, mantequilla, manteca, tocino, frituras, empanizados y capeados.</li>
+              <li><b>Hierbas aromáticas en vez de sal</b>; evita cecina, embutidos, bebidas hidratantes/energizantes y concentrados de consomé.</li>
+              <li><b>Comparte con tu familia:</b> su apoyo hace más fácil lograrlo. Invítales a hacerlo juntos.</li>
+            </ol>
+          </Desplegable>
+
+          <Desplegable emoji="💡" titulo="Tips para controlar tu peso" subtitulo="Pequeños esfuerzos, grandes resultados" abierto={open === "tips"} onToggle={() => toggle("tips")}>
+            <ul className="text-xs text-slate-700 space-y-2">
+              <li>🎯 <b>Metas realistas:</b> en lugar de 6 tortillas, empieza por 1 o 2. Ten paciencia: Roma no se hizo en 1 día.</li>
+              <li>🛒 <b>Planea tus compras</b> para tener en casa solo alimentos saludables.</li>
+              <li>🥕 <b>Verduras picadas y listas</b> para los momentos de antojo.</li>
+              <li>🍽️ Al comer fuera, <b>cuida porciones</b> y come antes un refrigerio ligero.</li>
+              <li>💃 En fiestas: convive, <b>baila y muévete</b>.</li>
+              <li>😴 <b>Duerme 8 horas:</b> es indispensable para el control de peso.</li>
+              <li>🧠 Aprende a manejar tus emociones; si lo necesitas, <b>busca apoyo profesional</b>.</li>
+              <li>🏃 El ejercicio es pieza fundamental: <b>empieza ya</b>. La mejor medicina es prevenir.</li>
+            </ul>
+          </Desplegable>
+
+        </div>
+      </div>
+
+      <p className="text-[11px] text-slate-400 text-center px-4">Contenido educativo de carácter general. No sustituye la valoración de tu médico ni de profesionales de la nutrición. Es para quienes desean cuidar su salud, con o sin sobrepeso, diabetes, hipertensión o colesterol/triglicéridos elevados.</p>
+    </div>
+  );
+}
+
+
 function Reporte({ data, now, avisar }) {
   const [mes, setMes] = useState(now.getFullYear() + "-" + pad(now.getMonth() + 1));
   const [y, m] = mes.split("-").map(Number);
