@@ -5585,11 +5585,435 @@ function PlanDiagnostico() {
     className: "text-[11px] text-slate-400 mt-3"
   }, "Esta gu\xEDa es educativa y general para estos diagn\xF3sticos. Con plaquetas en 94,000 y triglic\xE9ridos en 350, el plan definitivo, los medicamentos y los suplementos deben ser indicados y vigilados por tu m\xE9dico tratante y un profesional de la nutrici\xF3n."));
 }
+const MEALS = [{
+  id: "desayuno",
+  label: "Desayuno",
+  corto: "Des.",
+  emoji: "🌅"
+}, {
+  id: "colacionM",
+  label: "Colación matutina",
+  corto: "Col. M.",
+  emoji: "🍏"
+}, {
+  id: "comida",
+  label: "Comida",
+  corto: "Com.",
+  emoji: "🍲"
+}, {
+  id: "colacionV",
+  label: "Colación vespertina",
+  corto: "Col. V.",
+  emoji: "🍑"
+}, {
+  id: "cena",
+  label: "Cena",
+  corto: "Cena",
+  emoji: "🌙"
+}];
+const GRUPOS_ORDEN = ["verdura", "fruta", "cereal", "leguminosa", "aoa", "leche", "grasa"];
+const PLAN_EJEMPLO = {
+  verdura: {
+    desayuno: 1,
+    colacionM: 0,
+    comida: 1,
+    colacionV: 0,
+    cena: 1
+  },
+  fruta: {
+    desayuno: 1,
+    colacionM: 1,
+    comida: 0,
+    colacionV: 1,
+    cena: 0
+  },
+  cereal: {
+    desayuno: 3,
+    colacionM: 0,
+    comida: 3,
+    colacionV: 1,
+    cena: 2
+  },
+  leguminosa: {
+    desayuno: 0,
+    colacionM: 0,
+    comida: 0,
+    colacionV: 0,
+    cena: 0
+  },
+  aoa: {
+    desayuno: 2,
+    colacionM: 0,
+    comida: 3,
+    colacionV: 0,
+    cena: 3
+  },
+  leche: {
+    desayuno: 0,
+    colacionM: 0,
+    comida: 0,
+    colacionV: 0,
+    cena: 0
+  },
+  grasa: {
+    desayuno: 2,
+    colacionM: 1,
+    comida: 2,
+    colacionV: 0,
+    cena: 1
+  }
+};
+const PLAN_KEY = "medicontrol-plan-raciones-v1";
+const planVacio = () => {
+  const p = {};
+  for (const g of GRUPOS_ORDEN) {
+    p[g] = {};
+    for (const m of MEALS) p[g][m.id] = 0;
+  }
+  return p;
+};
+const cargarPlan = () => {
+  try {
+    const r = localStorage.getItem(PLAN_KEY);
+    if (r) {
+      const base = planVacio();
+      const d = JSON.parse(r);
+      for (const g of GRUPOS_ORDEN) {
+        if (d[g]) for (const m of MEALS) base[g][m.id] = Number(d[g][m.id]) || 0;
+      }
+      return base;
+    }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(PLAN_EJEMPLO));
+};
+const totalDiaGrupo = (plan, g) => MEALS.reduce((a, m) => a + (Number(plan[g] && plan[g][m.id]) || 0), 0);
+function MiPlanRaciones({
+  plan,
+  setPlan,
+  avisar
+}) {
+  const set = (g, m, v) => {
+    let n = parseInt(v, 10);
+    if (isNaN(n) || n < 0) n = 0;
+    if (n > 20) n = 20;
+    setPlan(p => ({
+      ...p,
+      [g]: {
+        ...p[g],
+        [m]: n
+      }
+    }));
+  };
+  const restaurar = () => {
+    setPlan(JSON.parse(JSON.stringify(PLAN_EJEMPLO)));
+    avisar("Plan de ejemplo restaurado 📋");
+  };
+  const vaciar = () => {
+    setPlan(planVacio());
+    avisar("Plan vaciado para llenarlo de nuevo ✏️");
+  };
+  const totalDia = GRUPOS_ORDEN.reduce((a, g) => a + totalDiaGrupo(plan, g), 0);
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDDD3\uFE0F Mi plan de raciones por tiempo de comida"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Escribe cu\xE1ntas raciones de cada grupo te indic\xF3 tu nutri\xF3loga en cada comida. Puedes editarlo cuando quieras; se guarda solo en este tel\xE9fono. Viene precargado con un plan de ejemplo del IMSS."), React.createElement("div", {
+    className: "overflow-x-auto -mx-1 px-1"
+  }, React.createElement("table", {
+    className: "w-full text-xs border-collapse"
+  }, React.createElement("thead", null, React.createElement("tr", {
+    className: "text-slate-500"
+  }, React.createElement("th", {
+    className: "text-left px-2 py-1.5 font-semibold"
+  }, "Grupo"), MEALS.map(m => React.createElement("th", {
+    key: m.id,
+    className: "px-1 py-1.5 font-semibold text-center whitespace-nowrap"
+  }, m.emoji, React.createElement("br", null), m.corto)), React.createElement("th", {
+    className: "px-1 py-1.5 font-semibold text-center text-emerald-700"
+  }, "D\xEDa"))), React.createElement("tbody", null, GRUPOS_ORDEN.map((g, i) => React.createElement("tr", {
+    key: g,
+    className: i % 2 ? "bg-slate-50/50" : "bg-white"
+  }, React.createElement("td", {
+    className: "px-2 py-1 text-slate-700 whitespace-nowrap"
+  }, GRUPOS[g].emoji, " ", GRUPOS[g].label), MEALS.map(m => React.createElement("td", {
+    key: m.id,
+    className: "px-0.5 py-1 text-center"
+  }, React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "20",
+    inputMode: "numeric",
+    value: plan[g][m.id] || 0,
+    onChange: e => set(g, m.id, e.target.value),
+    className: "w-10 text-center rounded-lg border border-slate-200 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }))), React.createElement("td", {
+    className: "px-1 py-1 text-center font-bold text-emerald-700"
+  }, totalDiaGrupo(plan, g))))))), React.createElement("div", {
+    className: "flex items-center justify-between mt-3 flex-wrap gap-2"
+  }, React.createElement("span", {
+    className: "text-xs text-slate-500"
+  }, "Total de raciones al d\xEDa: ", React.createElement("b", {
+    className: "text-slate-800"
+  }, totalDia)), React.createElement("div", {
+    className: "flex gap-2"
+  }, React.createElement("button", {
+    onClick: restaurar,
+    className: "text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full px-3 py-1.5 hover:bg-emerald-100"
+  }, "\uD83D\uDCCB Plan de ejemplo"), React.createElement("button", {
+    onClick: vaciar,
+    className: "text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-100"
+  }, "Vaciar"))));
+}
+function ControlDiarioRaciones({
+  plan,
+  avisar
+}) {
+  const hoyStr = () => {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  };
+  const [fecha, setFecha] = useState(hoyStr);
+  const [sel, setSel] = useState({});
+  const [data, setData] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-control-raciones-v1")) || {};
+    } catch (e) {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-control-raciones-v1", JSON.stringify(data));
+    } catch (e) {}
+  }, [data]);
+  const dia = data[fecha] || {};
+  const add = (g, delta) => setData(d => {
+    const cur = {
+      ...(d[fecha] || {})
+    };
+    cur[g] = Math.max(0, (Number(cur[g]) || 0) + delta);
+    return {
+      ...d,
+      [fecha]: cur
+    };
+  });
+  const reiniciar = () => {
+    setData(d => ({
+      ...d,
+      [fecha]: {}
+    }));
+    avisar("Día reiniciado ↺");
+  };
+  const gruposPlan = GRUPOS_ORDEN.filter(g => totalDiaGrupo(plan, g) > 0);
+  const totTarget = gruposPlan.reduce((a, g) => a + totalDiaGrupo(plan, g), 0);
+  const totDone = gruposPlan.reduce((a, g) => a + Math.min(Number(dia[g]) || 0, totalDiaGrupo(plan, g)), 0);
+  const pctDia = totTarget ? Math.round(totDone / totTarget * 100) : 0;
+  const fechaTxt = (() => {
+    try {
+      return new Date(fecha + "T12:00:00").toLocaleDateString("es-MX", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      });
+    } catch (e) {
+      return fecha;
+    }
+  })();
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\u2705 Control diario de raciones"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1"
+  }, "Marca lo que vas comiendo durante el d\xEDa. Cada grupo se compara con el total que pusiste en tu plan. Se guarda por d\xEDa en este tel\xE9fono."), React.createElement("div", {
+    className: "flex items-center gap-2 mt-3 flex-wrap"
+  }, React.createElement("input", {
+    type: "date",
+    value: fecha,
+    max: hoyStr(),
+    onChange: e => setFecha(e.target.value || hoyStr()),
+    className: "rounded-xl border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), fecha !== hoyStr() && React.createElement("button", {
+    onClick: () => setFecha(hoyStr()),
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5"
+  }, "Hoy"), React.createElement("span", {
+    className: "text-xs text-slate-500 capitalize"
+  }, fechaTxt)), gruposPlan.length === 0 ? React.createElement("div", {
+    className: "mt-4 text-sm bg-amber-50 border border-amber-100 text-amber-800 rounded-xl px-3 py-2.5 flex items-center gap-2"
+  }, React.createElement(IWarn, {
+    cls: "w-4 h-4 shrink-0"
+  }), " Primero escribe tu plan de raciones arriba para poder llevar el control del d\xEDa.") : React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "mt-4 mb-3"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between text-xs mb-1"
+  }, React.createElement("span", {
+    className: "font-semibold text-slate-700"
+  }, "Avance del d\xEDa"), React.createElement("span", {
+    className: "font-bold text-emerald-700"
+  }, totDone, " / ", totTarget, " raciones \xB7 ", pctDia, "%")), React.createElement("div", {
+    className: "h-2.5 rounded-full bg-slate-100 overflow-hidden"
+  }, React.createElement("div", {
+    className: "h-full bg-emerald-500 rounded-full transition-all",
+    style: {
+      width: pctDia + "%"
+    }
+  }))), React.createElement("div", {
+    className: "space-y-2.5"
+  }, gruposPlan.map(g => {
+    const target = totalDiaGrupo(plan, g);
+    const done = Number(dia[g]) || 0;
+    const pct = target ? Math.min(100, Math.round(done / target * 100)) : 0;
+    const completo = done >= target;
+    const idx = sel[g];
+    const item = idx != null ? ALIMENTOS[g][idx] : null;
+    return React.createElement("div", {
+      key: g,
+      className: "rounded-xl border p-3 " + (completo ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200")
+    }, React.createElement("div", {
+      className: "flex items-center justify-between gap-2"
+    }, React.createElement("span", {
+      className: "text-sm font-semibold text-slate-800"
+    }, GRUPOS[g].emoji, " ", GRUPOS[g].label), React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, React.createElement("button", {
+      onClick: () => add(g, -1),
+      className: "w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200"
+    }, "\u2212"), React.createElement("span", {
+      className: "text-sm font-bold tabular-nums min-w-[3rem] text-center " + (completo ? "text-emerald-700" : "text-slate-700")
+    }, done, " / ", target), React.createElement("button", {
+      onClick: () => add(g, 1),
+      className: "w-7 h-7 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center hover:bg-emerald-700"
+    }, "+"))), React.createElement("div", {
+      className: "h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2"
+    }, React.createElement("div", {
+      className: "h-full rounded-full " + (completo ? "bg-emerald-500" : "bg-emerald-400"),
+      style: {
+        width: pct + "%"
+      }
+    })), React.createElement("select", {
+      className: "w-full mt-2 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white",
+      value: idx != null ? idx : "",
+      onChange: e => setSel(s => ({
+        ...s,
+        [g]: Number(e.target.value)
+      }))
+    }, React.createElement("option", {
+      value: ""
+    }, "\xBFQu\xE9 comiste de este grupo? (ver raci\xF3n)\u2026"), ALIMENTOS[g].map((it, i) => React.createElement("option", {
+      key: it[0],
+      value: i
+    }, it[0], " \u2014 1 raci\xF3n = ", fmtCantidad(it[1], it[2], 1)))), item && React.createElement("div", {
+      className: "mt-1.5 text-xs text-emerald-900 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5"
+    }, "1 raci\xF3n de ", React.createElement("b", null, item[0]), " = ", React.createElement("b", null, fmtCantidad(item[1], item[2], 1))));
+  })), React.createElement("div", {
+    className: "flex justify-end mt-3"
+  }, React.createElement("button", {
+    onClick: reiniciar,
+    className: "text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-100"
+  }, "\u21BA Reiniciar este d\xEDa"))));
+}
+function Nutriologa() {
+  const [n, setN] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-nutriologa-v1")) || {
+        nombre: "",
+        tel: ""
+      };
+    } catch (e) {
+      return {
+        nombre: "",
+        tel: ""
+      };
+    }
+  });
+  const [edit, setEdit] = useState(false);
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-nutriologa-v1", JSON.stringify(n));
+    } catch (e) {}
+  }, [n]);
+  const tel = (n.tel || "").replace(/[^0-9+]/g, "");
+  const tieneDatos = (n.nombre || "").trim() || tel;
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between gap-2"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, React.createElement(IUser, {
+    cls: "w-5 h-5 text-emerald-700"
+  }), " Mi nutri\xF3loga ", React.createElement("span", {
+    className: "text-xs font-normal text-slate-400"
+  }, "(opcional)")), !edit && React.createElement("button", {
+    onClick: () => setEdit(true),
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5"
+  }, tieneDatos ? "Editar" : "Agregar")), edit ? React.createElement("div", {
+    className: "mt-3 space-y-2"
+  }, React.createElement("input", {
+    type: "text",
+    placeholder: "Nombre de la nutri\xF3loga",
+    value: n.nombre,
+    onChange: e => setN(v => ({
+      ...v,
+      nombre: e.target.value
+    })),
+    className: "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), React.createElement("input", {
+    type: "tel",
+    inputMode: "tel",
+    placeholder: "Tel\xE9fono (10 d\xEDgitos)",
+    value: n.tel,
+    onChange: e => setN(v => ({
+      ...v,
+      tel: e.target.value
+    })),
+    className: "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), React.createElement("div", {
+    className: "flex justify-end gap-2"
+  }, React.createElement("button", {
+    onClick: () => {
+      setN({
+        nombre: "",
+        tel: ""
+      });
+    },
+    className: "text-xs font-semibold text-slate-500 px-3 py-1.5"
+  }, "Borrar"), React.createElement("button", {
+    onClick: () => setEdit(false),
+    className: "text-xs font-semibold bg-emerald-700 text-white rounded-full px-4 py-1.5 hover:bg-emerald-800"
+  }, "Guardar"))) : tieneDatos ? React.createElement("div", {
+    className: "mt-2"
+  }, n.nombre && React.createElement("div", {
+    className: "text-sm font-semibold text-slate-800"
+  }, n.nombre), tel && React.createElement("div", {
+    className: "text-xs text-slate-500 mt-0.5"
+  }, n.tel), tel && React.createElement("div", {
+    className: "flex gap-2 mt-3"
+  }, React.createElement("a", {
+    href: "tel:" + tel,
+    className: "flex-1 text-center text-sm font-semibold bg-emerald-600 text-white rounded-xl px-3 py-2 hover:bg-emerald-700"
+  }, "\uD83D\uDCDE Llamar"), React.createElement("a", {
+    href: "https://wa.me/52" + tel.replace(/[^0-9]/g, ""),
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "flex-1 text-center text-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl px-3 py-2 hover:bg-emerald-100"
+  }, "\uD83D\uDCAC WhatsApp"))) : React.createElement("p", {
+    className: "text-xs text-slate-400 mt-2"
+  }, "Agrega el nombre y tel\xE9fono de tu nutri\xF3loga para tenerlos a la mano y poder llamarle o escribirle por WhatsApp."));
+}
 function Saludable({
   avisar
 }) {
   const [open, setOpen] = useState(null);
   const toggle = id => setOpen(open === id ? null : id);
+  const [plan, setPlan] = useState(cargarPlan);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
+    } catch (e) {}
+  }, [plan]);
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", {
@@ -5618,7 +6042,14 @@ function Saludable({
     className: "text-xl"
   }, "\uD83D\uDCA7"), React.createElement("div", {
     className: "text-[11px] font-semibold mt-1"
-  }, "3) Agua simple (6\u20138 vasos)")))), React.createElement(CalcNutricion, null), React.createElement(PlanDiagnostico, null), React.createElement("div", {
+  }, "3) Agua simple (6\u20138 vasos)")))), React.createElement(CalcNutricion, null), React.createElement(PlanDiagnostico, null), React.createElement(Nutriologa, null), React.createElement(MiPlanRaciones, {
+    plan: plan,
+    setPlan: setPlan,
+    avisar: avisar
+  }), React.createElement(ControlDiarioRaciones, {
+    plan: plan,
+    avisar: avisar
+  }), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"

@@ -1,33 +1,30 @@
-# MediControl — Instalar y usar SIN internet (versión corregida)
+# MediControl — versión mejorada (apartado Saludable actualizado)
 
-IMPORTANTE: sube TODOS estos archivos juntos, en el MISMO nivel (sin carpetas).
-Así ya están aquí; no crees ninguna carpeta.
+Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
 
-Archivos (todos a la raíz del repositorio):
-- index.html
-- app.js
-- tailwind.css
-- manifest.json
-- sw.js
-- icon-192.png, icon-512.png, icon-180.png
-- react.production.min.js
-- react-dom.production.min.js
-- jspdf.umd.min.js
-- jspdf.plugin.autotable.min.js
+## Novedades del apartado "Saludable"
+Basado en tu Plan de Alimentación NutrIMSS (IMSS):
+1. **Mi plan de raciones por tiempo de comida** (editable): escribe cuántas
+   raciones de cada grupo te indicó tu nutrióloga en cada comida
+   (desayuno, colación matutina, comida, colación vespertina y cena).
+   Viene precargado con un plan de ejemplo; puedes editarlo o vaciarlo.
+2. **Control diario de raciones**: marca con + y − lo que vas comiendo cada
+   día. Cada grupo se compara con el total de tu plan, con barra de avance.
+   Puedes elegir el alimento del grupo para ver a cuánto equivale 1 ración.
+   Se guarda por día (puedes cambiar la fecha).
+3. **Mi nutrióloga (opcional)**: guarda su nombre y teléfono; botones para
+   llamar o escribir por WhatsApp.
+Se conservan las tablas de equivalencias, método de la mano, menús de
+14 días y las guías de ejercicio e hidratación.
 
-## Por qué estaba en blanco
-La versión anterior buscaba las librerías dentro de una carpeta "lib/".
-Al subirlas sueltas, no las encontraba y la pantalla quedaba vacía.
-Esta versión las busca en la raíz, igual que como tú las subes.
+Toda la información se guarda solo en este teléfono.
 
-## Pasos para actualizar tu página
-1. En tu repositorio borra los archivos viejos (o súbelos encima reemplazando).
-2. Sube TODOS los de este ZIP a la raíz.
-3. En el celular: desinstala la app vieja y, en el navegador, entra a los
-   ajustes del sitio y toca "Borrar datos" (esto quita el service worker viejo).
-4. Abre la página otra vez CON internet. Verás el botón "Instalar app".
-5. Instálala. Ya funciona sin internet.
+## Actualizar tu página
+1. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
+2. En el celular: desinstala la app y, en el navegador, entra a ajustes del
+   sitio y toca "Borrar datos" (quita la versión anterior guardada).
+3. Abre la página con internet, instala de nuevo. Lista para usar sin internet.
 
 ## Compartir por QR
-Dentro de la app, botón flotante 📲 → muestra el QR para que otra persona
-lo escanee e instale en su teléfono. Cada quien guarda su propia información.
+Dentro de la app, botón flotante 📲 → muestra el QR. Cada persona guarda
+su propia información.
