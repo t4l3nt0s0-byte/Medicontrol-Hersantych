@@ -1,34 +1,33 @@
-# MediControl — Instalar y usar SIN internet
+# MediControl — Instalar y usar SIN internet (versión corregida)
 
-Esta app funciona 100% sin conexión y se instala en el celular. Cada persona
-guarda su propia información en su teléfono (no se comparte con nadie).
+IMPORTANTE: sube TODOS estos archivos juntos, en el MISMO nivel (sin carpetas).
+Así ya están aquí; no crees ninguna carpeta.
 
-## 1) Subir a GitHub Pages
-Sube TODO el contenido de esta carpeta (no la carpeta, su interior) al
-repositorio, incluyendo la subcarpeta `lib/`:
+Archivos (todos a la raíz del repositorio):
 - index.html
 - app.js
 - tailwind.css
 - manifest.json
 - sw.js
 - icon-192.png, icon-512.png, icon-180.png
-- lib/ (react, react-dom, jspdf, autotable)
+- react.production.min.js
+- react-dom.production.min.js
+- jspdf.umd.min.js
+- jspdf.plugin.autotable.min.js
 
-En el repo: Settings → Pages → Branch: main → Save.
+## Por qué estaba en blanco
+La versión anterior buscaba las librerías dentro de una carpeta "lib/".
+Al subirlas sueltas, no las encontraba y la pantalla quedaba vacía.
+Esta versión las busca en la raíz, igual que como tú las subes.
 
-## 2) Instalar en el teléfono
-Abre la página en Chrome (Android) o Safari (iPhone):
-- Android: aparece abajo el botón **“Instalar app”**. Tócalo.
-- iPhone: menú Compartir → **“Agregar a inicio”**.
+## Pasos para actualizar tu página
+1. En tu repositorio borra los archivos viejos (o súbelos encima reemplazando).
+2. Sube TODOS los de este ZIP a la raíz.
+3. En el celular: desinstala la app vieja y, en el navegador, entra a los
+   ajustes del sitio y toca "Borrar datos" (esto quita el service worker viejo).
+4. Abre la página otra vez CON internet. Verás el botón "Instalar app".
+5. Instálala. Ya funciona sin internet.
 
-Ábrela una vez CON internet para que se guarde. Después funciona sin datos ni wifi.
-
-## 3) Compartir por QR
-Dentro de la app toca el botón flotante **📲**. Se muestra un **código QR**;
-la otra persona lo escanea con su cámara, abre la app y la instala en su
-teléfono. Su información es independiente (cada quien la suya).
-
-## Si no carga sin internet (ya la tenías instalada antes)
-1. Desinstala la app / borra el acceso directo.
-2. En el navegador: ajustes del sitio → **borrar datos**.
-3. Abre otra vez la página CON internet y reinstala.
+## Compartir por QR
+Dentro de la app, botón flotante 📲 → muestra el QR para que otra persona
+lo escanee e instale en su teléfono. Cada quien guarda su propia información.

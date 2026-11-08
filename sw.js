@@ -1,6 +1,6 @@
 /* MediControl — Service Worker (offline) · v1 */
-const CACHE = 'medicontrol-v1';
-const CORE = ['./','./index.html','./app.js','./tailwind.css','./manifest.json','./icon-192.png','./icon-512.png','./icon-180.png','./lib/react.production.min.js','./lib/react-dom.production.min.js','./lib/jspdf.umd.min.js','./lib/jspdf.plugin.autotable.min.js'];
+const CACHE = 'medicontrol-v2';
+const CORE = ['./','./index.html','./app.js','./tailwind.css','./manifest.json','./icon-192.png','./icon-512.png','./icon-180.png','./react.production.min.js','./react-dom.production.min.js','./jspdf.umd.min.js','./jspdf.plugin.autotable.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => Promise.allSettled(CORE.map(u => c.add(u)))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
