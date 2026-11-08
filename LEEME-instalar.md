@@ -1,39 +1,38 @@
-# MediControl — Saludable + Bienestar (versión mejorada)
+# MediControl — Saludable + Bienestar (versión ampliada)
 
 Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
 
-## Novedades
-### Apartado "Saludable"
-- **Control diario de raciones**: ahora muestra SIEMPRE los 7 grupos en orden
-  (verduras, frutas, cereales, leguminosas, origen animal, leche, aceites y grasas).
-- **Distribución de macronutrientes** (editable): escribe %HC, %proteínas,
-  %lípidos y las calorías; calcula los gramos de cada uno.
-- **Seguimiento de tus logros**: historial de peso, IMC (automático), cintura
-  y % de grasa, con la fecha de cada registro y el cambio de peso.
-- **Recomendaciones nutricionales**: las del Plan NutrIMSS (IMSS).
-- Se conserva: plan de raciones editable, nutrióloga, equivalencias,
-  método de la mano, menús y guías.
+## Novedades en "Saludable"
+- **Conoce tu estado de nutrición** ahora toma automáticamente tus datos del
+  apartado **Salud** (peso y cintura de tus mediciones; estatura y sexo del
+  Perfil del paciente). Si falta algún dato, te avisa y te lleva a llenarlo.
+- **Diagnósticos y plan clínico**: guarda el diagnóstico de tu nutriólogo, el
+  diagnóstico del personal médico, tu plan nutricio y tu plan de ejercicio.
+- **Seguimiento de tus logros** ahora incluye: fecha, peso, estatura, IMC,
+  interpretación de IMC, circunferencia de cintura, % de grasa y
+  diagnóstico de % de grasa (se calcula según tu sexo). La estatura se
+  precarga desde tu perfil.
 
-### Nuevo apartado "Bienestar"
-Para manejar ansiedad, depresión, estrés y rumiación:
-- **Respiración guiada** animada (4-7-8, Caja 4-4-4-4, Diafragmática 4-6).
-- **Anclaje 5-4-3-2-1**.
-- **Qué hacer en cada situación**: señales, qué hacer y qué evitar.
-- **Mi plan de acción** personal (editable).
-- **Registro de episodios** con intensidad e historial, y resumen de
-  frecuencia (total, esta semana, este mes y por tipo).
-- Incluye líneas de ayuda en crisis (Línea de la Vida y SAPTEL).
+## "Bienestar" ampliado (como un equipo de expertos)
+Organizado en 4 secciones:
+- **Calma ahora**: respiración guiada animada, TIPP (DBT para crisis),
+  anclaje 5-4-3-2-1 y relajación muscular progresiva.
+- **Estrategias**: qué hacer en cada situación (ansiedad, depresión, estrés,
+  rumiación) y tu plan de acción personal.
+- **Herramientas**: registro de pensamientos (TCC), distorsiones cognitivas,
+  activación conductual, higiene del sueño, autocompasión y "tres cosas
+  buenas" (gratitud).
+- **Registro**: historial de episodios con intensidad y frecuencia.
 
 Nota: el apartado Bienestar es de apoyo y no sustituye la atención de un
-profesional de salud mental.
+profesional de salud mental. Incluye líneas de ayuda en crisis.
 
 Toda la información se guarda solo en este teléfono.
 
 ## Actualizar tu página
 1. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
-2. En el celular: desinstala la app y, en el navegador, entra a ajustes del
-   sitio y toca "Borrar datos".
-3. Abre la página con internet y reinstala. Lista para usar sin internet.
+2. En el celular: desinstala la app y, en el navegador, borra los datos del sitio.
+3. Abre con internet y reinstala. Lista para usar sin internet.
 
 ## Compartir por QR
 Botón flotante 📲 dentro de la app. Cada persona guarda su propia información.

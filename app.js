@@ -764,7 +764,9 @@ function MediControl() {
     avisar: avisar,
     hoy: hoy
   }), tab === "saludable" && React.createElement(Saludable, {
-    avisar: avisar
+    avisar: avisar,
+    data: data,
+    onIrSalud: () => setTab("salud")
   }), tab === "bienestar" && React.createElement(Bienestar, {
     avisar: avisar
   }), tab === "reporte" && React.createElement(React.Fragment, null, React.createElement(Reporte, {
@@ -5088,16 +5090,21 @@ function TablaRaciones({
     className: "px-3 py-1.5 text-right font-medium text-slate-800 whitespace-nowrap"
   }, fmtCantidad(it[1], it[2], 1)))))));
 }
-function CalcNutricion() {
-  const [peso, setPeso] = useState("");
-  const [estatura, setEstatura] = useState("");
-  const [cintura, setCintura] = useState("");
-  const [sexo, setSexo] = useState("hombre");
-  const p = parseFloat(peso),
-    e = parseFloat(estatura),
-    c = parseFloat(cintura);
-  const imc = p > 0 && e > 0 ? p / (e * e) : null;
-  const clasifIMC = v => {
+function CalcNutricion({
+  data,
+  onIrSalud
+}) {
+  const perfil = data && data.perfil || {};
+  const rPeso = ultimaLectura(data, "peso");
+  const rCintura = ultimaLectura(data, "cintura");
+  const peso = rPeso ? Number(rPeso.a) : null;
+  const cintura = rCintura ? Number(rCintura.a) : null;
+  const estaturaCm = perfil.estatura ? Number(perfil.estatura) : null;
+  const sexoRaw = (perfil.sexo || "").toLowerCase();
+  const sexo = sexoRaw.indexOf("muj") >= 0 ? "mujer" : sexoRaw.indexOf("hom") >= 0 ? "hombre" : "";
+  const e = estaturaCm ? estaturaCm / 100 : null;
+  const imc = peso && e ? peso / (e * e) : null;
+  const clasifIMCloc = v => {
     if (v < 18.5) return {
       t: "Bajo peso",
       cls: "bg-sky-100 text-sky-800 border-sky-200"
@@ -5123,10 +5130,25 @@ function CalcNutricion() {
       cls: "bg-red-100 text-red-800 border-red-200"
     };
   };
-  const limiteCintura = sexo === "hombre" ? 90 : 80;
-  const cinturaOk = c > 0 ? c <= limiteCintura : null;
-  const meta = imc && imc >= 25 && p > 0 ? Math.round(p * 0.10 * 10) / 10 : null;
-  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+  const limiteCintura = sexo === "mujer" ? 80 : 90;
+  const cinturaOk = cintura ? cintura <= limiteCintura : null;
+  const meta = imc && imc >= 25 && peso ? Math.round(peso * 0.10 * 10) / 10 : null;
+  const faltan = [];
+  if (!estaturaCm) faltan.push("estatura");
+  if (!sexo) faltan.push("sexo");
+  if (peso == null) faltan.push("peso");
+  if (cintura == null) faltan.push("cintura");
+  const Dato = ({
+    label,
+    valor,
+    ok
+  }) => React.createElement("div", {
+    className: "rounded-xl border px-3 py-2 text-center " + (ok ? "border-slate-200 bg-slate-50" : "border-amber-200 bg-amber-50")
+  }, React.createElement("div", {
+    className: "text-sm font-bold " + (ok ? "text-slate-800" : "text-amber-700")
+  }, ok ? valor : "falta"), React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, label));
   return React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
@@ -5135,61 +5157,46 @@ function CalcNutricion() {
     cls: "w-5 h-5 text-emerald-700"
   }), " Conoce tu estado de nutrici\xF3n"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1 mb-3"
-  }, "IMC = peso (kg) \xF7 estatura \xD7 estatura (m). Clasificaci\xF3n por sem\xE1foro."), React.createElement("div", {
-    className: "grid grid-cols-2 sm:grid-cols-4 gap-3"
-  }, React.createElement("label", {
-    className: "text-xs text-slate-600 font-medium"
-  }, "Peso (kg)", React.createElement("input", {
-    type: "number",
-    min: "0",
-    step: "0.1",
-    className: inputCls + " mt-1",
-    placeholder: "Ej. 82",
-    value: peso,
-    onChange: ev => setPeso(ev.target.value)
-  })), React.createElement("label", {
-    className: "text-xs text-slate-600 font-medium"
-  }, "Estatura (m)", React.createElement("input", {
-    type: "number",
-    min: "0",
-    step: "0.01",
-    className: inputCls + " mt-1",
-    placeholder: "Ej. 1.70",
-    value: estatura,
-    onChange: ev => setEstatura(ev.target.value)
-  })), React.createElement("label", {
-    className: "text-xs text-slate-600 font-medium"
-  }, "Cintura (cm)", React.createElement("input", {
-    type: "number",
-    min: "0",
-    step: "0.5",
-    className: inputCls + " mt-1",
-    placeholder: "Ej. 92",
-    value: cintura,
-    onChange: ev => setCintura(ev.target.value)
-  })), React.createElement("label", {
-    className: "text-xs text-slate-600 font-medium"
-  }, "Sexo", React.createElement("select", {
-    className: inputCls + " mt-1",
-    value: sexo,
-    onChange: ev => setSexo(ev.target.value)
-  }, React.createElement("option", {
-    value: "hombre"
-  }, "Hombre"), React.createElement("option", {
-    value: "mujer"
-  }, "Mujer")))), imc && React.createElement("div", {
+  }, "Se calcula con los datos de tu perfil y mediciones del apartado Salud. IMC = peso (kg) \xF7 estatura \xD7 estatura (m)."), React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-4 gap-2"
+  }, React.createElement(Dato, {
+    label: "Peso",
+    valor: peso + " kg",
+    ok: peso != null
+  }), React.createElement(Dato, {
+    label: "Estatura",
+    valor: estaturaCm + " cm",
+    ok: !!estaturaCm
+  }), React.createElement(Dato, {
+    label: "Cintura",
+    valor: cintura + " cm",
+    ok: cintura != null
+  }), React.createElement(Dato, {
+    label: "Sexo",
+    valor: sexo === "mujer" ? "Mujer" : "Hombre",
+    ok: !!sexo
+  })), faltan.length > 0 && React.createElement("div", {
+    className: "mt-3 text-sm bg-amber-50 border border-amber-100 text-amber-900 rounded-xl px-3 py-2.5"
+  }, React.createElement("div", {
+    className: "flex items-start gap-2"
+  }, React.createElement(IWarn, {
+    cls: "w-4 h-4 shrink-0 mt-0.5"
+  }), React.createElement("span", null, "Faltan datos: ", React.createElement("b", null, faltan.join(", ")), ". Ll\xE9nalos en el apartado ", React.createElement("b", null, "Salud"), " \u2192 Perfil del paciente (estatura y sexo) y registra tu peso y cintura en tus mediciones. Aqu\xED se reflejar\xE1n autom\xE1ticamente.")), onIrSalud && React.createElement("button", {
+    onClick: onIrSalud,
+    className: "mt-2 text-xs font-semibold bg-emerald-700 text-white rounded-full px-4 py-1.5 hover:bg-emerald-800"
+  }, "Ir al apartado Salud \u2192")), imc && React.createElement("div", {
     className: "mt-4 grid sm:grid-cols-3 gap-3"
   }, React.createElement("div", {
-    className: "rounded-xl border p-3 text-center " + clasifIMC(imc).cls
+    className: "rounded-xl border p-3 text-center " + clasifIMCloc(imc).cls
   }, React.createElement("div", {
     className: "text-2xl font-extrabold"
   }, (Math.round(imc * 10) / 10).toFixed(1)), React.createElement("div", {
     className: "text-xs font-semibold mt-0.5"
-  }, "IMC \xB7 ", clasifIMC(imc).t)), cinturaOk !== null && React.createElement("div", {
+  }, "IMC \xB7 ", clasifIMCloc(imc).t)), cinturaOk !== null && React.createElement("div", {
     className: "rounded-xl border p-3 text-center " + (cinturaOk ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-rose-100 text-rose-800 border-rose-200")
   }, React.createElement("div", {
     className: "text-2xl font-extrabold"
-  }, c, " cm"), React.createElement("div", {
+  }, cintura, " cm"), React.createElement("div", {
     className: "text-xs font-semibold mt-0.5"
   }, cinturaOk ? "Cintura normal" : "Obesidad central", " (l\xEDmite ", limiteCintura, " cm)")), meta && React.createElement("div", {
     className: "rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-emerald-900"
@@ -5727,6 +5734,60 @@ const clasifIMC = imc => {
     color: "text-red-700"
   };
 };
+const clasifGrasa = (pct, sexo) => {
+  if (!pct || pct <= 0) return {
+    txt: "—",
+    color: "text-slate-400"
+  };
+  const muj = (sexo || "").toLowerCase().indexOf("muj") >= 0;
+  if (muj) {
+    if (pct < 14) return {
+      txt: "Muy bajo",
+      color: "text-sky-600"
+    };
+    if (pct < 21) return {
+      txt: "Atlético",
+      color: "text-emerald-600"
+    };
+    if (pct < 25) return {
+      txt: "En forma",
+      color: "text-emerald-600"
+    };
+    if (pct < 32) return {
+      txt: "Aceptable",
+      color: "text-amber-600"
+    };
+    return {
+      txt: "Obesidad",
+      color: "text-red-600"
+    };
+  }
+  if (pct < 6) return {
+    txt: "Muy bajo",
+    color: "text-sky-600"
+  };
+  if (pct < 14) return {
+    txt: "Atlético",
+    color: "text-emerald-600"
+  };
+  if (pct < 18) return {
+    txt: "En forma",
+    color: "text-emerald-600"
+  };
+  if (pct < 25) return {
+    txt: "Aceptable",
+    color: "text-amber-600"
+  };
+  return {
+    txt: "Obesidad",
+    color: "text-red-600"
+  };
+};
+const ultimaLectura = (data, tipo) => {
+  const rs = (data && data.vitals && data.vitals.readings || []).filter(x => x.tipo === tipo);
+  if (!rs.length) return null;
+  return rs.slice().sort((a, b) => a.fecha + (a.hora || "") < b.fecha + (b.hora || "") ? 1 : -1)[0];
+};
 function MiPlanRaciones({
   plan,
   setPlan,
@@ -6135,8 +6196,11 @@ function MacronutrientesTabla() {
   }, suma === 100 ? "✓ Suma 100%" : "Suma " + suma + "% — lo recomendado es que los tres porcentajes sumen 100%"));
 }
 function SeguimientoLogros({
-  avisar
+  avisar,
+  sexoPerfil,
+  estaturaPerfil
 }) {
+  const estIni = estaturaPerfil ? String(+(Number(estaturaPerfil) / 100).toFixed(2)) : "";
   const [hist, setHist] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("medicontrol-seguimiento-v1")) || [];
@@ -6147,7 +6211,7 @@ function SeguimientoLogros({
   const [f, setF] = useState({
     fecha: hoyISO(),
     peso: "",
-    estatura: "",
+    estatura: estIni,
     cintura: "",
     grasa: ""
   });
@@ -6156,6 +6220,12 @@ function SeguimientoLogros({
       localStorage.setItem("medicontrol-seguimiento-v1", JSON.stringify(hist));
     } catch (e) {}
   }, [hist]);
+  useEffect(() => {
+    if (estIni && !f.estatura) setF(v => ({
+      ...v,
+      estatura: estIni
+    }));
+  }, [estIni]);
   const agregar = () => {
     const peso = parseFloat(f.peso),
       est = parseFloat(f.estatura);
@@ -6171,7 +6241,8 @@ function SeguimientoLogros({
       estatura: est || 0,
       imc,
       cintura: parseFloat(f.cintura) || 0,
-      grasa: parseFloat(f.grasa) || 0
+      grasa: parseFloat(f.grasa) || 0,
+      sexo: sexoPerfil || ""
     };
     setHist(h => [reg, ...h].sort((a, b) => a.fecha < b.fecha ? 1 : -1));
     setF(v => ({
@@ -6189,7 +6260,7 @@ function SeguimientoLogros({
     className: "font-bold text-slate-800 flex items-center gap-2"
   }, "\uD83D\uDCC8 Seguimiento de tus logros"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1 mb-3"
-  }, "Registra tu avance cada cierto tiempo para ver c\xF3mo cambias. Se calcula tu IMC autom\xE1ticamente. Se guarda en este tel\xE9fono."), React.createElement("div", {
+  }, "Registra tu avance cada cierto tiempo para ver c\xF3mo cambias. El IMC y los diagn\xF3sticos se calculan solos. Se guarda en este tel\xE9fono."), React.createElement("div", {
     className: "grid grid-cols-2 gap-2"
   }, React.createElement("label", {
     className: "text-xs text-slate-500"
@@ -6262,19 +6333,24 @@ function SeguimientoLogros({
   }, React.createElement("thead", null, React.createElement("tr", {
     className: "text-slate-500 border-b border-slate-200"
   }, React.createElement("th", {
-    className: "text-left px-2 py-1.5 font-semibold"
+    className: "text-left px-2 py-1.5 font-semibold whitespace-nowrap"
   }, "Fecha"), React.createElement("th", {
     className: "px-2 py-1.5 font-semibold text-center"
   }, "Peso"), React.createElement("th", {
     className: "px-2 py-1.5 font-semibold text-center"
+  }, "Estatura"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-center"
   }, "IMC"), React.createElement("th", {
-    className: "px-2 py-1.5 font-semibold text-left"
-  }, "Estado"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-left whitespace-nowrap"
+  }, "Interpretaci\xF3n IMC"), React.createElement("th", {
     className: "px-2 py-1.5 font-semibold text-center"
   }, "Cintura"), React.createElement("th", {
     className: "px-2 py-1.5 font-semibold text-center"
-  }, "% grasa"), React.createElement("th", null))), React.createElement("tbody", null, hist.map((r, i) => {
+  }, "% grasa"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-left whitespace-nowrap"
+  }, "Dx % grasa"), React.createElement("th", null))), React.createElement("tbody", null, hist.map((r, i) => {
     const c = clasifIMC(r.imc);
+    const cg = clasifGrasa(r.grasa, r.sexo || sexoPerfil);
     const prev = hist[i + 1];
     const delta = prev ? +(r.peso - prev.peso).toFixed(1) : 0;
     return React.createElement("tr", {
@@ -6287,14 +6363,18 @@ function SeguimientoLogros({
     }, r.peso, " kg ", delta !== 0 && React.createElement("span", {
       className: delta < 0 ? "text-emerald-600" : "text-amber-600"
     }, delta < 0 ? "▼" : "▲", Math.abs(delta))), React.createElement("td", {
+      className: "px-2 py-1.5 text-center text-slate-600 whitespace-nowrap"
+    }, r.estatura ? r.estatura + " m" : "—"), React.createElement("td", {
       className: "px-2 py-1.5 text-center"
     }, r.imc || "—"), React.createElement("td", {
       className: "px-2 py-1.5 whitespace-nowrap font-semibold " + c.color
     }, r.imc ? c.txt : "—"), React.createElement("td", {
-      className: "px-2 py-1.5 text-center text-slate-600"
+      className: "px-2 py-1.5 text-center text-slate-600 whitespace-nowrap"
     }, r.cintura ? r.cintura + " cm" : "—"), React.createElement("td", {
       className: "px-2 py-1.5 text-center text-slate-600"
     }, r.grasa ? r.grasa + "%" : "—"), React.createElement("td", {
+      className: "px-2 py-1.5 whitespace-nowrap font-semibold " + cg.color
+    }, r.grasa ? cg.txt : "—"), React.createElement("td", {
       className: "px-1 py-1.5 text-center"
     }, React.createElement("button", {
       onClick: () => borrar(r.id),
@@ -6303,6 +6383,77 @@ function SeguimientoLogros({
       cls: "w-3.5 h-3.5"
     }))));
   })))));
+}
+function DiagnosticosClinicos() {
+  const [dx, setDx] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-dx-clinicos-v1")) || {
+        nutri: "",
+        medico: "",
+        planEjercicio: "",
+        planNutricio: ""
+      };
+    } catch (e) {
+      return {
+        nutri: "",
+        medico: "",
+        planEjercicio: "",
+        planNutricio: ""
+      };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-dx-clinicos-v1", JSON.stringify(dx));
+    } catch (e) {}
+  }, [dx]);
+  const set = (k, v) => setDx(p => ({
+    ...p,
+    [k]: v
+  }));
+  const Campo = ({
+    k,
+    titulo,
+    emoji,
+    placeholder
+  }) => React.createElement("div", null, React.createElement("label", {
+    className: "text-xs font-bold text-slate-600 flex items-center gap-1.5"
+  }, emoji, " ", titulo), React.createElement("textarea", {
+    rows: "3",
+    value: dx[k],
+    onChange: e => set(k, e.target.value),
+    placeholder: placeholder,
+    className: "w-full mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }));
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83E\uDE7A Diagn\xF3sticos y plan cl\xEDnico"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Guarda aqu\xED lo que te indicaron tus profesionales de salud para tenerlo siempre a la mano. Se guarda en este tel\xE9fono."), React.createElement("div", {
+    className: "space-y-3"
+  }, React.createElement(Campo, {
+    k: "nutri",
+    titulo: "Diagn\xF3stico del nutri\xF3logo",
+    emoji: "\uD83E\uDD57",
+    placeholder: "Lo que indic\xF3 tu nutri\xF3logo(a)\u2026"
+  }), React.createElement(Campo, {
+    k: "medico",
+    titulo: "Diagn\xF3stico emitido por el personal m\xE9dico",
+    emoji: "\uD83D\uDC69\u200D\u2695\uFE0F",
+    placeholder: "Lo que indic\xF3 tu m\xE9dico(a)\u2026"
+  }), React.createElement(Campo, {
+    k: "planNutricio",
+    titulo: "Plan nutricio",
+    emoji: "\uD83C\uDF7D\uFE0F",
+    placeholder: "Indicaciones de tu plan de alimentaci\xF3n\u2026"
+  }), React.createElement(Campo, {
+    k: "planEjercicio",
+    titulo: "Plan de ejercicio (emitido por personal m\xE9dico)",
+    emoji: "\uD83C\uDFC3",
+    placeholder: "Indicaciones de actividad f\xEDsica\u2026"
+  })));
 }
 const RECS_NUTRI = ["Toma de 6 a 8 vasos de agua simple a lo largo del día.", "Establece y cumple los horarios para cada comida.", "Consume verduras y frutas de temporada.", "Elige carnes blancas sin grasa, como pollo sin piel, o carne roja con menos grasa (filete de res, bistec de aguayón o bola y carne molida de pulpa).", "Al elegir pescado fresco, verifica que la carne esté firme, las escamas bien adheridas, las agallas de color rojo y los ojos brillantes, no opacos.", "Toma leche y yogur descremados y sin azúcar.", "Elige queso blanco bajo en grasa (panela, requesón o cottage).", "Prefiere grasas saludables como el aguacate y semillas oleaginosas (cacahuate, almendra, nuez).", "Usa aceite de maíz, canola o cártamo para cocinar, y aceite de oliva para ensaladas.", "Usa hierbas aromáticas al preparar los alimentos y reduce el consumo de sal.", "Realiza al menos 30 minutos de actividad física al día; auméntalo poco a poco hasta llegar a 60 minutos diarios."];
 const RECS_CUIDADO = ["Evita los productos ultraprocesados, sobre todo los que tienen más de un sello de advertencia.", "No agregues azúcar al agua de fruta, pues ya la contiene de forma natural.", "Evita alimentos de la calle o preparaciones capeadas, fritas o empanizadas.", "Evita refrescos, jugos, bebidas alcohólicas, bebidas de leche con café (moka, capuchino o frapé) y las que tienen exceso de azúcar y grasa (licuados y batidos)."];
@@ -6493,9 +6644,504 @@ const TIPOS_EP = [{
   label: "Otro",
   emoji: "•"
 }];
+const DISTORSIONES = [{
+  n: "Todo o nada",
+  d: "Ver las cosas en blanco o negro, sin grises.",
+  ej: "Si no sale perfecto, soy un fracaso."
+}, {
+  n: "Catastrofizar",
+  d: "Esperar siempre el peor escenario posible.",
+  ej: "Me va a salir mal y será un desastre."
+}, {
+  n: "Lectura de mente",
+  d: "Suponer lo que otros piensan de ti.",
+  ej: "Seguro piensan que no sirvo."
+}, {
+  n: "Sobregeneralizar",
+  d: "Tomar un hecho aislado como regla eterna.",
+  ej: "Siempre me pasa lo mismo."
+}, {
+  n: "Filtro mental",
+  d: "Fijarte solo en lo negativo e ignorar lo bueno.",
+  ej: "No cuenta nada de lo que sí logré."
+}, {
+  n: "Razonamiento emocional",
+  d: "Creer que si lo sientes, entonces es verdad.",
+  ej: "Me siento inútil, entonces lo soy."
+}, {
+  n: "Los \"debería\"",
+  d: "Exigencias rígidas hacia ti o los demás.",
+  ej: "Debería poder con todo yo solo."
+}, {
+  n: "Personalización",
+  d: "Echarte la culpa de cosas que no controlas.",
+  ej: "Es mi culpa que estén mal."
+}];
+function RegistroPensamientos({
+  avisar
+}) {
+  const [hist, setHist] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-pensamientos-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [f, setF] = useState({
+    situacion: "",
+    pensamiento: "",
+    emocion: "",
+    intensidad: 6,
+    distorsion: "",
+    alternativo: ""
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-pensamientos-v1", JSON.stringify(hist));
+    } catch (e) {}
+  }, [hist]);
+  const set = (k, v) => setF(p => ({
+    ...p,
+    [k]: v
+  }));
+  const guardar = () => {
+    if (!f.pensamiento.trim()) {
+      avisar("Escribe el pensamiento que te molesta 💭");
+      return;
+    }
+    setHist(h => [{
+      id: Date.now(),
+      fecha: hoyISO(),
+      ...f,
+      situacion: f.situacion.trim(),
+      pensamiento: f.pensamiento.trim(),
+      emocion: f.emocion.trim(),
+      alternativo: f.alternativo.trim()
+    }, ...h]);
+    setF({
+      situacion: "",
+      pensamiento: "",
+      emocion: "",
+      intensidad: 6,
+      distorsion: "",
+      alternativo: ""
+    });
+    avisar("Pensamiento registrado 💡");
+  };
+  const borrar = id => setHist(h => h.filter(x => x.id !== id));
+  const ic = "w-full mt-0.5 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDCAD Registro de pensamientos (TCC)"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Cuando un pensamiento te haga sentir mal, p\xE1salo por aqu\xED. Escribirlo y buscarle una versi\xF3n m\xE1s justa reduce su fuerza. Es la herramienta central de la terapia cognitivo-conductual."), React.createElement("div", {
+    className: "space-y-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500 block"
+  }, "1. Situaci\xF3n (\xBFqu\xE9 pas\xF3?)", React.createElement("input", {
+    type: "text",
+    value: f.situacion,
+    onChange: e => set("situacion", e.target.value),
+    className: ic,
+    placeholder: "Ej.: me escribieron del trabajo un domingo"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 block"
+  }, "2. Pensamiento autom\xE1tico", React.createElement("input", {
+    type: "text",
+    value: f.pensamiento,
+    onChange: e => set("pensamiento", e.target.value),
+    className: ic,
+    placeholder: "Lo que cruz\xF3 por tu mente"
+  })), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500 block"
+  }, "3. Emoci\xF3n", React.createElement("input", {
+    type: "text",
+    value: f.emocion,
+    onChange: e => set("emocion", e.target.value),
+    className: ic,
+    placeholder: "Ansiedad, enojo\u2026"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 block"
+  }, "Intensidad: ", React.createElement("b", {
+    className: "text-emerald-700"
+  }, f.intensidad), React.createElement("input", {
+    type: "range",
+    min: "1",
+    max: "10",
+    value: f.intensidad,
+    onChange: e => set("intensidad", Number(e.target.value)),
+    className: "w-full accent-emerald-600 mt-2"
+  }))), React.createElement("label", {
+    className: "text-xs text-slate-500 block"
+  }, "4. \xBFQu\xE9 distorsi\xF3n puede haber?", React.createElement("select", {
+    value: f.distorsion,
+    onChange: e => set("distorsion", e.target.value),
+    className: ic + " bg-white"
+  }, React.createElement("option", {
+    value: ""
+  }, "(opcional) elige una\u2026"), DISTORSIONES.map(d => React.createElement("option", {
+    key: d.n,
+    value: d.n
+  }, d.n)))), React.createElement("label", {
+    className: "text-xs text-slate-500 block"
+  }, "5. Pensamiento alternativo (m\xE1s justo y realista)", React.createElement("textarea", {
+    rows: "2",
+    value: f.alternativo,
+    onChange: e => set("alternativo", e.target.value),
+    className: ic,
+    placeholder: "\xBFQu\xE9 le dir\xEDas a un amigo en tu lugar?"
+  }))), React.createElement("button", {
+    onClick: guardar,
+    className: "w-full mt-3 bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800 flex items-center justify-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " Guardar"), hist.length > 0 && React.createElement("div", {
+    className: "mt-4 space-y-2"
+  }, hist.slice(0, 20).map(r => React.createElement("div", {
+    key: r.id,
+    className: "border border-slate-200 rounded-xl p-3 text-sm"
+  }, React.createElement("div", {
+    className: "flex items-start justify-between gap-2"
+  }, React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, r.situacion && React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, r.fecha, " \xB7 ", r.situacion), React.createElement("div", {
+    className: "text-slate-700 mt-0.5"
+  }, "\uD83D\uDCAD ", r.pensamiento, " ", r.emocion && React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "(", r.emocion, " ", r.intensidad, "/10)")), r.distorsion && React.createElement("div", {
+    className: "text-xs text-amber-600 mt-0.5"
+  }, "Distorsi\xF3n: ", r.distorsion), r.alternativo && React.createElement("div", {
+    className: "text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-1.5 text-xs"
+  }, "\uD83D\uDCA1 ", r.alternativo)), React.createElement("button", {
+    onClick: () => borrar(r.id),
+    className: "text-slate-300 hover:text-red-500 shrink-0"
+  }, React.createElement(ITrash, {
+    cls: "w-3.5 h-3.5"
+  })))))));
+}
+function Distorsiones() {
+  const [open, setOpen] = useState(false);
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("button", {
+    onClick: () => setOpen(!open),
+    className: "w-full flex items-center justify-between"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDD0D Distorsiones cognitivas (trampas de la mente)"), React.createElement(IChevD, {
+    cls: "w-4 h-4 text-slate-400 transition-transform " + (open ? "rotate-180" : "")
+  })), open && React.createElement("div", {
+    className: "mt-3 space-y-2"
+  }, React.createElement("p", {
+    className: "text-xs text-slate-500"
+  }, "Son errores de pensamiento muy comunes. Reconocerlos te ayuda a no creerte todo lo que piensas."), DISTORSIONES.map(d => React.createElement("div", {
+    key: d.n,
+    className: "border border-slate-100 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "text-sm font-semibold text-slate-800"
+  }, d.n), React.createElement("div", {
+    className: "text-xs text-slate-600 mt-0.5"
+  }, d.d), React.createElement("div", {
+    className: "text-xs text-slate-400 italic mt-1"
+  }, "Ej.: ", d.ej)))));
+}
+function ActivacionConductual({
+  avisar
+}) {
+  const [lista, setLista] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-activacion-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [txt, setTxt] = useState("");
+  const [tipo, setTipo] = useState("agradable");
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-activacion-v1", JSON.stringify(lista));
+    } catch (e) {}
+  }, [lista]);
+  const add = () => {
+    if (!txt.trim()) return;
+    setLista(l => [{
+      id: Date.now(),
+      texto: txt.trim(),
+      tipo,
+      hecho: false
+    }, ...l]);
+    setTxt("");
+  };
+  const toggle = id => setLista(l => l.map(x => x.id === id ? {
+    ...x,
+    hecho: !x.hecho
+  } : x));
+  const borrar = id => setLista(l => l.filter(x => x.id !== id));
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83C\uDF24\uFE0F Activaci\xF3n conductual (para el \xE1nimo bajo)"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Cuando hay des\xE1nimo, la energ\xEDa llega DESPU\xC9S de actuar, no antes. Agenda cada d\xEDa una actividad agradable y una necesaria, aunque sean peque\xF1as."), React.createElement("div", {
+    className: "flex gap-2"
+  }, React.createElement("input", {
+    type: "text",
+    value: txt,
+    onChange: e => setTxt(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") add();
+    },
+    placeholder: "Ej.: salir a caminar 10 min",
+    className: "flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), React.createElement("select", {
+    value: tipo,
+    onChange: e => setTipo(e.target.value),
+    className: "rounded-xl border border-slate-300 px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }, React.createElement("option", {
+    value: "agradable"
+  }, "Agradable"), React.createElement("option", {
+    value: "necesaria"
+  }, "Necesaria")), React.createElement("button", {
+    onClick: add,
+    className: "bg-emerald-700 text-white rounded-xl px-3 hover:bg-emerald-800"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }))), lista.length > 0 && React.createElement("div", {
+    className: "mt-3 space-y-1.5"
+  }, lista.map(a => React.createElement("div", {
+    key: a.id,
+    className: "flex items-center gap-2"
+  }, React.createElement("button", {
+    onClick: () => toggle(a.id),
+    className: "shrink-0"
+  }, a.hecho ? React.createElement(ICheckCircle, {
+    cls: "w-5 h-5 text-emerald-600"
+  }) : React.createElement(ICircle, {
+    cls: "w-5 h-5 text-slate-300"
+  })), React.createElement("span", {
+    className: "flex-1 text-sm " + (a.hecho ? "line-through text-slate-400" : "text-slate-700")
+  }, a.texto), React.createElement("span", {
+    className: "text-[11px] rounded-full px-2 py-0.5 " + (a.tipo === "agradable" ? "bg-sky-50 text-sky-700" : "bg-amber-50 text-amber-700")
+  }, a.tipo), React.createElement("button", {
+    onClick: () => borrar(a.id),
+    className: "text-slate-300 hover:text-red-500"
+  }, React.createElement(ITrash, {
+    cls: "w-3.5 h-3.5"
+  }))))));
+}
+const SUENO_TIPS = ["Acuéstate y levántate a la misma hora, también en fin de semana.", "Apaga pantallas 30-60 min antes de dormir.", "Evita cafeína después del mediodía.", "Deja la cama solo para dormir (no para trabajar o ver el teléfono).", "Cuarto oscuro, fresco y en silencio.", "Si no puedes dormir en 20 min, levántate y haz algo tranquilo con poca luz.", "Evita comidas pesadas y alcohol antes de acostarte.", "Toma sol en el día: ayuda a tu reloj interno."];
+function HigieneSueno() {
+  const [chk, setChk] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-sueno-v1")) || {};
+    } catch (e) {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-sueno-v1", JSON.stringify(chk));
+    } catch (e) {}
+  }, [chk]);
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, React.createElement(IMoon, {
+    cls: "w-5 h-5 text-indigo-500"
+  }), " Higiene del sue\xF1o"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Dormir bien es la base del \xE1nimo y la calma. Marca los h\xE1bitos que ya cumples y trabaja los dem\xE1s."), React.createElement("div", {
+    className: "space-y-1.5"
+  }, SUENO_TIPS.map((t, i) => React.createElement("button", {
+    key: i,
+    onClick: () => setChk(c => ({
+      ...c,
+      [i]: !c[i]
+    })),
+    className: "w-full flex items-start gap-2 text-left"
+  }, chk[i] ? React.createElement(ICheckCircle, {
+    cls: "w-5 h-5 text-emerald-600 shrink-0"
+  }) : React.createElement(ICircle, {
+    cls: "w-5 h-5 text-slate-300 shrink-0"
+  }), React.createElement("span", {
+    className: "text-sm " + (chk[i] ? "text-slate-400 line-through" : "text-slate-700")
+  }, t)))));
+}
+function TresCosasBuenas({
+  avisar
+}) {
+  const [hist, setHist] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-gratitud-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [t, setT] = useState(["", "", ""]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-gratitud-v1", JSON.stringify(hist));
+    } catch (e) {}
+  }, [hist]);
+  const guardar = () => {
+    const cosas = t.map(x => x.trim()).filter(Boolean);
+    if (!cosas.length) {
+      avisar("Escribe al menos una cosa buena 🙂");
+      return;
+    }
+    setHist(h => [{
+      id: Date.now(),
+      fecha: hoyISO(),
+      cosas
+    }, ...h]);
+    setT(["", "", ""]);
+    avisar("Guardado ✨");
+  };
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\u2728 Tres cosas buenas del d\xEDa"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Ejercicio de psicolog\xEDa positiva: anotar lo bueno, por peque\xF1o que sea, entrena a tu mente a notarlo y mejora el \xE1nimo con el tiempo."), [0, 1, 2].map(i => React.createElement("input", {
+    key: i,
+    type: "text",
+    value: t[i],
+    onChange: e => setT(v => {
+      const n = [...v];
+      n[i] = e.target.value;
+      return n;
+    }),
+    placeholder: i + 1 + ". Algo bueno de hoy…",
+    className: "w-full mb-2 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("button", {
+    onClick: guardar,
+    className: "w-full bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800"
+  }, "Guardar el d\xEDa"), hist.length > 0 && React.createElement("div", {
+    className: "mt-3 space-y-2"
+  }, hist.slice(0, 10).map(r => React.createElement("div", {
+    key: r.id,
+    className: "text-sm border border-slate-100 rounded-xl p-2.5"
+  }, React.createElement("div", {
+    className: "text-xs text-slate-400 mb-1"
+  }, r.fecha), React.createElement("ul", {
+    className: "space-y-0.5"
+  }, r.cosas.map((c, i) => React.createElement("li", {
+    key: i,
+    className: "text-slate-700 flex gap-2"
+  }, React.createElement("span", {
+    className: "text-emerald-500"
+  }, "\u2713"), c)))))));
+}
+function TIPP() {
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, React.createElement(IZap, {
+    cls: "w-5 h-5 text-amber-500"
+  }), " TIPP \xB7 para emoci\xF3n muy intensa"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "T\xE9cnica de terapia dial\xE9ctico-conductual (DBT) para bajar una crisis emocional fuerte en minutos. Cambia tu qu\xEDmica corporal r\xE1pido."), React.createElement("div", {
+    className: "space-y-2 text-sm"
+  }, React.createElement("div", {
+    className: "rounded-xl border border-sky-100 bg-sky-50/60 p-3"
+  }, React.createElement("b", {
+    className: "text-sky-800"
+  }, "T \xB7 Temperatura"), React.createElement("div", {
+    className: "text-slate-600 text-xs mt-0.5"
+  }, "Moja tu cara con agua fr\xEDa o sost\xE9n algo fr\xEDo 30-60 seg. Baja la activaci\xF3n de golpe.")), React.createElement("div", {
+    className: "rounded-xl border border-emerald-100 bg-emerald-50/60 p-3"
+  }, React.createElement("b", {
+    className: "text-emerald-800"
+  }, "I \xB7 Ejercicio Intenso"), React.createElement("div", {
+    className: "text-slate-600 text-xs mt-0.5"
+  }, "Mueve el cuerpo fuerte 3-5 min (saltar, caminar r\xE1pido). Quema la adrenalina.")), React.createElement("div", {
+    className: "rounded-xl border border-indigo-100 bg-indigo-50/60 p-3"
+  }, React.createElement("b", {
+    className: "text-indigo-800"
+  }, "P \xB7 Respiraci\xF3n Pausada"), React.createElement("div", {
+    className: "text-slate-600 text-xs mt-0.5"
+  }, "Exhala m\xE1s largo que inhalas (ej. inhala 4, exhala 6-8).")), React.createElement("div", {
+    className: "rounded-xl border border-rose-100 bg-rose-50/60 p-3"
+  }, React.createElement("b", {
+    className: "text-rose-800"
+  }, "P \xB7 Relajaci\xF3n muscular Progresiva"), React.createElement("div", {
+    className: "text-slate-600 text-xs mt-0.5"
+  }, "Tensa y suelta grupos de m\xFAsculos, de pies a cabeza."))));
+}
+function RelajacionMuscular() {
+  const [open, setOpen] = useState(false);
+  const pasos = ["Pies y pantorrillas", "Muslos y glúteos", "Abdomen", "Manos y brazos", "Hombros y cuello", "Cara y frente"];
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("button", {
+    onClick: () => setOpen(!open),
+    className: "w-full flex items-center justify-between"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDCAA Relajaci\xF3n muscular progresiva"), React.createElement(IChevD, {
+    cls: "w-4 h-4 text-slate-400 transition-transform " + (open ? "rotate-180" : "")
+  })), open && React.createElement("div", {
+    className: "mt-3 text-sm text-slate-700"
+  }, React.createElement("p", {
+    className: "text-xs text-slate-500 mb-2"
+  }, "Para cada grupo: ", React.createElement("b", null, "tensa"), " los m\xFAsculos 5 segundos y luego ", React.createElement("b", null, "suelta"), " 10 segundos, notando la diferencia. Ve de abajo hacia arriba:"), React.createElement("ol", {
+    className: "space-y-1"
+  }, pasos.map((p, i) => React.createElement("li", {
+    key: i,
+    className: "flex gap-2"
+  }, React.createElement("span", {
+    className: "text-emerald-600 font-bold"
+  }, i + 1, "."), p))), React.createElement("p", {
+    className: "text-xs text-slate-400 mt-2"
+  }, "Termina con 3 respiraciones lentas. Ideal antes de dormir o tras un momento de estr\xE9s.")));
+}
+function Autocompasion() {
+  const [open, setOpen] = useState(false);
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("button", {
+    onClick: () => setOpen(!open),
+    className: "w-full flex items-center justify-between"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83E\uDD0D Autocompasi\xF3n (calmar al cr\xEDtico interno)"), React.createElement(IChevD, {
+    cls: "w-4 h-4 text-slate-400 transition-transform " + (open ? "rotate-180" : "")
+  })), open && React.createElement("div", {
+    className: "mt-3 text-sm text-slate-700 space-y-2"
+  }, React.createElement("p", null, "Cuando te hablas con dureza, el malestar crece. Tr\xE1tate como tratar\xEDas a un buen amigo. Tres pasos (Kristin Neff):"), React.createElement("div", {
+    className: "rounded-xl border border-slate-100 p-3"
+  }, React.createElement("b", {
+    className: "text-slate-800"
+  }, "1. Date cuenta"), React.createElement("div", {
+    className: "text-xs text-slate-600 mt-0.5"
+  }, "Recon\xF3celo: \xABesto es un momento dif\xEDcil\xBB. Nombra el dolor sin pelear con \xE9l.")), React.createElement("div", {
+    className: "rounded-xl border border-slate-100 p-3"
+  }, React.createElement("b", {
+    className: "text-slate-800"
+  }, "2. No est\xE1s solo"), React.createElement("div", {
+    className: "text-xs text-slate-600 mt-0.5"
+  }, "El sufrimiento es parte de ser humano; a todos nos pasa.")), React.createElement("div", {
+    className: "rounded-xl border border-slate-100 p-3"
+  }, React.createElement("b", {
+    className: "text-slate-800"
+  }, "3. Date amabilidad"), React.createElement("div", {
+    className: "text-xs text-slate-600 mt-0.5"
+  }, "Pon una mano en el pecho y date una frase amable: \xABpuedo ser paciente conmigo\xBB."))));
+}
 function Bienestar({
   avisar
 }) {
+  const [vista, setVista] = useState("calma");
   const [abierto, setAbierto] = useState(null);
   const [plan, setPlan] = useState(() => {
     try {
@@ -6592,7 +7238,13 @@ function Bienestar({
   }, "\uD83D\uDCDE L\xEDnea de la Vida 800 911 2000"), React.createElement("a", {
     href: "tel:5552598121",
     className: "text-sm font-semibold bg-white text-rose-700 border border-rose-200 rounded-xl px-3 py-2"
-  }, "\uD83D\uDCDE SAPTEL 55 5259 8121"))), React.createElement(RespiracionGuiada, null), React.createElement("div", {
+  }, "\uD83D\uDCDE SAPTEL 55 5259 8121"))), React.createElement("div", {
+    className: "flex gap-1.5 overflow-x-auto pb-1"
+  }, [["calma", "🧘 Calma ahora"], ["estrategias", "🧭 Estrategias"], ["herramientas", "🛠️ Herramientas"], ["registro", "📆 Registro"]].map(o => React.createElement("button", {
+    key: o[0],
+    onClick: () => setVista(o[0]),
+    className: "px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border " + (vista === o[0] ? "bg-emerald-700 text-white border-emerald-700" : "bg-white text-slate-600 border-slate-200")
+  }, o[1]))), vista === "calma" && React.createElement(React.Fragment, null, React.createElement(RespiracionGuiada, null), React.createElement(TIPP, null), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
@@ -6610,7 +7262,7 @@ function Bienestar({
     className: "text-emerald-700"
   }, "2"), " cosas que puedes ", React.createElement("b", null, "oler")), React.createElement("li", null, React.createElement("b", {
     className: "text-emerald-700"
-  }, "1"), " cosa que puedes ", React.createElement("b", null, "saborear")))), React.createElement("div", {
+  }, "1"), " cosa que puedes ", React.createElement("b", null, "saborear")))), React.createElement(RelajacionMuscular, null)), vista === "estrategias" && React.createElement(React.Fragment, null, React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
@@ -6712,7 +7364,13 @@ function Bienestar({
     })),
     placeholder: "Ej.: esto es temporal y puedo con ello",
     className: "w-full mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-  })))), React.createElement("div", {
+  }))))), vista === "herramientas" && React.createElement(React.Fragment, null, React.createElement(RegistroPensamientos, {
+    avisar: avisar
+  }), React.createElement(Distorsiones, null), React.createElement(ActivacionConductual, {
+    avisar: avisar
+  }), React.createElement(HigieneSueno, null), React.createElement(Autocompasion, null), React.createElement(TresCosasBuenas, {
+    avisar: avisar
+  })), vista === "registro" && React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
@@ -6814,7 +7472,9 @@ function Bienestar({
   })))));
 }
 function Saludable({
-  avisar
+  avisar,
+  data,
+  onIrSalud
 }) {
   const [open, setOpen] = useState(null);
   const toggle = id => setOpen(open === id ? null : id);
@@ -6824,6 +7484,8 @@ function Saludable({
       localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
     } catch (e) {}
   }, [plan]);
+  const sexoPerfil = data && data.perfil && data.perfil.sexo || "";
+  const estaturaPerfil = data && data.perfil && data.perfil.estatura || "";
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", {
@@ -6852,7 +7514,10 @@ function Saludable({
     className: "text-xl"
   }, "\uD83D\uDCA7"), React.createElement("div", {
     className: "text-[11px] font-semibold mt-1"
-  }, "3) Agua simple (6\u20138 vasos)")))), React.createElement(CalcNutricion, null), React.createElement(PlanDiagnostico, null), React.createElement(Nutriologa, null), React.createElement(MiPlanRaciones, {
+  }, "3) Agua simple (6\u20138 vasos)")))), React.createElement(CalcNutricion, {
+    data: data,
+    onIrSalud: onIrSalud
+  }), React.createElement(PlanDiagnostico, null), React.createElement(DiagnosticosClinicos, null), React.createElement(Nutriologa, null), React.createElement(MiPlanRaciones, {
     plan: plan,
     setPlan: setPlan,
     avisar: avisar
@@ -6860,7 +7525,9 @@ function Saludable({
     plan: plan,
     avisar: avisar
   }), React.createElement(MacronutrientesTabla, null), React.createElement(SeguimientoLogros, {
-    avisar: avisar
+    avisar: avisar,
+    sexoPerfil: sexoPerfil,
+    estaturaPerfil: estaturaPerfil
   }), React.createElement(RecomendacionesNutri, null), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
