@@ -620,6 +620,10 @@ function MediControl() {
     label: "Saludable",
     Icon: ILeaf
   }, {
+    id: "bienestar",
+    label: "Bienestar",
+    Icon: IHeart
+  }, {
     id: "reporte",
     label: "Reporte",
     Icon: IChart
@@ -760,6 +764,8 @@ function MediControl() {
     avisar: avisar,
     hoy: hoy
   }), tab === "saludable" && React.createElement(Saludable, {
+    avisar: avisar
+  }), tab === "bienestar" && React.createElement(Bienestar, {
     avisar: avisar
   }), tab === "reporte" && React.createElement(React.Fragment, null, React.createElement(Reporte, {
     data: data,
@@ -5687,6 +5693,40 @@ const cargarPlan = () => {
   return JSON.parse(JSON.stringify(PLAN_EJEMPLO));
 };
 const totalDiaGrupo = (plan, g) => MEALS.reduce((a, m) => a + (Number(plan[g] && plan[g][m.id]) || 0), 0);
+const hoyISO = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+const clasifIMC = imc => {
+  if (!imc || imc <= 0) return {
+    txt: "—",
+    color: "text-slate-400"
+  };
+  if (imc < 18.5) return {
+    txt: "Bajo peso",
+    color: "text-sky-600"
+  };
+  if (imc < 25) return {
+    txt: "Peso saludable",
+    color: "text-emerald-600"
+  };
+  if (imc < 30) return {
+    txt: "Sobrepeso",
+    color: "text-amber-600"
+  };
+  if (imc < 35) return {
+    txt: "Obesidad I",
+    color: "text-orange-600"
+  };
+  if (imc < 40) return {
+    txt: "Obesidad II",
+    color: "text-red-600"
+  };
+  return {
+    txt: "Obesidad III",
+    color: "text-red-700"
+  };
+};
 function MiPlanRaciones({
   plan,
   setPlan,
@@ -5770,10 +5810,7 @@ function ControlDiarioRaciones({
   plan,
   avisar
 }) {
-  const hoyStr = () => {
-    const d = new Date();
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  };
+  const hoyStr = hoyISO;
   const [fecha, setFecha] = useState(hoyStr);
   const [sel, setSel] = useState({});
   const [data, setData] = useState(() => {
@@ -5806,9 +5843,9 @@ function ControlDiarioRaciones({
     }));
     avisar("Día reiniciado ↺");
   };
-  const gruposPlan = GRUPOS_ORDEN.filter(g => totalDiaGrupo(plan, g) > 0);
-  const totTarget = gruposPlan.reduce((a, g) => a + totalDiaGrupo(plan, g), 0);
-  const totDone = gruposPlan.reduce((a, g) => a + Math.min(Number(dia[g]) || 0, totalDiaGrupo(plan, g)), 0);
+  const conMeta = GRUPOS_ORDEN.filter(g => totalDiaGrupo(plan, g) > 0);
+  const totTarget = conMeta.reduce((a, g) => a + totalDiaGrupo(plan, g), 0);
+  const totDone = conMeta.reduce((a, g) => a + Math.min(Number(dia[g]) || 0, totalDiaGrupo(plan, g)), 0);
   const pctDia = totTarget ? Math.round(totDone / totTarget * 100) : 0;
   const fechaTxt = (() => {
     try {
@@ -5840,11 +5877,11 @@ function ControlDiarioRaciones({
     className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5"
   }, "Hoy"), React.createElement("span", {
     className: "text-xs text-slate-500 capitalize"
-  }, fechaTxt)), gruposPlan.length === 0 ? React.createElement("div", {
+  }, fechaTxt)), totTarget === 0 && React.createElement("div", {
     className: "mt-4 text-sm bg-amber-50 border border-amber-100 text-amber-800 rounded-xl px-3 py-2.5 flex items-center gap-2"
   }, React.createElement(IWarn, {
     cls: "w-4 h-4 shrink-0"
-  }), " Primero escribe tu plan de raciones arriba para poder llevar el control del d\xEDa.") : React.createElement(React.Fragment, null, React.createElement("div", {
+  }), " Escribe tu plan de raciones arriba para ver tu meta diaria. Mientras, puedes ir registrando lo que comes de cada grupo."), totTarget > 0 && React.createElement("div", {
     className: "mt-4 mb-3"
   }, React.createElement("div", {
     className: "flex items-center justify-between text-xs mb-1"
@@ -5860,12 +5897,12 @@ function ControlDiarioRaciones({
       width: pctDia + "%"
     }
   }))), React.createElement("div", {
-    className: "space-y-2.5"
-  }, gruposPlan.map(g => {
+    className: "space-y-2.5 mt-4"
+  }, GRUPOS_ORDEN.map(g => {
     const target = totalDiaGrupo(plan, g);
     const done = Number(dia[g]) || 0;
     const pct = target ? Math.min(100, Math.round(done / target * 100)) : 0;
-    const completo = done >= target;
+    const completo = target > 0 && done >= target;
     const idx = sel[g];
     const item = idx != null ? ALIMENTOS[g][idx] : null;
     return React.createElement("div", {
@@ -5885,19 +5922,21 @@ function ControlDiarioRaciones({
     }, done, " / ", target), React.createElement("button", {
       onClick: () => add(g, 1),
       className: "w-7 h-7 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center hover:bg-emerald-700"
-    }, "+"))), React.createElement("div", {
+    }, "+"))), target > 0 ? React.createElement("div", {
       className: "h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2"
     }, React.createElement("div", {
       className: "h-full rounded-full " + (completo ? "bg-emerald-500" : "bg-emerald-400"),
       style: {
         width: pct + "%"
       }
-    })), React.createElement("select", {
+    })) : React.createElement("div", {
+      className: "text-[11px] text-slate-400 mt-1"
+    }, "Sin meta en tu plan \xB7 registro libre"), React.createElement("select", {
       className: "w-full mt-2 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white",
       value: idx != null ? idx : "",
       onChange: e => setSel(s => ({
         ...s,
-        [g]: Number(e.target.value)
+        [g]: e.target.value === "" ? null : Number(e.target.value)
       }))
     }, React.createElement("option", {
       value: ""
@@ -5912,7 +5951,7 @@ function ControlDiarioRaciones({
   }, React.createElement("button", {
     onClick: reiniciar,
     className: "text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-100"
-  }, "\u21BA Reiniciar este d\xEDa"))));
+  }, "\u21BA Reiniciar este d\xEDa")));
 }
 function Nutriologa() {
   const [n, setN] = useState(() => {
@@ -6003,6 +6042,777 @@ function Nutriologa() {
     className: "text-xs text-slate-400 mt-2"
   }, "Agrega el nombre y tel\xE9fono de tu nutri\xF3loga para tenerlos a la mano y poder llamarle o escribirle por WhatsApp."));
 }
+function MacronutrientesTabla() {
+  const [m, setM] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-macros-v1")) || {
+        hc: 50,
+        prot: 20,
+        lip: 30,
+        kcal: 1500
+      };
+    } catch (e) {
+      return {
+        hc: 50,
+        prot: 20,
+        lip: 30,
+        kcal: 1500
+      };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-macros-v1", JSON.stringify(m));
+    } catch (e) {}
+  }, [m]);
+  const num = v => {
+    let n = parseFloat(v);
+    if (isNaN(n) || n < 0) n = 0;
+    return n;
+  };
+  const set = (k, v) => setM(p => ({
+    ...p,
+    [k]: v === "" ? "" : num(v)
+  }));
+  const suma = Math.round(num(m.hc) + num(m.prot) + num(m.lip));
+  const gramos = (pct, kcalG) => Math.round(num(m.kcal) * num(pct) / 100 / kcalG);
+  const filas = [{
+    k: "hc",
+    label: "Hidratos de carbono",
+    emoji: "🍞",
+    kcalG: 4
+  }, {
+    k: "prot",
+    label: "Proteínas",
+    emoji: "🍗",
+    kcalG: 4
+  }, {
+    k: "lip",
+    label: "Lípidos (grasas)",
+    emoji: "🥑",
+    kcalG: 9
+  }];
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83E\uDD57 Distribuci\xF3n de macronutrientes"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Escribe los porcentajes que te indic\xF3 tu nutri\xF3loga y las calor\xEDas del d\xEDa. La app calcula los gramos de cada nutriente."), React.createElement("div", {
+    className: "flex items-center gap-2 mb-3"
+  }, React.createElement("label", {
+    className: "text-sm text-slate-600"
+  }, "Calor\xEDas del d\xEDa:"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    inputMode: "numeric",
+    value: m.kcal,
+    onChange: e => set("kcal", e.target.value),
+    className: "w-24 rounded-xl border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), React.createElement("span", {
+    className: "text-sm text-slate-500"
+  }, "kcal")), React.createElement("div", {
+    className: "space-y-2"
+  }, filas.map(f => React.createElement("div", {
+    key: f.k,
+    className: "flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2"
+  }, React.createElement("span", {
+    className: "text-sm font-semibold text-slate-800 flex-1"
+  }, f.emoji, " ", f.label), React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "100",
+    inputMode: "numeric",
+    value: m[f.k],
+    onChange: e => set(f.k, e.target.value),
+    className: "w-16 text-center rounded-lg border border-slate-200 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), React.createElement("span", {
+    className: "text-sm text-slate-500 w-4"
+  }, "%"), React.createElement("span", {
+    className: "text-sm font-bold text-emerald-700 tabular-nums w-16 text-right"
+  }, gramos(m[f.k], f.kcalG), " g")))), React.createElement("div", {
+    className: "mt-3 text-xs font-semibold rounded-lg px-3 py-2 " + (suma === 100 ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-amber-50 text-amber-800 border border-amber-100")
+  }, suma === 100 ? "✓ Suma 100%" : "Suma " + suma + "% — lo recomendado es que los tres porcentajes sumen 100%"));
+}
+function SeguimientoLogros({
+  avisar
+}) {
+  const [hist, setHist] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-seguimiento-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [f, setF] = useState({
+    fecha: hoyISO(),
+    peso: "",
+    estatura: "",
+    cintura: "",
+    grasa: ""
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-seguimiento-v1", JSON.stringify(hist));
+    } catch (e) {}
+  }, [hist]);
+  const agregar = () => {
+    const peso = parseFloat(f.peso),
+      est = parseFloat(f.estatura);
+    if (!peso) {
+      avisar("Escribe al menos tu peso ⚖️");
+      return;
+    }
+    const imc = peso && est ? +(peso / (est * est)).toFixed(1) : 0;
+    const reg = {
+      id: Date.now(),
+      fecha: f.fecha || hoyISO(),
+      peso,
+      estatura: est || 0,
+      imc,
+      cintura: parseFloat(f.cintura) || 0,
+      grasa: parseFloat(f.grasa) || 0
+    };
+    setHist(h => [reg, ...h].sort((a, b) => a.fecha < b.fecha ? 1 : -1));
+    setF(v => ({
+      ...v,
+      peso: "",
+      cintura: "",
+      grasa: ""
+    }));
+    avisar("Registro guardado 📈");
+  };
+  const borrar = id => setHist(h => h.filter(r => r.id !== id));
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDCC8 Seguimiento de tus logros"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Registra tu avance cada cierto tiempo para ver c\xF3mo cambias. Se calcula tu IMC autom\xE1ticamente. Se guarda en este tel\xE9fono."), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Fecha", React.createElement("input", {
+    type: "date",
+    value: f.fecha,
+    max: hoyISO(),
+    onChange: e => setF(v => ({
+      ...v,
+      fecha: e.target.value
+    })),
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Peso (kg)", React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    value: f.peso,
+    onChange: e => setF(v => ({
+      ...v,
+      peso: e.target.value
+    })),
+    placeholder: "Ej. 71.3",
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Estatura (m)", React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    value: f.estatura,
+    onChange: e => setF(v => ({
+      ...v,
+      estatura: e.target.value
+    })),
+    placeholder: "Ej. 1.66",
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Cintura (cm)", React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    value: f.cintura,
+    onChange: e => setF(v => ({
+      ...v,
+      cintura: e.target.value
+    })),
+    placeholder: "Opcional",
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "% de grasa corporal", React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    value: f.grasa,
+    onChange: e => setF(v => ({
+      ...v,
+      grasa: e.target.value
+    })),
+    placeholder: "Opcional",
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }))), React.createElement("button", {
+    onClick: agregar,
+    className: "w-full mt-3 bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800 flex items-center justify-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " Guardar registro"), hist.length > 0 && React.createElement("div", {
+    className: "mt-4 overflow-x-auto -mx-1 px-1"
+  }, React.createElement("table", {
+    className: "w-full text-xs border-collapse"
+  }, React.createElement("thead", null, React.createElement("tr", {
+    className: "text-slate-500 border-b border-slate-200"
+  }, React.createElement("th", {
+    className: "text-left px-2 py-1.5 font-semibold"
+  }, "Fecha"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-center"
+  }, "Peso"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-center"
+  }, "IMC"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-left"
+  }, "Estado"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-center"
+  }, "Cintura"), React.createElement("th", {
+    className: "px-2 py-1.5 font-semibold text-center"
+  }, "% grasa"), React.createElement("th", null))), React.createElement("tbody", null, hist.map((r, i) => {
+    const c = clasifIMC(r.imc);
+    const prev = hist[i + 1];
+    const delta = prev ? +(r.peso - prev.peso).toFixed(1) : 0;
+    return React.createElement("tr", {
+      key: r.id,
+      className: "border-b border-slate-100"
+    }, React.createElement("td", {
+      className: "px-2 py-1.5 whitespace-nowrap text-slate-600"
+    }, r.fecha), React.createElement("td", {
+      className: "px-2 py-1.5 text-center font-semibold text-slate-800 whitespace-nowrap"
+    }, r.peso, " kg ", delta !== 0 && React.createElement("span", {
+      className: delta < 0 ? "text-emerald-600" : "text-amber-600"
+    }, delta < 0 ? "▼" : "▲", Math.abs(delta))), React.createElement("td", {
+      className: "px-2 py-1.5 text-center"
+    }, r.imc || "—"), React.createElement("td", {
+      className: "px-2 py-1.5 whitespace-nowrap font-semibold " + c.color
+    }, r.imc ? c.txt : "—"), React.createElement("td", {
+      className: "px-2 py-1.5 text-center text-slate-600"
+    }, r.cintura ? r.cintura + " cm" : "—"), React.createElement("td", {
+      className: "px-2 py-1.5 text-center text-slate-600"
+    }, r.grasa ? r.grasa + "%" : "—"), React.createElement("td", {
+      className: "px-1 py-1.5 text-center"
+    }, React.createElement("button", {
+      onClick: () => borrar(r.id),
+      className: "text-slate-300 hover:text-red-500"
+    }, React.createElement(ITrash, {
+      cls: "w-3.5 h-3.5"
+    }))));
+  })))));
+}
+const RECS_NUTRI = ["Toma de 6 a 8 vasos de agua simple a lo largo del día.", "Establece y cumple los horarios para cada comida.", "Consume verduras y frutas de temporada.", "Elige carnes blancas sin grasa, como pollo sin piel, o carne roja con menos grasa (filete de res, bistec de aguayón o bola y carne molida de pulpa).", "Al elegir pescado fresco, verifica que la carne esté firme, las escamas bien adheridas, las agallas de color rojo y los ojos brillantes, no opacos.", "Toma leche y yogur descremados y sin azúcar.", "Elige queso blanco bajo en grasa (panela, requesón o cottage).", "Prefiere grasas saludables como el aguacate y semillas oleaginosas (cacahuate, almendra, nuez).", "Usa aceite de maíz, canola o cártamo para cocinar, y aceite de oliva para ensaladas.", "Usa hierbas aromáticas al preparar los alimentos y reduce el consumo de sal.", "Realiza al menos 30 minutos de actividad física al día; auméntalo poco a poco hasta llegar a 60 minutos diarios."];
+const RECS_CUIDADO = ["Evita los productos ultraprocesados, sobre todo los que tienen más de un sello de advertencia.", "No agregues azúcar al agua de fruta, pues ya la contiene de forma natural.", "Evita alimentos de la calle o preparaciones capeadas, fritas o empanizadas.", "Evita refrescos, jugos, bebidas alcohólicas, bebidas de leche con café (moka, capuchino o frapé) y las que tienen exceso de azúcar y grasa (licuados y batidos)."];
+function RecomendacionesNutri() {
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDCCB Recomendaciones nutricionales"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Consejos del Plan de Alimentaci\xF3n NutrIMSS (IMSS)."), React.createElement("ul", {
+    className: "space-y-1.5"
+  }, RECS_NUTRI.map((t, i) => React.createElement("li", {
+    key: i,
+    className: "flex gap-2 text-sm text-slate-700"
+  }, React.createElement("span", {
+    className: "text-emerald-600 font-bold shrink-0"
+  }, "\u2713"), React.createElement("span", null, t)))), React.createElement("h4", {
+    className: "font-bold text-slate-800 mt-4 mb-2 flex items-center gap-2"
+  }, "\u26A0\uFE0F Ten cuidado con lo que comes"), React.createElement("ul", {
+    className: "space-y-1.5"
+  }, RECS_CUIDADO.map((t, i) => React.createElement("li", {
+    key: i,
+    className: "flex gap-2 text-sm text-slate-700"
+  }, React.createElement("span", {
+    className: "text-amber-500 font-bold shrink-0"
+  }, "\u2022"), React.createElement("span", null, t)))));
+}
+const TECNICAS_RESP = [{
+  id: "478",
+  nombre: "4-7-8 · relajante",
+  desc: "Inhala 4, sostén 7, exhala 8. Baja la ansiedad rápido y ayuda a dormir.",
+  fases: [["Inhala por la nariz", 4, 1], ["Sostén el aire", 7, 1], ["Exhala por la boca", 8, 0.5]]
+}, {
+  id: "caja",
+  nombre: "Caja 4-4-4-4",
+  desc: "Equilibra y enfoca. La usan bomberos y personal de emergencias.",
+  fases: [["Inhala", 4, 1], ["Sostén", 4, 1], ["Exhala", 4, 0.5], ["Sostén", 4, 0.5]]
+}, {
+  id: "diaf",
+  nombre: "Diafragmática 4-6",
+  desc: "Exhalación larga: activa la calma natural del cuerpo.",
+  fases: [["Inhala con el abdomen", 4, 1], ["Exhala despacio", 6, 0.5]]
+}];
+function RespiracionGuiada() {
+  const [tecId, setTecId] = useState("478");
+  const [run, setRun] = useState(false);
+  const [fi, setFi] = useState(0);
+  const [left, setLeft] = useState(0);
+  const [ciclos, setCiclos] = useState(0);
+  const tec = TECNICAS_RESP.find(t => t.id === tecId);
+  const iv = React.useRef(null);
+  useEffect(() => {
+    if (!run) {
+      if (iv.current) clearInterval(iv.current);
+      return;
+    }
+    let fase = 0,
+      seg = tec.fases[0][1];
+    setFi(0);
+    setLeft(seg);
+    iv.current = setInterval(() => {
+      seg -= 1;
+      if (seg <= 0) {
+        fase = (fase + 1) % tec.fases.length;
+        if (fase === 0) setCiclos(c => c + 1);
+        seg = tec.fases[fase][1];
+        setFi(fase);
+      }
+      setLeft(seg);
+    }, 1000);
+    return () => clearInterval(iv.current);
+  }, [run, tecId]);
+  const toggle = () => {
+    if (run) {
+      setRun(false);
+    } else {
+      setCiclos(0);
+      setRun(true);
+    }
+  };
+  const fase = tec.fases[fi] || tec.fases[0];
+  const escala = run ? fase[2] : 0.72;
+  const dur = run ? fase[1] : 0.4;
+  return React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, React.createElement(IWind, {
+    cls: "w-5 h-5 text-sky-600"
+  }), " Respiraci\xF3n guiada \xB7 Calma ahora"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Elige una t\xE9cnica y sigue el c\xEDrculo con tu respiraci\xF3n. Con 3 a 4 ciclos suele bajar la activaci\xF3n."), React.createElement("div", {
+    className: "flex gap-1.5 flex-wrap mb-3"
+  }, TECNICAS_RESP.map(t => React.createElement("button", {
+    key: t.id,
+    onClick: () => {
+      setRun(false);
+      setTecId(t.id);
+    },
+    className: "text-xs font-semibold rounded-full px-3 py-1.5 border " + (tecId === t.id ? "bg-sky-600 text-white border-sky-600" : "bg-white text-slate-600 border-slate-200")
+  }, t.nombre))), React.createElement("p", {
+    className: "text-xs text-slate-500 mb-3"
+  }, tec.desc), React.createElement("div", {
+    className: "flex flex-col items-center justify-center py-4"
+  }, React.createElement("div", {
+    className: "relative w-52 h-52 flex items-center justify-center"
+  }, React.createElement("div", {
+    className: "absolute w-52 h-52 rounded-full bg-sky-100"
+  }), React.createElement("div", {
+    className: "absolute rounded-full bg-sky-400/40 w-52 h-52",
+    style: {
+      transform: "scale(" + escala + ")",
+      transition: "transform " + dur + "s ease-in-out"
+    }
+  }), React.createElement("div", {
+    className: "absolute rounded-full bg-sky-500/50 w-28 h-28",
+    style: {
+      transform: "scale(" + escala + ")",
+      transition: "transform " + dur + "s ease-in-out"
+    }
+  }), React.createElement("div", {
+    className: "relative text-center"
+  }, React.createElement("div", {
+    className: "text-base font-bold text-sky-900"
+  }, run ? fase[0] : "Listo"), run && React.createElement("div", {
+    className: "text-3xl font-black text-sky-900 tabular-nums"
+  }, left))), React.createElement("div", {
+    className: "text-xs text-slate-500 mt-2"
+  }, "Ciclos completados: ", React.createElement("b", {
+    className: "text-slate-700"
+  }, ciclos)), React.createElement("button", {
+    onClick: toggle,
+    className: "mt-3 text-sm font-semibold rounded-full px-6 py-2.5 " + (run ? "bg-slate-100 text-slate-700 border border-slate-200" : "bg-sky-600 text-white hover:bg-sky-700")
+  }, run ? "Detener" : "▶ Empezar")));
+}
+const ESTRATEGIAS = [{
+  id: "ansiedad",
+  emoji: "😰",
+  titulo: "Ansiedad",
+  senales: ["Corazón acelerado, respiración corta", "Sensación de que algo malo va a pasar", "Tensión, sudoración, inquietud"],
+  hacer: ["Haz respiración 4-7-8 dos o tres veces", "Usa el anclaje 5-4-3-2-1", "Nómbralo: \"esto es ansiedad y va a pasar\"", "Mueve el cuerpo o camina unos minutos", "Baja la cafeína y el tiempo de pantalla"],
+  evitar: ["Evitar todo lo que te da miedo (la hace crecer)", "Buscar tus síntomas en internet"]
+}, {
+  id: "depresion",
+  emoji: "🌧️",
+  titulo: "Depresión / bajón de ánimo",
+  senales: ["Tristeza o vacío la mayor parte del día", "Poca energía, dormir de más o de menos", "Perder interés en lo que te gustaba"],
+  hacer: ["Ponte una meta muy pequeña y cúmplela", "Sal a que te dé la luz del sol 10-15 min", "Muévete aunque sea poco", "Habla con alguien de confianza", "Cuida tus horarios de sueño y comida"],
+  evitar: ["Aislarte por completo", "Exigirte \"estar bien ya\""]
+}, {
+  id: "estres",
+  emoji: "⚡",
+  titulo: "Estrés",
+  senales: ["Sentir que todo te rebasa", "Irritabilidad, dolor de cabeza o cuello", "Dificultad para concentrarte"],
+  hacer: ["Respiración en caja 4-4-4-4", "Separa lo que SÍ puedes controlar de lo que no", "Haz una sola cosa a la vez", "Toma pausas cortas cada 60-90 min", "Pregúntate: ¿qué es lo único importante ahora?"],
+  evitar: ["Cargarte de más tareas", "Desvelarte o usar cafeína para \"rendir más\""]
+}, {
+  id: "rumiacion",
+  emoji: "🔁",
+  titulo: "Rumiación (pensamientos en bucle)",
+  senales: ["Repasar lo mismo una y otra vez", "Preguntarte \"¿y si…?\" sin parar", "No poder soltar un pensamiento"],
+  hacer: ["Agenda un \"tiempo de preocupación\" de 10 min y déjalo ahí", "Cambia de ambiente o haz actividad física", "Anota el pensamiento para sacarlo de la cabeza", "¿Es un problema a resolver o solo preocupación?", "Vuelve a tus 5 sentidos, al aquí y ahora"],
+  evitar: ["Buscar \"la respuesta perfecta\"", "Darle vueltas en la cama antes de dormir"]
+}];
+const TIPOS_EP = [{
+  id: "ansiedad",
+  label: "Ansiedad",
+  emoji: "😰"
+}, {
+  id: "depresion",
+  label: "Depresión",
+  emoji: "🌧️"
+}, {
+  id: "estres",
+  label: "Estrés",
+  emoji: "⚡"
+}, {
+  id: "rumiacion",
+  label: "Rumiación",
+  emoji: "🔁"
+}, {
+  id: "panico",
+  label: "Crisis de pánico",
+  emoji: "💥"
+}, {
+  id: "otro",
+  label: "Otro",
+  emoji: "•"
+}];
+function Bienestar({
+  avisar
+}) {
+  const [abierto, setAbierto] = useState(null);
+  const [plan, setPlan] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-plan-bienestar-v1")) || {
+        senales: "",
+        ayuda: "",
+        apoyo: "",
+        frase: ""
+      };
+    } catch (e) {
+      return {
+        senales: "",
+        ayuda: "",
+        apoyo: "",
+        frase: ""
+      };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-plan-bienestar-v1", JSON.stringify(plan));
+    } catch (e) {}
+  }, [plan]);
+  const [eps, setEps] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-episodios-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-episodios-v1", JSON.stringify(eps));
+    } catch (e) {}
+  }, [eps]);
+  const [nuevo, setNuevo] = useState({
+    tipo: "ansiedad",
+    intensidad: 5,
+    nota: ""
+  });
+  const registrar = () => {
+    const ts = Date.now();
+    setEps(e => [{
+      id: ts,
+      ts,
+      fecha: hoyISO(),
+      tipo: nuevo.tipo,
+      intensidad: nuevo.intensidad,
+      nota: (nuevo.nota || "").trim()
+    }, ...e]);
+    setNuevo({
+      tipo: "ansiedad",
+      intensidad: 5,
+      nota: ""
+    });
+    avisar("Episodio registrado 📝");
+  };
+  const borrarEp = id => setEps(e => e.filter(x => x.id !== id));
+  const ahora = Date.now();
+  const semana = eps.filter(e => ahora - e.ts < 7 * 864e5).length;
+  const mes = eps.filter(e => {
+    const d = new Date(e.ts);
+    const n = new Date();
+    return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
+  }).length;
+  const porTipo = TIPOS_EP.map(t => ({
+    ...t,
+    n: eps.filter(e => e.tipo === t.id).length
+  })).filter(t => t.n > 0);
+  const tipoInfo = id => TIPOS_EP.find(t => t.id === id) || TIPOS_EP[5];
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-sky-700 to-emerald-700 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(IHeart, {
+    cls: "w-5 h-5"
+  }), " Bienestar emocional"), React.createElement("p", {
+    className: "text-sky-100 text-sm mt-1"
+  }, "Herramientas para calmar la ansiedad, el estr\xE9s, la rumiaci\xF3n y los bajones de \xE1nimo, y llevar un registro de c\xF3mo te sientes.")), React.createElement("div", {
+    className: "bg-rose-50 border border-rose-100 rounded-2xl p-4 text-sm text-rose-900"
+  }, React.createElement("p", {
+    className: "font-semibold flex items-center gap-2"
+  }, React.createElement(IWarn, {
+    cls: "w-4 h-4"
+  }), " Si est\xE1s en crisis o con pensamientos de hacerte da\xF1o, pide ayuda ahora."), React.createElement("p", {
+    className: "mt-1 text-rose-800"
+  }, "Esta secci\xF3n es de apoyo y no sustituye la atenci\xF3n de un profesional."), React.createElement("div", {
+    className: "flex gap-2 mt-3 flex-wrap"
+  }, React.createElement("a", {
+    href: "tel:8009112000",
+    className: "text-sm font-semibold bg-white text-rose-700 border border-rose-200 rounded-xl px-3 py-2"
+  }, "\uD83D\uDCDE L\xEDnea de la Vida 800 911 2000"), React.createElement("a", {
+    href: "tel:5552598121",
+    className: "text-sm font-semibold bg-white text-rose-700 border border-rose-200 rounded-xl px-3 py-2"
+  }, "\uD83D\uDCDE SAPTEL 55 5259 8121"))), React.createElement(RespiracionGuiada, null), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDD90\uFE0F Anclaje 5-4-3-2-1"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Cuando la mente se acelera, vuelve a tus sentidos. Ve nombrando en voz baja:"), React.createElement("ul", {
+    className: "space-y-1.5 text-sm text-slate-700"
+  }, React.createElement("li", null, React.createElement("b", {
+    className: "text-emerald-700"
+  }, "5"), " cosas que puedes ", React.createElement("b", null, "ver")), React.createElement("li", null, React.createElement("b", {
+    className: "text-emerald-700"
+  }, "4"), " cosas que puedes ", React.createElement("b", null, "tocar")), React.createElement("li", null, React.createElement("b", {
+    className: "text-emerald-700"
+  }, "3"), " cosas que puedes ", React.createElement("b", null, "o\xEDr")), React.createElement("li", null, React.createElement("b", {
+    className: "text-emerald-700"
+  }, "2"), " cosas que puedes ", React.createElement("b", null, "oler")), React.createElement("li", null, React.createElement("b", {
+    className: "text-emerald-700"
+  }, "1"), " cosa que puedes ", React.createElement("b", null, "saborear")))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83E\uDDED Qu\xE9 hacer en cada situaci\xF3n"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Toca una para ver se\xF1ales y tu plan de acci\xF3n."), React.createElement("div", {
+    className: "space-y-2"
+  }, ESTRATEGIAS.map(s => {
+    const open = abierto === s.id;
+    return React.createElement("div", {
+      key: s.id,
+      className: "border border-slate-200 rounded-xl overflow-hidden"
+    }, React.createElement("button", {
+      onClick: () => setAbierto(open ? null : s.id),
+      className: "w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
+    }, React.createElement("span", {
+      className: "text-sm font-semibold text-slate-800"
+    }, s.emoji, " ", s.titulo), React.createElement(IChevD, {
+      cls: "w-4 h-4 text-slate-400 transition-transform " + (open ? "rotate-180" : "")
+    })), open && React.createElement("div", {
+      className: "px-3 pb-3 text-sm"
+    }, React.createElement("p", {
+      className: "text-xs font-bold uppercase tracking-wide text-slate-400 mt-1"
+    }, "Se\xF1ales"), React.createElement("ul", {
+      className: "mt-1 space-y-1"
+    }, s.senales.map((t, i) => React.createElement("li", {
+      key: i,
+      className: "text-slate-600 flex gap-2"
+    }, React.createElement("span", {
+      className: "text-slate-300"
+    }, "\u2022"), t))), React.createElement("p", {
+      className: "text-xs font-bold uppercase tracking-wide text-emerald-600 mt-3"
+    }, "Qu\xE9 hacer ahora"), React.createElement("ul", {
+      className: "mt-1 space-y-1"
+    }, s.hacer.map((t, i) => React.createElement("li", {
+      key: i,
+      className: "text-slate-700 flex gap-2"
+    }, React.createElement("span", {
+      className: "text-emerald-500 font-bold"
+    }, "\u2713"), t))), React.createElement("p", {
+      className: "text-xs font-bold uppercase tracking-wide text-amber-600 mt-3"
+    }, "Mejor evita"), React.createElement("ul", {
+      className: "mt-1 space-y-1"
+    }, s.evitar.map((t, i) => React.createElement("li", {
+      key: i,
+      className: "text-slate-600 flex gap-2"
+    }, React.createElement("span", {
+      className: "text-amber-500"
+    }, "\u2715"), t)))));
+  }))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDCDD Mi plan de acci\xF3n"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Escr\xEDbelo cuando est\xE9s en calma, para tenerlo listo en un momento dif\xEDcil. Se guarda en este tel\xE9fono."), React.createElement("div", {
+    className: "space-y-3"
+  }, React.createElement("label", {
+    className: "block text-xs font-semibold text-slate-500"
+  }, "Mis se\xF1ales de alerta", React.createElement("textarea", {
+    rows: "2",
+    value: plan.senales,
+    onChange: e => setPlan(p => ({
+      ...p,
+      senales: e.target.value
+    })),
+    placeholder: "C\xF3mo noto que empiezo a estar mal\u2026",
+    className: "w-full mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "block text-xs font-semibold text-slate-500"
+  }, "Lo que a m\xED me ayuda", React.createElement("textarea", {
+    rows: "2",
+    value: plan.ayuda,
+    onChange: e => setPlan(p => ({
+      ...p,
+      ayuda: e.target.value
+    })),
+    placeholder: "Caminar, m\xFAsica, respirar, llamar a\u2026",
+    className: "w-full mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "block text-xs font-semibold text-slate-500"
+  }, "Personas de apoyo (nombre y tel\xE9fono)", React.createElement("input", {
+    type: "text",
+    value: plan.apoyo,
+    onChange: e => setPlan(p => ({
+      ...p,
+      apoyo: e.target.value
+    })),
+    placeholder: "Alguien a quien puedo recurrir",
+    className: "w-full mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })), React.createElement("label", {
+    className: "block text-xs font-semibold text-slate-500"
+  }, "Una frase que me calma", React.createElement("input", {
+    type: "text",
+    value: plan.frase,
+    onChange: e => setPlan(p => ({
+      ...p,
+      frase: e.target.value
+    })),
+    placeholder: "Ej.: esto es temporal y puedo con ello",
+    className: "w-full mt-1 rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  })))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83D\uDCC6 Registro de episodios"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Anota cu\xE1ndo se presenta algo para ver con qu\xE9 frecuencia pasa y qu\xE9 lo acompa\xF1a."), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2 mb-2"
+  }, React.createElement("select", {
+    value: nuevo.tipo,
+    onChange: e => setNuevo(n => ({
+      ...n,
+      tipo: e.target.value
+    })),
+    className: "rounded-xl border border-slate-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+  }, TIPOS_EP.map(t => React.createElement("option", {
+    key: t.id,
+    value: t.id
+  }, t.emoji, " ", t.label))), React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, React.createElement("span", {
+    className: "text-xs text-slate-500"
+  }, "Intensidad"), React.createElement("input", {
+    type: "range",
+    min: "1",
+    max: "10",
+    value: nuevo.intensidad,
+    onChange: e => setNuevo(n => ({
+      ...n,
+      intensidad: Number(e.target.value)
+    })),
+    className: "flex-1 accent-emerald-600"
+  }), React.createElement("span", {
+    className: "text-sm font-bold text-emerald-700 w-5 text-center"
+  }, nuevo.intensidad))), React.createElement("input", {
+    type: "text",
+    value: nuevo.nota,
+    onChange: e => setNuevo(n => ({
+      ...n,
+      nota: e.target.value
+    })),
+    placeholder: "\xBFQu\xE9 lo dispar\xF3? (opcional)",
+    className: "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), React.createElement("button", {
+    onClick: registrar,
+    className: "w-full mt-2 bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800 flex items-center justify-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " Registrar"), eps.length > 0 && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "grid grid-cols-3 gap-2 mt-4"
+  }, React.createElement("div", {
+    className: "bg-slate-50 rounded-xl p-2.5 text-center"
+  }, React.createElement("div", {
+    className: "text-xl font-black text-slate-800"
+  }, eps.length), React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "en total")), React.createElement("div", {
+    className: "bg-sky-50 rounded-xl p-2.5 text-center"
+  }, React.createElement("div", {
+    className: "text-xl font-black text-sky-700"
+  }, semana), React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "esta semana")), React.createElement("div", {
+    className: "bg-emerald-50 rounded-xl p-2.5 text-center"
+  }, React.createElement("div", {
+    className: "text-xl font-black text-emerald-700"
+  }, mes), React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "este mes"))), porTipo.length > 0 && React.createElement("div", {
+    className: "flex flex-wrap gap-1.5 mt-3"
+  }, porTipo.map(t => React.createElement("span", {
+    key: t.id,
+    className: "text-xs bg-slate-100 text-slate-700 rounded-full px-2.5 py-1"
+  }, t.emoji, " ", t.label, ": ", React.createElement("b", null, t.n)))), React.createElement("div", {
+    className: "mt-3 space-y-2"
+  }, eps.slice(0, 30).map(e => {
+    const ti = tipoInfo(e.tipo);
+    const col = e.intensidad >= 8 ? "bg-red-500" : e.intensidad >= 5 ? "bg-amber-500" : "bg-emerald-500";
+    return React.createElement("div", {
+      key: e.id,
+      className: "flex items-center gap-3 border border-slate-200 rounded-xl px-3 py-2"
+    }, React.createElement("div", {
+      className: "flex-1 min-w-0"
+    }, React.createElement("div", {
+      className: "text-sm font-semibold text-slate-800"
+    }, ti.emoji, " ", ti.label, " ", React.createElement("span", {
+      className: "text-xs font-normal text-slate-400"
+    }, "\xB7 ", e.fecha)), e.nota && React.createElement("div", {
+      className: "text-xs text-slate-500 truncate"
+    }, e.nota)), React.createElement("div", {
+      className: "flex items-center gap-1.5 shrink-0"
+    }, React.createElement("span", {
+      className: "text-[11px] text-white font-bold rounded-full px-2 py-0.5 " + col
+    }, e.intensidad), React.createElement("button", {
+      onClick: () => borrarEp(e.id),
+      className: "text-slate-300 hover:text-red-500"
+    }, React.createElement(ITrash, {
+      cls: "w-3.5 h-3.5"
+    }))));
+  })))));
+}
 function Saludable({
   avisar
 }) {
@@ -6049,7 +6859,9 @@ function Saludable({
   }), React.createElement(ControlDiarioRaciones, {
     plan: plan,
     avisar: avisar
-  }), React.createElement("div", {
+  }), React.createElement(MacronutrientesTabla, null), React.createElement(SeguimientoLogros, {
+    avisar: avisar
+  }), React.createElement(RecomendacionesNutri, null), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
