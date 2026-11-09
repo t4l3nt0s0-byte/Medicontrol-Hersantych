@@ -1,42 +1,36 @@
-# MediControl — versión con autoevaluación y perfil completo
+# MediControl — versión con bloqueo PIN y mejoras
 
 Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
 
 ## Novedades
-### Bienestar
-- **Autoevaluación** (nueva primera sección): un cuestionario breve (últimas
-  2 semanas) que orienta si predomina ansiedad, depresión, estrés o
-  sobrepensar, con un resultado por niveles y un botón que te lleva directo
-  a las estrategias y herramientas adecuadas. Es orientativo, no un
-  diagnóstico. Guarda cuántas veces lo has hecho.
+### Acerca de MediControl (pie de página)
+- Cita correctamente la fuente: IMSS, programa NutrIMSS —
+  «Cartera de alimentación saludable y actividad física» (referencia).
+- Autoría: Ing. Christian Hernández S., Maestro en Administración
+  (Organizaciones) egresado de la UNAM, Campo 4.
 
 ### Saludable
-- **Conoce tu estado de nutrición** toma automáticamente peso, estatura,
-  cintura, sexo y edad de tu perfil (apartado Salud) y ahora:
-  - Muestra el diagnóstico de % de grasa (según sexo y edad) si ya lo
-    registraste en Seguimiento.
-  - Recomienda un **plan de acción** para bajar, subir o mantener el peso
-    según tu IMC.
-- **Seguimiento de tus logros**: interpretación de IMC y diagnóstico de %
-  de grasa (ajustado por edad) en cada registro.
+- "Mi plan de raciones por tiempo de comida" con diseño nuevo: cada grupo con
+  su color, los valores resaltados y el total del día destacado.
 
-### Perfil del paciente (apartado Salud)
-- Ahora puedes capturar también **edad, peso y cintura** (antes no estaban),
-  y se reflejan automáticamente en el apartado Saludable.
+### Protección y respaldo
+- **Bloqueo con PIN** (apartado Reporte): protege la app con un PIN. Si pierden
+  o roban el teléfono, no podrán abrirla sin él. Es un candado básico de
+  privacidad.
+- **Aviso de pérdida de datos**: en el apartado Reporte y en la ventana del QR
+  se avisa que, si se borran los datos del sitio o el historial de navegación,
+  se pierde la información. Para no perderla, usa "Descargar respaldo".
 
-### Aviso (pie de página, en toda la app)
-- App **sin fines de lucro**, de uso personal. Información de nutrición con
-  **referencia al IMSS (NutrIMSS)**. No sustituye a un profesional de la
-  salud; es una guía orientativa y su uso es responsabilidad de cada quien.
-  Creada por el Ing. Christian Hernández S. (estudiante UNAM, Campo 4).
-  © 2026 Christian Hernández S. Derechos reservados.
+### Inventario
+- Se aclara que es para los medicamentos que el paciente USA en sus
+  tratamientos, no otras medicinas que tenga en casa y no use.
 
 Toda la información se guarda solo en este teléfono.
 
 ## Actualizar tu página
 1. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
 2. En el celular: desinstala la app y borra los datos del sitio en el navegador.
-3. Abre con internet y reinstala. Lista para usar sin internet.
+3. Abre con internet y reinstala.
 
 ## Compartir por QR
-Botón flotante 📲 dentro de la app. Cada persona guarda su propia información.
+Botón flotante 📲 dentro de la app (incluye el aviso sobre respaldo).

@@ -454,6 +454,154 @@ const IToilet = ({
   d: "M7 3h8a1 1 0 0 1 1 1v7H6V4a1 1 0 0 1 1-1ZM4 11h16a8 8 0 0 1-8 8v0a8 8 0 0 1-8-8ZM12 19v3M8 22h8"
 });
 const DIAS_FULL = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const LOCK_KEY = "medicontrol-lock-v1";
+const hashPin = s => {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h ^ s.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(36);
+};
+const getLockHash = () => {
+  try {
+    const d = JSON.parse(localStorage.getItem(LOCK_KEY));
+    return d && d.hash ? d.hash : null;
+  } catch (e) {
+    return null;
+  }
+};
+function LockScreen({
+  onUnlock
+}) {
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState(false);
+  const intentar = () => {
+    if (hashPin(pin) === getLockHash()) onUnlock();else {
+      setErr(true);
+      setPin("");
+    }
+  };
+  return React.createElement("div", {
+    className: "min-h-screen flex items-center justify-center bg-emerald-800 p-6"
+  }, React.createElement("div", {
+    className: "bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl"
+  }, React.createElement("div", {
+    className: "text-4xl"
+  }, "\uD83D\uDD12"), React.createElement("h1", {
+    className: "text-lg font-bold text-slate-800 mt-2"
+  }, "MediControl protegido"), React.createElement("p", {
+    className: "text-sm text-slate-500 mt-1"
+  }, "Escribe tu PIN para entrar."), React.createElement("input", {
+    type: "password",
+    inputMode: "numeric",
+    value: pin,
+    autoFocus: true,
+    onChange: e => {
+      setPin(e.target.value);
+      setErr(false);
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter") intentar();
+    },
+    className: "w-full text-center tracking-widest text-xl mt-4 rounded-xl border px-3 py-2.5 focus:outline-none focus:ring-2 " + (err ? "border-red-300 focus:ring-red-400" : "border-slate-300 focus:ring-emerald-500"),
+    placeholder: "\u2022\u2022\u2022\u2022"
+  }), err && React.createElement("p", {
+    className: "text-xs text-red-600 mt-1.5"
+  }, "PIN incorrecto"), React.createElement("button", {
+    onClick: intentar,
+    className: "w-full mt-3 bg-emerald-700 text-white font-semibold rounded-xl py-2.5 hover:bg-emerald-800"
+  }, "Entrar"), React.createElement("p", {
+    className: "text-[11px] text-slate-400 mt-3 leading-relaxed"
+  }, "Es un candado b\xE1sico para tu privacidad. Si olvidas tu PIN, la \xFAnica forma de entrar es borrar los datos del sitio en el navegador, pero eso borra tu informaci\xF3n.")));
+}
+function SeguridadConfig({
+  avisar
+}) {
+  const [hash, setHash] = useState(getLockHash());
+  const [cur, setCur] = useState("");
+  const [pin1, setPin1] = useState("");
+  const [pin2, setPin2] = useState("");
+  const limpiar = () => {
+    setCur("");
+    setPin1("");
+    setPin2("");
+  };
+  const guardar = () => {
+    if (hash && hashPin(cur) !== hash) {
+      avisar("El PIN actual no es correcto");
+      return;
+    }
+    if (pin1.length < 4) {
+      avisar("Usa un PIN de al menos 4 dígitos");
+      return;
+    }
+    if (pin1 !== pin2) {
+      avisar("Los PIN no coinciden");
+      return;
+    }
+    try {
+      localStorage.setItem(LOCK_KEY, JSON.stringify({
+        hash: hashPin(pin1)
+      }));
+    } catch (e) {}
+    setHash(hashPin(pin1));
+    limpiar();
+    avisar("PIN guardado 🔒");
+  };
+  const quitar = () => {
+    if (hash && hashPin(cur) !== hash) {
+      avisar("El PIN actual no es correcto");
+      return;
+    }
+    try {
+      localStorage.removeItem(LOCK_KEY);
+    } catch (e) {}
+    setHash(null);
+    limpiar();
+    avisar("Bloqueo desactivado");
+  };
+  const ic = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+  return React.createElement("section", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h2", {
+    className: "font-bold text-slate-700 text-sm flex items-center gap-2"
+  }, "\uD83D\uDD12 Bloqueo con PIN ", hash && React.createElement("span", {
+    className: "text-[11px] font-normal text-emerald-600"
+  }, "\xB7 activado")), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "Protege tu informaci\xF3n con un PIN. Si pierden o te roban el tel\xE9fono, no podr\xE1n abrir la app sin \xE9l. Es un candado b\xE1sico de privacidad, no un cifrado de seguridad total."), React.createElement("div", {
+    className: "space-y-2"
+  }, hash && React.createElement("input", {
+    type: "password",
+    inputMode: "numeric",
+    value: cur,
+    onChange: e => setCur(e.target.value),
+    placeholder: "PIN actual",
+    className: ic
+  }), React.createElement("input", {
+    type: "password",
+    inputMode: "numeric",
+    value: pin1,
+    onChange: e => setPin1(e.target.value),
+    placeholder: hash ? "Nuevo PIN (mín. 4 dígitos)" : "Crea tu PIN (mín. 4 dígitos)",
+    className: ic
+  }), React.createElement("input", {
+    type: "password",
+    inputMode: "numeric",
+    value: pin2,
+    onChange: e => setPin2(e.target.value),
+    placeholder: "Repite el PIN",
+    className: ic
+  })), React.createElement("div", {
+    className: "flex gap-2 mt-3"
+  }, React.createElement("button", {
+    onClick: guardar,
+    className: "flex-1 bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800"
+  }, hash ? "Cambiar PIN" : "Activar PIN"), hash && React.createElement("button", {
+    onClick: quitar,
+    className: "text-sm font-semibold text-red-600 border border-red-200 rounded-xl px-3 py-2 hover:bg-red-50"
+  }, "Quitar")));
+}
 function MediControl() {
   const [data, setData] = useState({
     meds: [],
@@ -469,6 +617,7 @@ function MediControl() {
     agua: {}
   });
   const [loaded, setLoaded] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
   const [tab, setTab] = useState("hoy");
   const [expanded, setExpanded] = useState(null);
   const [openDay, setOpenDay] = useState(null);
@@ -589,6 +738,9 @@ function MediControl() {
   }, React.createElement(IPill, {
     cls: "w-6 h-6 mr-2 animate-pulse"
   }), " Cargando tu historial\u2026");
+  if (getLockHash() && !unlocked) return React.createElement(LockScreen, {
+    onUnlock: () => setUnlocked(true)
+  });
   const activos = data.meds.filter(m => m.status === "activo");
   const inactivos = data.meds.filter(m => m.status !== "activo");
   const tabs = [{
@@ -773,9 +925,19 @@ function MediControl() {
     data: data,
     now: now,
     avisar: avisar
-  }), React.createElement(Respaldo, {
+  }), React.createElement("div", {
+    className: "bg-amber-50 border border-amber-100 rounded-2xl p-3.5 text-sm text-amber-900 mt-4"
+  }, React.createElement("p", {
+    className: "font-semibold flex items-center gap-2"
+  }, React.createElement(IWarn, {
+    cls: "w-4 h-4 shrink-0"
+  }), " Cuida tu informaci\xF3n"), React.createElement("p", {
+    className: "text-xs text-amber-800 mt-1"
+  }, "Todo se guarda solo en este tel\xE9fono. Si borras los datos del sitio o el ", React.createElement("b", null, "historial de navegaci\xF3n"), " del navegador, se perder\xE1 toda tu informaci\xF3n de la app. Para no perderla, descarga un ", React.createElement("b", null, "respaldo"), " aqu\xED abajo de vez en cuando.")), React.createElement(Respaldo, {
     data: data,
     persist: persist,
+    avisar: avisar
+  }), React.createElement(SeguridadConfig, {
     avisar: avisar
   }))), React.createElement(Footer, null), toast && React.createElement("div", {
     className: "fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2"
@@ -1900,7 +2062,15 @@ function Inventario({
   const multiLoteEdit = editItem ? conLotes(editItem).filter(l => l.cantidad > 0).length > 1 : false;
   return React.createElement("div", {
     className: "space-y-4"
-  }, React.createElement("section", {
+  }, React.createElement("div", {
+    className: "bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 text-sm text-emerald-900"
+  }, React.createElement("p", {
+    className: "font-semibold flex items-center gap-2"
+  }, React.createElement(IBox, {
+    cls: "w-4 h-4"
+  }), " Inventario de tus medicamentos en tratamiento"), React.createElement("p", {
+    className: "text-xs text-emerald-800 mt-1"
+  }, "Registra aqu\xED solo los medicamentos que ", React.createElement("b", null, "el paciente usa en sus tratamientos"), " (los que toma de forma regular o indicada por el m\xE9dico), para llevar el control de existencias y caducidades. No incluyas medicinas que tengas en casa pero que no uses.")), React.createElement("section", {
     className: "bg-white rounded-2xl border border-slate-200 p-4 space-y-2"
   }, React.createElement("div", {
     className: "flex items-center justify-between gap-2 flex-wrap"
@@ -5787,6 +5957,50 @@ const cargarPlan = () => {
   return JSON.parse(JSON.stringify(PLAN_EJEMPLO));
 };
 const totalDiaGrupo = (plan, g) => MEALS.reduce((a, m) => a + (Number(plan[g] && plan[g][m.id]) || 0), 0);
+const GRUPO_COLOR = {
+  verdura: {
+    chip: "bg-emerald-100 text-emerald-800",
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-600",
+    soft: "bg-emerald-50"
+  },
+  fruta: {
+    chip: "bg-rose-100 text-rose-800",
+    dot: "bg-rose-500",
+    badge: "bg-rose-500",
+    soft: "bg-rose-50"
+  },
+  cereal: {
+    chip: "bg-amber-100 text-amber-800",
+    dot: "bg-amber-500",
+    badge: "bg-amber-500",
+    soft: "bg-amber-50"
+  },
+  leguminosa: {
+    chip: "bg-orange-100 text-orange-800",
+    dot: "bg-orange-500",
+    badge: "bg-orange-500",
+    soft: "bg-orange-50"
+  },
+  aoa: {
+    chip: "bg-red-100 text-red-800",
+    dot: "bg-red-500",
+    badge: "bg-red-500",
+    soft: "bg-red-50"
+  },
+  leche: {
+    chip: "bg-sky-100 text-sky-800",
+    dot: "bg-sky-500",
+    badge: "bg-sky-500",
+    soft: "bg-sky-50"
+  },
+  grasa: {
+    chip: "bg-yellow-100 text-yellow-800",
+    dot: "bg-yellow-500",
+    badge: "bg-yellow-600",
+    soft: "bg-yellow-50"
+  }
+};
 const hoyISO = () => {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -5885,6 +6099,7 @@ function MiPlanRaciones({
   setPlan,
   avisar
 }) {
+  const [confVaciar, setConfVaciar] = useState(false);
   const set = (g, m, v) => {
     let n = parseInt(v, 10);
     if (isNaN(n) || n < 0) n = 0;
@@ -5903,60 +6118,91 @@ function MiPlanRaciones({
   };
   const vaciar = () => {
     setPlan(planVacio());
+    setConfVaciar(false);
     avisar("Plan vaciado para llenarlo de nuevo ✏️");
   };
   const totalDia = GRUPOS_ORDEN.reduce((a, g) => a + totalDiaGrupo(plan, g), 0);
   return React.createElement("div", {
-    className: "bg-white rounded-2xl border border-slate-200 p-4"
+    className: "bg-gradient-to-br from-emerald-50 to-white rounded-2xl border border-emerald-100 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
   }, "\uD83D\uDDD3\uFE0F Mi plan de raciones por tiempo de comida"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1 mb-3"
-  }, "Escribe cu\xE1ntas raciones de cada grupo te indic\xF3 tu nutri\xF3loga en cada comida. Puedes editarlo cuando quieras; se guarda solo en este tel\xE9fono. Viene precargado con un plan de ejemplo del IMSS."), React.createElement("div", {
+  }, "Escribe cu\xE1ntas raciones de cada grupo te indic\xF3 tu nutri\xF3loga en cada comida. Se guarda solo en este tel\xE9fono. Viene con un plan de ejemplo del IMSS."), React.createElement("div", {
     className: "overflow-x-auto -mx-1 px-1"
   }, React.createElement("table", {
-    className: "w-full text-xs border-collapse"
-  }, React.createElement("thead", null, React.createElement("tr", {
-    className: "text-slate-500"
-  }, React.createElement("th", {
-    className: "text-left px-2 py-1.5 font-semibold"
+    className: "w-full text-xs border-separate",
+    style: {
+      borderSpacing: "0 6px"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    className: "text-left px-2 font-semibold text-slate-400 uppercase text-[10px] tracking-wide"
   }, "Grupo"), MEALS.map(m => React.createElement("th", {
     key: m.id,
-    className: "px-1 py-1.5 font-semibold text-center whitespace-nowrap"
-  }, m.emoji, React.createElement("br", null), m.corto)), React.createElement("th", {
-    className: "px-1 py-1.5 font-semibold text-center text-emerald-700"
-  }, "D\xEDa"))), React.createElement("tbody", null, GRUPOS_ORDEN.map((g, i) => React.createElement("tr", {
-    key: g,
-    className: i % 2 ? "bg-slate-50/50" : "bg-white"
-  }, React.createElement("td", {
-    className: "px-2 py-1 text-slate-700 whitespace-nowrap"
-  }, GRUPOS[g].emoji, " ", GRUPOS[g].label), MEALS.map(m => React.createElement("td", {
-    key: m.id,
-    className: "px-0.5 py-1 text-center"
-  }, React.createElement("input", {
-    type: "number",
-    min: "0",
-    max: "20",
-    inputMode: "numeric",
-    value: plan[g][m.id] || 0,
-    onChange: e => set(g, m.id, e.target.value),
-    className: "w-10 text-center rounded-lg border border-slate-200 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-  }))), React.createElement("td", {
-    className: "px-1 py-1 text-center font-bold text-emerald-700"
-  }, totalDiaGrupo(plan, g))))))), React.createElement("div", {
-    className: "flex items-center justify-between mt-3 flex-wrap gap-2"
+    className: "px-1 font-semibold text-center"
+  }, React.createElement("div", {
+    className: "flex flex-col items-center"
   }, React.createElement("span", {
-    className: "text-xs text-slate-500"
-  }, "Total de raciones al d\xEDa: ", React.createElement("b", {
-    className: "text-slate-800"
-  }, totalDia)), React.createElement("div", {
+    className: "text-sm"
+  }, m.emoji), React.createElement("span", {
+    className: "text-[10px] text-slate-400 whitespace-nowrap"
+  }, m.corto)))), React.createElement("th", {
+    className: "px-1 font-semibold text-center text-[10px] text-emerald-700 uppercase tracking-wide"
+  }, "D\xEDa"))), React.createElement("tbody", null, GRUPOS_ORDEN.map(g => {
+    const col = GRUPO_COLOR[g];
+    const tot = totalDiaGrupo(plan, g);
+    return React.createElement("tr", {
+      key: g,
+      className: "bg-white shadow-sm"
+    }, React.createElement("td", {
+      className: "px-2 py-1.5 rounded-l-xl border-y border-l border-slate-100"
+    }, React.createElement("span", {
+      className: "inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold whitespace-nowrap " + col.chip
+    }, GRUPOS[g].emoji, " ", GRUPOS[g].label)), MEALS.map(m => {
+      const v = plan[g][m.id] || 0;
+      return React.createElement("td", {
+        key: m.id,
+        className: "px-0.5 py-1.5 text-center border-y border-slate-100"
+      }, React.createElement("input", {
+        type: "number",
+        min: "0",
+        max: "20",
+        inputMode: "numeric",
+        value: v,
+        onChange: e => set(g, m.id, e.target.value),
+        className: "w-9 h-9 text-center rounded-lg border font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 " + (v > 0 ? col.soft + " border-slate-200 text-slate-800" : "bg-white border-slate-200 text-slate-300")
+      }));
+    }), React.createElement("td", {
+      className: "px-1 py-1.5 text-center rounded-r-xl border-y border-r border-slate-100"
+    }, React.createElement("span", {
+      className: "inline-flex items-center justify-center h-7 px-2 rounded-lg text-white font-black text-sm " + (tot > 0 ? col.badge : "bg-slate-300")
+    }, tot)));
+  })))), React.createElement("div", {
+    className: "mt-3 flex items-center justify-between flex-wrap gap-2"
+  }, React.createElement("div", {
+    className: "inline-flex items-center gap-2 bg-emerald-600 text-white rounded-xl px-3 py-1.5"
+  }, React.createElement("span", {
+    className: "text-xs font-medium"
+  }, "Total al d\xEDa"), React.createElement("span", {
+    className: "text-lg font-black leading-none"
+  }, totalDia), React.createElement("span", {
+    className: "text-xs"
+  }, "raciones")), React.createElement("div", {
     className: "flex gap-2"
   }, React.createElement("button", {
     onClick: restaurar,
-    className: "text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full px-3 py-1.5 hover:bg-emerald-100"
-  }, "\uD83D\uDCCB Plan de ejemplo"), React.createElement("button", {
+    className: "text-xs font-semibold bg-white text-emerald-800 border border-emerald-200 rounded-full px-3 py-1.5 hover:bg-emerald-50"
+  }, "\uD83D\uDCCB Ejemplo"), confVaciar ? React.createElement("span", {
+    className: "inline-flex items-center gap-1"
+  }, React.createElement("button", {
     onClick: vaciar,
-    className: "text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-100"
+    className: "text-xs font-semibold bg-red-500 text-white rounded-full px-3 py-1.5"
+  }, "S\xED, vaciar"), React.createElement("button", {
+    onClick: () => setConfVaciar(false),
+    className: "text-xs font-semibold bg-slate-100 text-slate-600 rounded-full px-3 py-1.5"
+  }, "No")) : React.createElement("button", {
+    onClick: () => setConfVaciar(true),
+    className: "text-xs font-semibold bg-white text-slate-500 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-50"
   }, "Vaciar"))));
 }
 function ControlDiarioRaciones({
@@ -7768,11 +8014,11 @@ function Footer() {
     cls: "w-4 h-4 text-slate-400 transition-transform " + (open ? "rotate-180" : "")
   })), open && React.createElement("div", {
     className: "mt-3 space-y-2 leading-relaxed"
-  }, React.createElement("p", null, React.createElement("b", null, "Aplicaci\xF3n sin fines de lucro"), ", hecha para uso personal. No se vende ni busca ganancia alguna."), React.createElement("p", null, "La informaci\xF3n de nutrici\xF3n toma como ", React.createElement("b", null, "referencia"), " material del ", React.createElement("b", null, "IMSS"), " (programa NutrIMSS). Los contenidos de bienestar se basan en estrategias de uso general en psicolog\xEDa (respiraci\xF3n, TCC, DBT, higiene del sue\xF1o, entre otras)."), React.createElement("p", null, "Esta app ", React.createElement("b", null, "no sustituye"), " la valoraci\xF3n ni las recomendaciones de un m\xE9dico, nutri\xF3logo, psic\xF3logo u otro profesional de la salud. Funciona solo como una ", React.createElement("b", null, "gu\xEDa orientativa"), " y su uso es ", React.createElement("b", null, "responsabilidad de cada persona"), " que la utilice."), React.createElement("p", null, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", estudiante de la UNAM (Campo 4), con el fin de apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad."), React.createElement("p", {
+  }, React.createElement("p", null, React.createElement("b", null, "Aplicaci\xF3n sin fines de lucro"), ", hecha para uso personal. No se vende ni busca ganancia alguna."), React.createElement("p", null, React.createElement("b", null, "Fuente de la informaci\xF3n nutricional:"), " Instituto Mexicano del Seguro Social (IMSS), programa NutrIMSS \u2014 \xABCartera de alimentaci\xF3n saludable y actividad f\xEDsica\xBB. Los contenidos que aqu\xED se muestran son un ", React.createElement("b", null, "resumen orientativo"), " con fines personales; los derechos del material original pertenecen al IMSS y se citan como referencia."), React.createElement("p", null, "Los contenidos de bienestar emocional se basan en estrategias de uso general en psicolog\xEDa (respiraci\xF3n, TCC, DBT, higiene del sue\xF1o, entre otras), expresadas con palabras propias."), React.createElement("p", null, "Esta app ", React.createElement("b", null, "no sustituye"), " la valoraci\xF3n ni las recomendaciones de un m\xE9dico, nutri\xF3logo, psic\xF3logo u otro profesional de la salud. Funciona solo como una ", React.createElement("b", null, "gu\xEDa orientativa"), " y su uso es ", React.createElement("b", null, "responsabilidad de cada persona"), " que la utilice."), React.createElement("p", null, React.createElement("b", null, "Importante sobre tu informaci\xF3n:"), " todo se guarda \xFAnicamente en este tel\xE9fono/navegador. Si borras los datos del sitio o el historial de navegaci\xF3n, se perder\xE1 toda tu informaci\xF3n. Para no perderla, descarga un respaldo en el apartado ", React.createElement("b", null, "Reporte"), ". Tambi\xE9n puedes proteger la app con un PIN en el apartado Reporte."), React.createElement("p", null, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Maestro en Administraci\xF3n (Organizaciones) egresado de la UNAM, Campo 4, con el fin de apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad."), React.createElement("p", {
     className: "text-slate-400"
   }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), !open && React.createElement("p", {
     className: "mt-2 text-slate-400"
-  }, "App sin fines de lucro \xB7 uso personal \xB7 gu\xEDa orientativa, no sustituye a un profesional \xB7 \xA9 2026 Christian Hern\xE1ndez S.")));
+  }, "App sin fines de lucro \xB7 uso personal \xB7 info nutricional: IMSS NutrIMSS (referencia) \xB7 no sustituye a un profesional \xB7 \xA9 2026 Christian Hern\xE1ndez S.")));
 }
 function Saludable({
   avisar,
