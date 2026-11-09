@@ -1,37 +1,41 @@
-# MediControl — Saludable + Bienestar (versión ampliada)
+# MediControl — versión con autoevaluación y perfil completo
 
 Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
 
-## Novedades en "Saludable"
-- **Conoce tu estado de nutrición** ahora toma automáticamente tus datos del
-  apartado **Salud** (peso y cintura de tus mediciones; estatura y sexo del
-  Perfil del paciente). Si falta algún dato, te avisa y te lleva a llenarlo.
-- **Diagnósticos y plan clínico**: guarda el diagnóstico de tu nutriólogo, el
-  diagnóstico del personal médico, tu plan nutricio y tu plan de ejercicio.
-- **Seguimiento de tus logros** ahora incluye: fecha, peso, estatura, IMC,
-  interpretación de IMC, circunferencia de cintura, % de grasa y
-  diagnóstico de % de grasa (se calcula según tu sexo). La estatura se
-  precarga desde tu perfil.
+## Novedades
+### Bienestar
+- **Autoevaluación** (nueva primera sección): un cuestionario breve (últimas
+  2 semanas) que orienta si predomina ansiedad, depresión, estrés o
+  sobrepensar, con un resultado por niveles y un botón que te lleva directo
+  a las estrategias y herramientas adecuadas. Es orientativo, no un
+  diagnóstico. Guarda cuántas veces lo has hecho.
 
-## "Bienestar" ampliado (como un equipo de expertos)
-Organizado en 4 secciones:
-- **Calma ahora**: respiración guiada animada, TIPP (DBT para crisis),
-  anclaje 5-4-3-2-1 y relajación muscular progresiva.
-- **Estrategias**: qué hacer en cada situación (ansiedad, depresión, estrés,
-  rumiación) y tu plan de acción personal.
-- **Herramientas**: registro de pensamientos (TCC), distorsiones cognitivas,
-  activación conductual, higiene del sueño, autocompasión y "tres cosas
-  buenas" (gratitud).
-- **Registro**: historial de episodios con intensidad y frecuencia.
+### Saludable
+- **Conoce tu estado de nutrición** toma automáticamente peso, estatura,
+  cintura, sexo y edad de tu perfil (apartado Salud) y ahora:
+  - Muestra el diagnóstico de % de grasa (según sexo y edad) si ya lo
+    registraste en Seguimiento.
+  - Recomienda un **plan de acción** para bajar, subir o mantener el peso
+    según tu IMC.
+- **Seguimiento de tus logros**: interpretación de IMC y diagnóstico de %
+  de grasa (ajustado por edad) en cada registro.
 
-Nota: el apartado Bienestar es de apoyo y no sustituye la atención de un
-profesional de salud mental. Incluye líneas de ayuda en crisis.
+### Perfil del paciente (apartado Salud)
+- Ahora puedes capturar también **edad, peso y cintura** (antes no estaban),
+  y se reflejan automáticamente en el apartado Saludable.
+
+### Aviso (pie de página, en toda la app)
+- App **sin fines de lucro**, de uso personal. Información de nutrición con
+  **referencia al IMSS (NutrIMSS)**. No sustituye a un profesional de la
+  salud; es una guía orientativa y su uso es responsabilidad de cada quien.
+  Creada por el Ing. Christian Hernández S. (estudiante UNAM, Campo 4).
+  © 2026 Christian Hernández S. Derechos reservados.
 
 Toda la información se guarda solo en este teléfono.
 
 ## Actualizar tu página
 1. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
-2. En el celular: desinstala la app y, en el navegador, borra los datos del sitio.
+2. En el celular: desinstala la app y borra los datos del sitio en el navegador.
 3. Abre con internet y reinstala. Lista para usar sin internet.
 
 ## Compartir por QR
