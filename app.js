@@ -4,6 +4,25 @@ const {
   useMemo
 } = React;
 const KEY = "medicontrol-data-v1";
+const EXTRA_KEYS = ["medicontrol-plan-raciones-v1", "medicontrol-control-raciones-v1", "medicontrol-macros-v1", "medicontrol-seguimiento-v1", "medicontrol-nutriologa-v1", "medicontrol-dx-clinicos-v1", "medicontrol-plan-bienestar-v1", "medicontrol-episodios-v1", "medicontrol-pensamientos-v1", "medicontrol-activacion-v1", "medicontrol-sueno-v1", "medicontrol-gratitud-v1", "medicontrol-autoeval-v1"];
+const leerExtras = () => {
+  const o = {};
+  for (const k of EXTRA_KEYS) {
+    try {
+      const v = localStorage.getItem(k);
+      if (v != null) o[k] = JSON.parse(v);
+    } catch (e) {}
+  }
+  return o;
+};
+const escribirExtras = extras => {
+  if (!extras || typeof extras !== "object") return;
+  for (const k of EXTRA_KEYS) {
+    try {
+      if (extras[k] !== undefined) localStorage.setItem(k, JSON.stringify(extras[k]));
+    } catch (e) {}
+  }
+};
 const GAP_MIN = 30;
 const FRECUENCIAS = [4, 6, 8, 12, 24];
 const PRESENTACIONES = ["Tabletas", "Cápsulas", "Jarabe / Suspensión", "Gotas", "Inyectable", "Sobres", "Crema / Ungüento", "Inhalador", "Otro"];
@@ -779,6 +798,10 @@ function MediControl() {
     id: "reporte",
     label: "Reporte",
     Icon: IChart
+  }, {
+    id: "acerca",
+    label: "Acerca",
+    Icon: ISteth
   }];
   return React.createElement("div", {
     className: "min-h-screen text-slate-800"
@@ -806,7 +829,15 @@ function MediControl() {
     cls: "w-4 h-4"
   }), " ", t.label)))), React.createElement("main", {
     className: "max-w-3xl mx-auto px-4 py-6 pb-24"
-  }, tab === "hoy" && React.createElement("div", null, React.createElement(ResumenHoy, {
+  }, tab === "hoy" && React.createElement("div", null, React.createElement("div", {
+    className: "bg-sky-50 border border-sky-100 rounded-2xl p-3.5 text-sm text-sky-900 mb-4"
+  }, React.createElement("p", {
+    className: "font-semibold flex items-center gap-2"
+  }, React.createElement(IClock, {
+    cls: "w-4 h-4"
+  }), " Tus tomas de hoy"), React.createElement("p", {
+    className: "text-xs text-sky-800 mt-1"
+  }, "Aqu\xED ves los medicamentos que te toca tomar ", React.createElement("b", null, "hoy"), ", a su hora. Toca cada uno cuando lo tomes para marcarlo como hecho y llevar el control del d\xEDa.")), React.createElement(ResumenHoy, {
     tomas: tomasHoy
   }), tomasHoy.length === 0 ? React.createElement(VacioCard, {
     titulo: "Sin tomas programadas para hoy",
@@ -848,7 +879,15 @@ function MediControl() {
     }, fmt12(t.hora)), React.createElement("div", {
       className: "text-xs text-slate-400"
     }, t.done ? "tomado ✓" : "clic para confirmar")));
-  }))), tab === "meds" && React.createElement("div", null, data.meds.length === 0 && React.createElement(VacioCard, {
+  }))), tab === "meds" && React.createElement("div", null, React.createElement("div", {
+    className: "bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 text-sm text-emerald-900 mb-4"
+  }, React.createElement("p", {
+    className: "font-semibold flex items-center gap-2"
+  }, React.createElement(IList, {
+    cls: "w-4 h-4"
+  }), " Tus medicamentos"), React.createElement("p", {
+    className: "text-xs text-emerald-800 mt-1"
+  }, "La lista de todos tus tratamientos: los que est\xE1s tomando y los que ya terminaste o suspendiste, con su dosis, horario y duraci\xF3n. Desde aqu\xED los editas o cambias de estado.")), data.meds.length === 0 && React.createElement(VacioCard, {
     titulo: "A\xFAn no tienes medicamentos registrados",
     texto: "Registra lo que te recet\xF3 el m\xE9dico: nombre, dosis, frecuencia y motivo. La herramienta calcula el horario y las cajas necesarias.",
     accion: () => setTab("agregar"),
@@ -893,7 +932,15 @@ function MediControl() {
     confirmDel: confirmDel,
     setConfirmDel: setConfirmDel,
     eliminarMed: eliminarMed
-  }))))), tab === "agregar" && React.createElement(FormAgregar, {
+  }))))), tab === "agregar" && React.createElement("div", null, React.createElement("div", {
+    className: "bg-amber-50 border border-amber-100 rounded-2xl p-3.5 text-sm text-amber-900 mb-4"
+  }, React.createElement("p", {
+    className: "font-semibold flex items-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " Agregar un medicamento"), React.createElement("p", {
+    className: "text-xs text-amber-800 mt-1"
+  }, "Registra un medicamento nuevo que te hayan recetado: nombre, dosis, cada cu\xE1ntas horas y por cu\xE1ntos d\xEDas. La app calcula solo los horarios de las tomas y cu\xE1ntas cajas necesitas.")), React.createElement(FormAgregar, {
     ocupados: ocupados,
     onGuardar: guardarMed,
     medEditar: data.meds.find(m => m.id === editId) || null,
@@ -901,7 +948,7 @@ function MediControl() {
       setEditId(null);
       setTab("meds");
     }
-  }), tab === "inv" && React.createElement(Inventario, {
+  })), tab === "inv" && React.createElement(Inventario, {
     data: data,
     persist: persist,
     avisar: avisar
@@ -937,9 +984,9 @@ function MediControl() {
     data: data,
     persist: persist,
     avisar: avisar
-  }), React.createElement(SeguridadConfig, {
+  })), tab === "acerca" && React.createElement(AcercaDe, {
     avisar: avisar
-  }))), React.createElement(Footer, null), toast && React.createElement("div", {
+  })), toast && React.createElement("div", {
     className: "fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2"
   }, React.createElement(ICheckCheck, {
     cls: "w-4 h-4 text-emerald-400"
@@ -3385,12 +3432,14 @@ function Perfil({
   const [open, setOpen] = useState(!perfil.estatura);
   const [p, setP] = useState({
     nombre: perfil.nombre || "",
+    tipoSangre: perfil.tipoSangre || "",
     fechaNac: perfil.fechaNac || "",
     edad: perfil.edad || "",
     sexo: perfil.sexo || "",
     estatura: perfil.estatura || "",
     peso: perfil.peso || "",
     cintura: perfil.cintura || "",
+    cuello: perfil.cuello || "",
     dx: perfil.dx || [],
     condiciones: perfil.condiciones || "",
     alergias: perfil.alergias || "",
@@ -3413,6 +3462,7 @@ function Perfil({
         estatura: p.estatura ? Number(p.estatura) : "",
         peso: p.peso ? Number(p.peso) : "",
         cintura: p.cintura ? Number(p.cintura) : "",
+        cuello: p.cuello ? Number(p.cuello) : "",
         edad: p.edad ? Number(p.edad) : ""
       }
     });
@@ -3420,7 +3470,15 @@ function Perfil({
     setOpen(false);
   };
   const exportar = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
+    const payload = {
+      app: "MediControl",
+      formato: KEY,
+      version: 2,
+      exportadoEl: new Date().toISOString(),
+      data,
+      extras: leerExtras()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: "application/json"
     });
     const a = document.createElement("a");
@@ -3428,7 +3486,7 @@ function Perfil({
     a.download = "medicontrol-respaldo-" + todayStr() + ".json";
     a.click();
     URL.revokeObjectURL(a.href);
-    avisar("Respaldo descargado");
+    avisar("Respaldo completo descargado");
   };
   const importar = e => {
     const file = e.target.files && e.target.files[0];
@@ -3436,22 +3494,31 @@ function Perfil({
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const d = JSON.parse(reader.result);
+        const json = JSON.parse(reader.result);
+        const d = json && json.data && typeof json.data === "object" ? json.data : json;
         if (!d || typeof d !== "object" || !Array.isArray(d.meds)) throw new Error("formato");
-        persist({
-          meds: d.meds || [],
-          taken: d.taken || {},
-          inv: d.inv || [],
-          vitals: d.vitals || {
-            readings: [],
-            horarios: null
-          },
-          perfil: d.perfil || {},
-          catalogo: d.catalogo || {},
-          comidas: d.comidas || [],
-          agua: d.agua || {}
-        });
-        avisar("Respaldo restaurado correctamente");
+        try {
+          localStorage.setItem(KEY, JSON.stringify({
+            meds: d.meds || [],
+            taken: d.taken || {},
+            inv: d.inv || [],
+            vitals: d.vitals || {
+              readings: [],
+              horarios: null
+            },
+            perfil: d.perfil || {},
+            catalogo: d.catalogo || {},
+            comidas: d.comidas || [],
+            agua: d.agua || {}
+          }));
+        } catch (e) {}
+        escribirExtras(json && json.extras);
+        avisar("Respaldo restaurado: recargando…");
+        setTimeout(() => {
+          try {
+            location.reload();
+          } catch (e) {}
+        }, 700);
       } catch (err) {
         avisar("El archivo no es un respaldo válido de MediControl");
       }
@@ -3490,7 +3557,17 @@ function Perfil({
     placeholder: "Tu nombre",
     value: p.nombre,
     onChange: e => set("nombre", e.target.value)
-  })), React.createElement("div", null, React.createElement("label", {
+  })), React.createElement("div", {
+    className: "col-span-2"
+  }, React.createElement("label", {
+    className: "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1"
+  }, "Tipo de sangre"), React.createElement("select", {
+    className: "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white",
+    value: p.tipoSangre,
+    onChange: e => set("tipoSangre", e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014"), React.createElement("option", null, "O+"), React.createElement("option", null, "O\u2212"), React.createElement("option", null, "A+"), React.createElement("option", null, "A\u2212"), React.createElement("option", null, "B+"), React.createElement("option", null, "B\u2212"), React.createElement("option", null, "AB+"), React.createElement("option", null, "AB\u2212"))), React.createElement("div", null, React.createElement("label", {
     className: "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1"
   }, "Fecha de nacimiento"), React.createElement("input", {
     type: "date",
@@ -3549,6 +3626,17 @@ function Perfil({
     placeholder: "Ej. 92",
     value: p.cintura,
     onChange: e => set("cintura", e.target.value)
+  })), React.createElement("div", null, React.createElement("label", {
+    className: "block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1"
+  }, "Cuello (cm)"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "80",
+    step: "0.5",
+    className: "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white",
+    placeholder: "Ej. 38",
+    value: p.cuello,
+    onChange: e => set("cuello", e.target.value)
   })), React.createElement("div", {
     className: "col-span-2 sm:col-span-4"
   }, React.createElement("label", {
@@ -7999,26 +8087,55 @@ function Bienestar({
     }))));
   })))));
 }
-function Footer() {
-  const [open, setOpen] = useState(false);
-  return React.createElement("footer", {
-    className: "max-w-3xl mx-auto px-4 pb-10 pt-2"
+function AcercaDe({
+  avisar
+}) {
+  return React.createElement("div", {
+    className: "space-y-4"
   }, React.createElement("div", {
-    className: "bg-white rounded-2xl border border-slate-200 p-4 text-xs text-slate-500"
-  }, React.createElement("button", {
-    onClick: () => setOpen(!open),
-    className: "w-full flex items-center justify-between"
-  }, React.createElement("span", {
-    className: "font-semibold text-slate-600 flex items-center gap-2"
-  }, "\u2139\uFE0F Acerca de MediControl"), React.createElement(IChevD, {
-    cls: "w-4 h-4 text-slate-400 transition-transform " + (open ? "rotate-180" : "")
-  })), open && React.createElement("div", {
-    className: "mt-3 space-y-2 leading-relaxed"
-  }, React.createElement("p", null, React.createElement("b", null, "Aplicaci\xF3n sin fines de lucro"), ", hecha para uso personal. No se vende ni busca ganancia alguna."), React.createElement("p", null, React.createElement("b", null, "Fuente de la informaci\xF3n nutricional:"), " Instituto Mexicano del Seguro Social (IMSS), programa NutrIMSS \u2014 \xABCartera de alimentaci\xF3n saludable y actividad f\xEDsica\xBB. Los contenidos que aqu\xED se muestran son un ", React.createElement("b", null, "resumen orientativo"), " con fines personales; los derechos del material original pertenecen al IMSS y se citan como referencia."), React.createElement("p", null, "Los contenidos de bienestar emocional se basan en estrategias de uso general en psicolog\xEDa (respiraci\xF3n, TCC, DBT, higiene del sue\xF1o, entre otras), expresadas con palabras propias."), React.createElement("p", null, "Esta app ", React.createElement("b", null, "no sustituye"), " la valoraci\xF3n ni las recomendaciones de un m\xE9dico, nutri\xF3logo, psic\xF3logo u otro profesional de la salud. Funciona solo como una ", React.createElement("b", null, "gu\xEDa orientativa"), " y su uso es ", React.createElement("b", null, "responsabilidad de cada persona"), " que la utilice."), React.createElement("p", null, React.createElement("b", null, "Importante sobre tu informaci\xF3n:"), " todo se guarda \xFAnicamente en este tel\xE9fono/navegador. Si borras los datos del sitio o el historial de navegaci\xF3n, se perder\xE1 toda tu informaci\xF3n. Para no perderla, descarga un respaldo en el apartado ", React.createElement("b", null, "Reporte"), ". Tambi\xE9n puedes proteger la app con un PIN en el apartado Reporte."), React.createElement("p", null, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Maestro en Administraci\xF3n (Organizaciones) egresado de la UNAM, Campo 4, con el fin de apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad."), React.createElement("p", {
-    className: "text-slate-400"
-  }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), !open && React.createElement("p", {
-    className: "mt-2 text-slate-400"
-  }, "App sin fines de lucro \xB7 uso personal \xB7 info nutricional: IMSS NutrIMSS (referencia) \xB7 no sustituye a un profesional \xB7 \xA9 2026 Christian Hern\xE1ndez S.")));
+    className: "bg-gradient-to-br from-emerald-700 to-emerald-900 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(ISteth, {
+    cls: "w-5 h-5"
+  }), " Acerca de MediControl"), React.createElement("p", {
+    className: "text-emerald-100 text-sm mt-1"
+  }, "Una app ", React.createElement("b", null, "gratuita"), " para apoyar el control de tu salud y bienestar.")), React.createElement("div", {
+    className: "bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-emerald-900"
+  }, React.createElement("p", {
+    className: "font-semibold"
+  }, "\uD83C\uDD93 Totalmente gratis"), React.createElement("p", {
+    className: "text-xs text-emerald-800 mt-1"
+  }, "Usar MediControl ", React.createElement("b", null, "no tiene ning\xFAn costo"), ". Es una aplicaci\xF3n ", React.createElement("b", null, "sin fines de lucro"), ": no se vende, no tiene publicidad ni cobros, y no busca ganancia alguna.")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 space-y-3 leading-relaxed"
+  }, React.createElement("div", null, React.createElement("p", {
+    className: "font-bold text-slate-800"
+  }, "\uD83D\uDCDA Fuente de la informaci\xF3n"), React.createElement("p", {
+    className: "mt-1"
+  }, "La informaci\xF3n nutricional toma como referencia el material del ", React.createElement("b", null, "IMSS"), " (Instituto Mexicano del Seguro Social), programa ", React.createElement("b", null, "NutrIMSS"), " \u2014 \xABCartera de alimentaci\xF3n saludable y actividad f\xEDsica\xBB. Lo que aqu\xED se muestra es un ", React.createElement("b", null, "resumen orientativo"), " con fines personales; los derechos del material original pertenecen al IMSS y se cita como referencia."), React.createElement("p", {
+    className: "mt-1"
+  }, "Los contenidos de bienestar emocional se basan en estrategias de uso general en psicolog\xEDa (respiraci\xF3n, TCC, DBT, higiene del sue\xF1o, entre otras), expresadas con palabras propias.")), React.createElement("div", null, React.createElement("p", {
+    className: "font-bold text-slate-800"
+  }, "\u26A0\uFE0F Aviso importante"), React.createElement("p", {
+    className: "mt-1"
+  }, "Esta app ", React.createElement("b", null, "no sustituye"), " la valoraci\xF3n ni las recomendaciones de un m\xE9dico, nutri\xF3logo, psic\xF3logo u otro profesional de la salud. Es solo una ", React.createElement("b", null, "gu\xEDa orientativa"), " y su uso es ", React.createElement("b", null, "responsabilidad de cada persona"), " que la utilice.")), React.createElement("div", null, React.createElement("p", {
+    className: "font-bold text-slate-800"
+  }, "\uD83D\uDC64 Autor"), React.createElement("p", {
+    className: "mt-1"
+  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Mtro. en Administraci\xF3n (Organizaciones), UNAM Campo 4, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
+    className: "text-xs text-slate-400"
+  }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\u2709\uFE0F Contacto"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-3"
+  }, "\xBFSugerencias o ideas para mejorar la app? Escr\xEDbeme:"), React.createElement("a", {
+    href: "mailto:t4l3nt0s0@gmail.com?subject=Sugerencia%20MediControl",
+    className: "inline-flex items-center gap-2 text-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl px-4 py-2 hover:bg-emerald-100"
+  }, "\u2709\uFE0F t4l3nt0s0@gmail.com")), React.createElement(SeguridadConfig, {
+    avisar: avisar
+  }));
 }
 function Saludable({
   avisar,
@@ -8428,8 +8545,10 @@ function Respaldo({
     const payload = {
       app: "MediControl",
       formato: KEY,
+      version: 2,
       exportadoEl: new Date().toISOString(),
-      data
+      data,
+      extras: leerExtras()
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: "application/json"
@@ -8466,6 +8585,7 @@ function Respaldo({
         }
         setPreview({
           d: normalizar(d),
+          extras: json && json.extras || {},
           fecha: json.exportadoEl || null,
           nombre: file.name
         });
@@ -8477,14 +8597,49 @@ function Respaldo({
     reader.readAsText(file);
   };
   const restaurar = () => {
-    persist(preview.d);
-    setPreview(null);
-    avisar("Restauración completa: todos tus datos fueron recuperados");
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
+    try {
+      localStorage.setItem(KEY, JSON.stringify(preview.d));
+    } catch (e) {}
+    escribirExtras(preview.extras);
+    avisar("Restauración completa: recargando la app…");
+    setTimeout(() => {
+      try {
+        location.reload();
+      } catch (e) {
+        persist(preview.d);
+        setPreview(null);
+      }
+    }, 700);
   };
+  const contarExtras = ex => {
+    ex = ex || {};
+    return {
+      plan: ex["medicontrol-plan-raciones-v1"] ? 1 : 0,
+      ctrl: Object.keys(ex["medicontrol-control-raciones-v1"] || {}).length,
+      seg: (ex["medicontrol-seguimiento-v1"] || []).length,
+      epi: (ex["medicontrol-episodios-v1"] || []).length,
+      pen: (ex["medicontrol-pensamientos-v1"] || []).length,
+      grat: (ex["medicontrol-gratitud-v1"] || []).length,
+      eval: (ex["medicontrol-autoeval-v1"] || []).length
+    };
+  };
+  const ChipsExtra = ({
+    c
+  }) => React.createElement("div", {
+    className: "flex flex-wrap gap-1.5 text-[11px] font-semibold mt-1.5"
+  }, React.createElement("span", {
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDDD3\uFE0F Plan de raciones ", c.plan ? "incluido" : "vacío"), React.createElement("span", {
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDCCA ", c.ctrl, " d\xEDas de control de raciones"), React.createElement("span", {
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDCC8 ", c.seg, " registros de seguimiento"), React.createElement("span", {
+    className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDCC6 ", c.epi, " episodios de bienestar"), React.createElement("span", {
+    className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDCAD ", c.pen, " registros de pensamientos"), React.createElement("span", {
+    className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDCCB ", c.eval, " autoevaluaciones"));
   const actual = contar(data);
   const hayDatos = actual.meds + actual.tomas + actual.mediciones + actual.comidas + actual.inv + actual.agua > 0;
   const diasSinRespaldo = data.ultimoRespaldo ? Math.floor((Date.now() - new Date(data.ultimoRespaldo).getTime()) / 86400000) : null;
@@ -8528,7 +8683,11 @@ function Respaldo({
     className: "text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5"
   }, "Lo que incluye tu respaldo hoy"), React.createElement(Chips, {
     c: actual
-  })), React.createElement("div", {
+  }), React.createElement(ChipsExtra, {
+    c: contarExtras(leerExtras())
+  }), React.createElement("p", {
+    className: "text-[11px] text-slate-400 mt-2"
+  }, "El respaldo guarda ", React.createElement("b", null, "todo"), ": medicamentos, inventario, salud, perfil, comidas y los apartados Saludable y Bienestar. Con un solo archivo migras el 100% a otro tel\xE9fono. (El PIN de bloqueo no se incluye; se configura en cada dispositivo.)")), React.createElement("div", {
     className: "grid sm:grid-cols-2 gap-2"
   }, React.createElement("button", {
     onClick: exportar,
@@ -8564,6 +8723,8 @@ function Respaldo({
       className: "text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5"
     }, "Contenido del archivo"), React.createElement(Chips, {
       c: cf
+    }), React.createElement(ChipsExtra, {
+      c: contarExtras(preview.extras)
     })), React.createElement("div", {
       className: "bg-white border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-900"
     }, React.createElement("b", null, "\u26A0\uFE0F Importante:"), " restaurar reemplazar\xE1 ", React.createElement("b", null, "todos"), " los datos actuales de la app por los del archivo. ", hayDatos ? "Si quieres conservar lo que tienes ahora, primero descarga un respaldo de lo actual con el botón de abajo." : "Actualmente no tienes datos registrados, así que no perderás nada."), hayDatos && React.createElement("button", {

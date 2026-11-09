@@ -1,36 +1,44 @@
-# MediControl — versión con bloqueo PIN y mejoras
+# MediControl — Acerca, respaldo completo y perfil ampliado
 
 Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
 
 ## Novedades
-### Acerca de MediControl (pie de página)
-- Cita correctamente la fuente: IMSS, programa NutrIMSS —
-  «Cartera de alimentación saludable y actividad física» (referencia).
-- Autoría: Ing. Christian Hernández S., Maestro en Administración
-  (Organizaciones) egresado de la UNAM, Campo 4.
+### Nuevo apartado "Acerca de MediControl" (pestaña propia)
+- Antes estaba al pie de cada pantalla; ahora es su propia pestaña.
+- Resalta que la app es GRATUITA y sin fines de lucro.
+- Cita correctamente la fuente: IMSS · NutrIMSS «Cartera de alimentación
+  saludable y actividad física».
+- Autor: Ing. Christian Hernández S., Mtro. en Administración (Organizaciones),
+  UNAM Campo 4.
+- Contacto para sugerencias: t4l3nt0s0@gmail.com
+- Aquí se configura el PIN de bloqueo (antes estaba en Reporte).
 
-### Saludable
-- "Mi plan de raciones por tiempo de comida" con diseño nuevo: cada grupo con
-  su color, los valores resaltados y el total del día destacado.
+### Pestañas
+- Se agregó la pestaña Acerca al final. Orden lógico: uso diario
+  (Hoy, Medicamentos, Agregar, Inventario), salud y hábitos
+  (Salud, Comidas, Saludable, Bienestar) y por último Reporte y Acerca.
+- Hoy, Medicamentos y Agregar ahora tienen una breve explicación de para
+  qué sirve cada uno.
 
-### Protección y respaldo
-- **Bloqueo con PIN** (apartado Reporte): protege la app con un PIN. Si pierden
-  o roban el teléfono, no podrán abrirla sin él. Es un candado básico de
-  privacidad.
-- **Aviso de pérdida de datos**: en el apartado Reporte y en la ventana del QR
-  se avisa que, si se borran los datos del sitio o el historial de navegación,
-  se pierde la información. Para no perderla, usa "Descargar respaldo".
+### Perfil (apartado Salud)
+- Se agregaron Tipo de sangre y Cuello (cm), junto a los demás datos.
 
-### Inventario
-- Se aclara que es para los medicamentos que el paciente USA en sus
-  tratamientos, no otras medicinas que tenga en casa y no use.
+### Respaldo completo (apartado Reporte) — IMPORTANTE
+- El respaldo ahora incluye TODO: medicamentos, inventario, salud, perfil,
+  comidas y los apartados Saludable y Bienestar (plan y control de raciones,
+  macronutrientes, seguimiento, diagnósticos, nutrióloga, episodios,
+  pensamientos, sueño, gratitud y autoevaluaciones).
+- Así puedes migrar el 100% a otro teléfono: exporta en el viejo e importa en
+  el nuevo. Se indica en pantalla qué incluye el archivo.
+- El PIN de bloqueo NO se incluye en el respaldo (se configura en cada
+  dispositivo, por seguridad).
 
-Toda la información se guarda solo en este teléfono.
+### Compartir por QR
+- El aviso del QR recuerda que la app es gratis y que se puede poner un PIN
+  en «Acerca de MediControl».
 
 ## Actualizar tu página
-1. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
-2. En el celular: desinstala la app y borra los datos del sitio en el navegador.
-3. Abre con internet y reinstala.
-
-## Compartir por QR
-Botón flotante 📲 dentro de la app (incluye el aviso sobre respaldo).
+1. Si ya tienes datos, entra a Reporte y DESCARGA un respaldo antes.
+2. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
+3. En el celular: desinstala la app y borra los datos del sitio.
+4. Abre con internet y reinstala. (Si descargaste respaldo, impórtalo en Reporte.)
