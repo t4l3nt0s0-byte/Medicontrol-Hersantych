@@ -1,44 +1,36 @@
-# MediControl — Acerca, respaldo completo y perfil ampliado
+# MediControl — Citas, Síntomas, Sueño, Emergencia y Evolución
 
 Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
 
-## Novedades
-### Nuevo apartado "Acerca de MediControl" (pestaña propia)
-- Antes estaba al pie de cada pantalla; ahora es su propia pestaña.
-- Resalta que la app es GRATUITA y sin fines de lucro.
-- Cita correctamente la fuente: IMSS · NutrIMSS «Cartera de alimentación
-  saludable y actividad física».
-- Autor: Ing. Christian Hernández S., Mtro. en Administración (Organizaciones),
-  UNAM Campo 4.
-- Contacto para sugerencias: t4l3nt0s0@gmail.com
-- Aquí se configura el PIN de bloqueo (antes estaba en Reporte).
+## Nuevos apartados
+- **Citas**: agenda consultas (hospital/clínica, fecha, hora, especialidad de
+  una lista alfabética completa, médico, motivo). Marca si asististe, no
+  asististe, reagendaste o cancelaste. Exporta el historial a PDF.
+- **Síntomas**: registra dolor, fiebre, tos, dificultad para respirar, mareos,
+  náuseas, vómito, fatiga, pérdida de apetito, insomnio, inflamación u otros,
+  con intensidad (1-10) y medición (ej. fiebre 39 °C). Historial y PDF.
+- **Sueño**: horas de dormir/despertar (calcula horas totales), despertares,
+  calidad, insomnio, siestas, alteraciones (incluye apnea), observaciones del
+  cuidador. Historial y PDF.
+- **Emergencia**: botón de llamada al 911, ficha con tipo de sangre, alergias
+  y condiciones, teléfonos de médicos tratantes y contactos (llamar/WhatsApp).
+- **Evolución y estadísticas**: gráficas de peso, presión, glucosa,
+  temperatura, oxigenación y frecuencia cardiaca, con rangos de referencia
+  EDITABLES; los valores fuera de rango se marcan en rojo. Tendencias,
+  cumplimiento de medicamentos, síntomas más frecuentes, resumen semanal y
+  mensual, e informe de evolución en PDF.
 
-### Pestañas
-- Se agregó la pestaña Acerca al final. Orden lógico: uso diario
-  (Hoy, Medicamentos, Agregar, Inventario), salud y hábitos
-  (Salud, Comidas, Saludable, Bienestar) y por último Reporte y Acerca.
-- Hoy, Medicamentos y Agregar ahora tienen una breve explicación de para
-  qué sirve cada uno.
+## Mejoras
+- **Bienestar**: cada situación (ansiedad, depresión, estrés, rumiación) ahora
+  tiene una herramienta interactiva: anclaje 5-4-3-2-1, micro-reto con
+  temporizador, descarga mental y tiempo de preocupación.
+- El **respaldo** (apartado Reporte) ya incluye TODOS los apartados nuevos, así
+  que puedes migrar el 100% a otro teléfono.
 
-### Perfil (apartado Salud)
-- Se agregaron Tipo de sangre y Cuello (cm), junto a los demás datos.
-
-### Respaldo completo (apartado Reporte) — IMPORTANTE
-- El respaldo ahora incluye TODO: medicamentos, inventario, salud, perfil,
-  comidas y los apartados Saludable y Bienestar (plan y control de raciones,
-  macronutrientes, seguimiento, diagnósticos, nutrióloga, episodios,
-  pensamientos, sueño, gratitud y autoevaluaciones).
-- Así puedes migrar el 100% a otro teléfono: exporta en el viejo e importa en
-  el nuevo. Se indica en pantalla qué incluye el archivo.
-- El PIN de bloqueo NO se incluye en el respaldo (se configura en cada
-  dispositivo, por seguridad).
-
-### Compartir por QR
-- El aviso del QR recuerda que la app es gratis y que se puede poner un PIN
-  en «Acerca de MediControl».
+Toda la información se guarda solo en este teléfono.
 
 ## Actualizar tu página
-1. Si ya tienes datos, entra a Reporte y DESCARGA un respaldo antes.
+1. Entra a Reporte y DESCARGA un respaldo antes (si ya tienes datos).
 2. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
 3. En el celular: desinstala la app y borra los datos del sitio.
-4. Abre con internet y reinstala. (Si descargaste respaldo, impórtalo en Reporte.)
+4. Abre con internet y reinstala. (Importa tu respaldo en Reporte.)

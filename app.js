@@ -4,7 +4,7 @@ const {
   useMemo
 } = React;
 const KEY = "medicontrol-data-v1";
-const EXTRA_KEYS = ["medicontrol-plan-raciones-v1", "medicontrol-control-raciones-v1", "medicontrol-macros-v1", "medicontrol-seguimiento-v1", "medicontrol-nutriologa-v1", "medicontrol-dx-clinicos-v1", "medicontrol-plan-bienestar-v1", "medicontrol-episodios-v1", "medicontrol-pensamientos-v1", "medicontrol-activacion-v1", "medicontrol-sueno-v1", "medicontrol-gratitud-v1", "medicontrol-autoeval-v1"];
+const EXTRA_KEYS = ["medicontrol-plan-raciones-v1", "medicontrol-control-raciones-v1", "medicontrol-macros-v1", "medicontrol-seguimiento-v1", "medicontrol-nutriologa-v1", "medicontrol-dx-clinicos-v1", "medicontrol-plan-bienestar-v1", "medicontrol-episodios-v1", "medicontrol-pensamientos-v1", "medicontrol-activacion-v1", "medicontrol-sueno-v1", "medicontrol-gratitud-v1", "medicontrol-autoeval-v1", "medicontrol-citas-v1", "medicontrol-sintomas-v1", "medicontrol-sueno-log-v1", "medicontrol-emergencia-v1", "medicontrol-rangos-v1"];
 const leerExtras = () => {
   const o = {};
   for (const k of EXTRA_KEYS) {
@@ -473,6 +473,1583 @@ const IToilet = ({
   d: "M7 3h8a1 1 0 0 1 1 1v7H6V4a1 1 0 0 1 1-1ZM4 11h16a8 8 0 0 1-8 8v0a8 8 0 0 1-8-8ZM12 19v3M8 22h8"
 });
 const DIAS_FULL = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const abrirPDF = orient => {
+  if (!(window.jspdf && window.jspdf.jsPDF)) return null;
+  const {
+    jsPDF
+  } = window.jspdf;
+  return new jsPDF(orient ? {
+    orientation: orient
+  } : undefined);
+};
+const encabezadoPDF = (doc, titulo, nombre) => {
+  doc.setFontSize(16);
+  doc.setTextColor(6, 78, 59);
+  doc.text(titulo, 14, 15);
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text((nombre ? "Paciente: " + nombre + "   ·   " : "") + "Generado: " + fmtDateLong(todayStr()) + "   ·   MediControl", 14, 21);
+};
+const sinPDF = avisar => avisar("No se pudo cargar el generador de PDF. Conéctate a internet una vez y recarga.");
+const ESPECIALIDADES = ["Alergología", "Anestesiología", "Angiología", "Cardiología", "Cirugía general", "Cirugía plástica", "Dermatología", "Endocrinología", "Gastroenterología", "Genética", "Geriatría", "Ginecología y Obstetricia", "Hematología", "Infectología", "Inmunología", "Medicina del deporte", "Medicina familiar", "Medicina general", "Medicina interna", "Nefrología", "Neumología", "Neurocirugía", "Neurología", "Nutrición", "Odontología", "Oftalmología", "Oncología", "Ortopedia y Traumatología", "Otorrinolaringología", "Pediatría", "Proctología", "Psicología", "Psiquiatría", "Radiología", "Rehabilitación / Fisioterapia", "Reumatología", "Urgencias", "Urología", "Otra"];
+const ESTADOS_CITA = {
+  programada: {
+    label: "Programada",
+    cls: "bg-sky-100 text-sky-700 border-sky-200",
+    dot: "bg-sky-500"
+  },
+  asistio: {
+    label: "Asistí",
+    cls: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    dot: "bg-emerald-500"
+  },
+  noasistio: {
+    label: "No asistí",
+    cls: "bg-red-100 text-red-700 border-red-200",
+    dot: "bg-red-500"
+  },
+  reagendada: {
+    label: "Reagendada",
+    cls: "bg-amber-100 text-amber-700 border-amber-200",
+    dot: "bg-amber-500"
+  },
+  cancelada: {
+    label: "Cancelada",
+    cls: "bg-slate-100 text-slate-500 border-slate-200",
+    dot: "bg-slate-400"
+  }
+};
+const fmtFechaCorta = iso => {
+  try {
+    return new Date(iso + "T12:00:00").toLocaleDateString("es-MX", {
+      weekday: "short",
+      day: "numeric",
+      month: "short"
+    });
+  } catch (e) {
+    return iso;
+  }
+};
+function Citas({
+  avisar,
+  nombre
+}) {
+  const [lista, setLista] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-citas-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-citas-v1", JSON.stringify(lista));
+    } catch (e) {}
+  }, [lista]);
+  const vacio = {
+    hospital: "",
+    fecha: hoyISO(),
+    hora: "",
+    especialidad: "",
+    especialidadOtra: "",
+    medico: "",
+    motivo: "",
+    notas: ""
+  };
+  const [f, setF] = useState(vacio);
+  const [editId, setEditId] = useState(null);
+  const [abierto, setAbierto] = useState(true);
+  const set = (k, v) => setF(p => ({
+    ...p,
+    [k]: v
+  }));
+  const guardar = () => {
+    const esp = f.especialidad === "Otra" ? f.especialidadOtra.trim() || "Otra" : f.especialidad;
+    if (!esp) {
+      avisar("Elige la especialidad");
+      return;
+    }
+    if (!f.fecha) {
+      avisar("Pon la fecha de la cita");
+      return;
+    }
+    if (editId) {
+      setLista(l => l.map(c => c.id === editId ? {
+        ...c,
+        ...f,
+        especialidad: esp
+      } : c));
+      avisar("Cita actualizada ✏️");
+    } else {
+      setLista(l => [{
+        id: Date.now(),
+        estado: "programada",
+        ...f,
+        especialidad: esp
+      }, ...l]);
+      avisar("Cita guardada 📅");
+    }
+    setF(vacio);
+    setEditId(null);
+  };
+  const editar = c => {
+    setEditId(c.id);
+    setAbierto(true);
+    setF({
+      hospital: c.hospital || "",
+      fecha: c.fecha || hoyISO(),
+      hora: c.hora || "",
+      especialidad: ESPECIALIDADES.indexOf(c.especialidad) >= 0 ? c.especialidad : "Otra",
+      especialidadOtra: ESPECIALIDADES.indexOf(c.especialidad) >= 0 ? "" : c.especialidad,
+      medico: c.medico || "",
+      motivo: c.motivo || "",
+      notas: c.notas || ""
+    });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
+  const borrar = id => setLista(l => l.filter(c => c.id !== id));
+  const setEstado = (id, estado) => setLista(l => l.map(c => c.id === id ? {
+    ...c,
+    estado
+  } : c));
+  const hoy = hoyISO();
+  const orden = lista.slice().sort((a, b) => a.fecha + (a.hora || "") < b.fecha + (b.hora || "") ? 1 : -1);
+  const proximas = orden.filter(c => c.fecha >= hoy && c.estado === "programada").reverse();
+  const otras = orden.filter(c => !(c.fecha >= hoy && c.estado === "programada"));
+  const ic = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white";
+  const exportar = () => {
+    const doc = abrirPDF("landscape");
+    if (!doc) return sinPDF(avisar);
+    encabezadoPDF(doc, "Mis citas médicas", nombre);
+    doc.autoTable({
+      head: [["Fecha", "Hora", "Especialidad", "Médico", "Hospital / Clínica", "Motivo", "Estado"]],
+      body: orden.map(c => [fmtFechaCorta(c.fecha), c.hora || "—", c.especialidad, c.medico || "—", c.hospital || "—", c.motivo || "—", (ESTADOS_CITA[c.estado] || {}).label || c.estado]),
+      startY: 26,
+      styles: {
+        fontSize: 8,
+        cellPadding: 2
+      },
+      headStyles: {
+        fillColor: [4, 120, 87],
+        fontSize: 8
+      },
+      alternateRowStyles: {
+        fillColor: [245, 250, 248]
+      }
+    });
+    doc.save("citas-medicas-" + todayStr() + ".pdf");
+    avisar("PDF de citas descargado");
+  };
+  const Tarjeta = ({
+    c
+  }) => {
+    const e = ESTADOS_CITA[c.estado] || ESTADOS_CITA.programada;
+    return React.createElement("div", {
+      className: "rounded-xl border border-slate-200 bg-white p-3"
+    }, React.createElement("div", {
+      className: "flex items-start justify-between gap-2"
+    }, React.createElement("div", {
+      className: "flex items-center gap-3 min-w-0"
+    }, React.createElement("div", {
+      className: "flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 shrink-0"
+    }, React.createElement("span", {
+      className: "text-[10px] uppercase leading-none"
+    }, (() => {
+      try {
+        return new Date(c.fecha + "T12:00:00").toLocaleDateString("es-MX", {
+          month: "short"
+        });
+      } catch (x) {
+        return "";
+      }
+    })()), React.createElement("span", {
+      className: "text-lg font-black leading-none"
+    }, (c.fecha || "").slice(8, 10))), React.createElement("div", {
+      className: "min-w-0"
+    }, React.createElement("div", {
+      className: "font-bold text-slate-800 text-sm truncate"
+    }, "\uD83E\uDE7A ", c.especialidad), React.createElement("div", {
+      className: "text-xs text-slate-500"
+    }, fmtFechaCorta(c.fecha), c.hora ? " · " + c.hora : ""), c.medico && React.createElement("div", {
+      className: "text-xs text-slate-500 truncate"
+    }, "Dr(a). ", c.medico), c.hospital && React.createElement("div", {
+      className: "text-xs text-slate-400 truncate"
+    }, "\uD83C\uDFE5 ", c.hospital))), React.createElement("span", {
+      className: "text-[11px] font-semibold rounded-full px-2 py-1 border whitespace-nowrap " + e.cls
+    }, e.label)), c.motivo && React.createElement("div", {
+      className: "text-xs text-slate-600 mt-2 bg-slate-50 rounded-lg px-2.5 py-1.5"
+    }, "Motivo: ", c.motivo), c.notas && React.createElement("div", {
+      className: "text-xs text-slate-500 mt-1"
+    }, c.notas), React.createElement("div", {
+      className: "flex flex-wrap gap-1.5 mt-2"
+    }, ["asistio", "noasistio", "reagendada", "programada", "cancelada"].map(k => React.createElement("button", {
+      key: k,
+      onClick: () => setEstado(c.id, k),
+      className: "text-[11px] font-semibold rounded-full px-2.5 py-1 border " + (c.estado === k ? ESTADOS_CITA[k].cls : "bg-white text-slate-400 border-slate-200")
+    }, ESTADOS_CITA[k].label)), React.createElement("button", {
+      onClick: () => editar(c),
+      className: "text-[11px] font-semibold text-slate-500 border border-slate-200 rounded-full px-2.5 py-1 ml-auto"
+    }, React.createElement(IEdit, {
+      cls: "w-3 h-3 inline"
+    })), React.createElement("button", {
+      onClick: () => borrar(c.id),
+      className: "text-[11px] font-semibold text-red-500 border border-red-100 rounded-full px-2.5 py-1"
+    }, React.createElement(ITrash, {
+      cls: "w-3 h-3 inline"
+    }))));
+  };
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-sky-600 to-emerald-600 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(ICal, {
+    cls: "w-5 h-5"
+  }), " Mis citas m\xE9dicas"), React.createElement("p", {
+    className: "text-sky-100 text-sm mt-1"
+  }, "Agenda tus consultas y marca si asististe, no asististe o la reagendaste."), React.createElement("div", {
+    className: "flex gap-3 mt-3 text-center"
+  }, React.createElement("div", {
+    className: "bg-white/15 rounded-xl px-3 py-1.5"
+  }, React.createElement("div", {
+    className: "text-lg font-black leading-none"
+  }, proximas.length), React.createElement("div", {
+    className: "text-[11px] text-sky-100"
+  }, "pr\xF3ximas")), React.createElement("div", {
+    className: "bg-white/15 rounded-xl px-3 py-1.5"
+  }, React.createElement("div", {
+    className: "text-lg font-black leading-none"
+  }, lista.filter(c => c.estado === "asistio").length), React.createElement("div", {
+    className: "text-[11px] text-sky-100"
+  }, "asistidas")), React.createElement("div", {
+    className: "bg-white/15 rounded-xl px-3 py-1.5"
+  }, React.createElement("div", {
+    className: "text-lg font-black leading-none"
+  }, lista.length), React.createElement("div", {
+    className: "text-[11px] text-sky-100"
+  }, "en total")))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("button", {
+    onClick: () => setAbierto(!abierto),
+    className: "w-full flex items-center justify-between"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, editId ? "✏️ Editar cita" : "➕ Nueva cita"), React.createElement(IChevD, {
+    cls: "w-4 h-4 text-slate-400 transition-transform " + (abierto ? "rotate-180" : "")
+  })), abierto && React.createElement("div", {
+    className: "mt-3 grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Especialidad", React.createElement("select", {
+    value: f.especialidad,
+    onChange: e => set("especialidad", e.target.value),
+    className: ic + " mt-0.5"
+  }, React.createElement("option", {
+    value: ""
+  }, "Elige una especialidad\u2026"), ESPECIALIDADES.map(e => React.createElement("option", {
+    key: e,
+    value: e
+  }, e)))), f.especialidad === "Otra" && React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Especifica la especialidad", React.createElement("input", {
+    type: "text",
+    value: f.especialidadOtra,
+    onChange: e => set("especialidadOtra", e.target.value),
+    className: ic + " mt-0.5",
+    placeholder: "Escr\xEDbela"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Fecha", React.createElement("input", {
+    type: "date",
+    value: f.fecha,
+    onChange: e => set("fecha", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Hora", React.createElement("input", {
+    type: "time",
+    value: f.hora,
+    onChange: e => set("hora", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Hospital o cl\xEDnica", React.createElement("input", {
+    type: "text",
+    value: f.hospital,
+    onChange: e => set("hospital", e.target.value),
+    className: ic + " mt-0.5",
+    placeholder: "Ej.: IMSS Cl\xEDnica 76, Hospital \xC1ngeles\u2026"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "M\xE9dico que me atender\xE1 (opcional)", React.createElement("input", {
+    type: "text",
+    value: f.medico,
+    onChange: e => set("medico", e.target.value),
+    className: ic + " mt-0.5",
+    placeholder: "Nombre del doctor(a)"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Motivo (opcional)", React.createElement("input", {
+    type: "text",
+    value: f.motivo,
+    onChange: e => set("motivo", e.target.value),
+    className: ic + " mt-0.5",
+    placeholder: "Consulta, control, estudio, resultados\u2026"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Notas (opcional)", React.createElement("input", {
+    type: "text",
+    value: f.notas,
+    onChange: e => set("notas", e.target.value),
+    className: ic + " mt-0.5",
+    placeholder: "Llevar estudios, ayuno, etc."
+  })), React.createElement("div", {
+    className: "col-span-2 flex gap-2 mt-1"
+  }, React.createElement("button", {
+    onClick: guardar,
+    className: "flex-1 bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800"
+  }, editId ? "Guardar cambios" : "Guardar cita"), editId && React.createElement("button", {
+    onClick: () => {
+      setF(vacio);
+      setEditId(null);
+    },
+    className: "text-sm font-semibold text-slate-500 border border-slate-200 rounded-xl px-3"
+  }, "Cancelar")))), proximas.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, React.createElement("h3", {
+    className: "text-sm font-bold text-slate-700"
+  }, "\uD83D\uDCCC Pr\xF3ximas citas")), React.createElement("div", {
+    className: "space-y-2"
+  }, proximas.map(c => React.createElement(Tarjeta, {
+    key: c.id,
+    c: c
+  })))), otras.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, React.createElement("h3", {
+    className: "text-sm font-bold text-slate-700"
+  }, "\uD83D\uDDC2\uFE0F Historial de citas"), React.createElement("button", {
+    onClick: exportar,
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5 flex items-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-3.5 h-3.5"
+  }), " PDF")), React.createElement("div", {
+    className: "space-y-2"
+  }, otras.map(c => React.createElement(Tarjeta, {
+    key: c.id,
+    c: c
+  })))), lista.length === 0 && React.createElement("div", {
+    className: "text-center text-sm text-slate-400 py-8"
+  }, "A\xFAn no tienes citas registradas. Agrega la primera arriba. \uD83D\uDCC5"));
+}
+const SINTOMAS_BASE = [{
+  id: "dolor",
+  label: "Dolor",
+  emoji: "🤕",
+  medible: true,
+  unidad: ""
+}, {
+  id: "fiebre",
+  label: "Fiebre",
+  emoji: "🌡️",
+  medible: true,
+  unidad: "°C"
+}, {
+  id: "tos",
+  label: "Tos",
+  emoji: "😷",
+  medible: false
+}, {
+  id: "disnea",
+  label: "Dificultad para respirar",
+  emoji: "😮‍💨",
+  medible: false
+}, {
+  id: "mareos",
+  label: "Mareos",
+  emoji: "💫",
+  medible: false
+}, {
+  id: "nauseas",
+  label: "Náuseas",
+  emoji: "🤢",
+  medible: false
+}, {
+  id: "vomito",
+  label: "Vómito",
+  emoji: "🤮",
+  medible: true,
+  unidad: "veces"
+}, {
+  id: "fatiga",
+  label: "Fatiga / cansancio",
+  emoji: "🥱",
+  medible: false
+}, {
+  id: "apetito",
+  label: "Pérdida de apetito",
+  emoji: "🍽️",
+  medible: false
+}, {
+  id: "insomnio",
+  label: "Insomnio",
+  emoji: "🌙",
+  medible: false
+}, {
+  id: "inflamacion",
+  label: "Inflamación",
+  emoji: "🎈",
+  medible: false
+}];
+function RegistroSintomas({
+  avisar,
+  nombre
+}) {
+  const [lista, setLista] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-sintomas-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-sintomas-v1", JSON.stringify(lista));
+    } catch (e) {}
+  }, [lista]);
+  const [sel, setSel] = useState("dolor");
+  const [otro, setOtro] = useState("");
+  const [intensidad, setIntensidad] = useState(5);
+  const [valor, setValor] = useState("");
+  const [nota, setNota] = useState("");
+  const [fecha, setFecha] = useState(hoyISO());
+  const base = SINTOMAS_BASE.find(s => s.id === sel);
+  const esOtro = sel === "otro";
+  const registrar = () => {
+    const label = esOtro ? otro.trim() || "Otro síntoma" : base.label;
+    const emoji = esOtro ? "📝" : base.emoji;
+    const unidad = esOtro ? "" : base.unidad || "";
+    setLista(l => [{
+      id: Date.now(),
+      fecha,
+      label,
+      emoji,
+      intensidad: Number(intensidad),
+      valor: valor !== "" ? Number(valor) : null,
+      unidad,
+      nota: nota.trim()
+    }, ...l]);
+    setValor("");
+    setNota("");
+    setOtro("");
+    avisar("Síntoma registrado 📝");
+  };
+  const borrar = id => setLista(l => l.filter(x => x.id !== id));
+  const colorInt = n => n >= 8 ? "bg-red-500" : n >= 5 ? "bg-amber-500" : "bg-emerald-500";
+  const ic = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white";
+  const exportar = () => {
+    const doc = abrirPDF();
+    if (!doc) return sinPDF(avisar);
+    encabezadoPDF(doc, "Registro de síntomas", nombre);
+    doc.autoTable({
+      head: [["Fecha", "Síntoma", "Intensidad (1-10)", "Medición", "Nota"]],
+      body: lista.slice().sort((a, b) => a.fecha < b.fecha ? 1 : -1).map(s => [s.fecha, s.label, String(s.intensidad), s.valor != null ? s.valor + " " + (s.unidad || "") : "—", s.nota || "—"]),
+      startY: 26,
+      styles: {
+        fontSize: 9,
+        cellPadding: 2
+      },
+      headStyles: {
+        fillColor: [4, 120, 87]
+      },
+      alternateRowStyles: {
+        fillColor: [245, 250, 248]
+      },
+      didParseCell: d => {
+        if (d.section === "body" && d.column.index === 2 && Number(d.cell.raw) >= 8) {
+          d.cell.styles.textColor = [190, 18, 60];
+          d.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+    doc.save("sintomas-" + todayStr() + ".pdf");
+    avisar("PDF de síntomas descargado");
+  };
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-rose-500 to-orange-500 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(IThermo, {
+    cls: "w-5 h-5"
+  }), " Registro de s\xEDntomas"), React.createElement("p", {
+    className: "text-rose-50 text-sm mt-1"
+  }, "Lleva el control de c\xF3mo se siente el paciente d\xEDa a d\xEDa.")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800"
+  }, "\xBFQu\xE9 s\xEDntoma quieres registrar?"), React.createElement("div", {
+    className: "grid grid-cols-3 gap-1.5 mt-3"
+  }, SINTOMAS_BASE.map(s => React.createElement("button", {
+    key: s.id,
+    onClick: () => setSel(s.id),
+    className: "text-xs rounded-xl px-1 py-2 border font-medium flex flex-col items-center gap-0.5 " + (sel === s.id ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-600 border-slate-200")
+  }, React.createElement("span", {
+    className: "text-base"
+  }, s.emoji), React.createElement("span", {
+    className: "leading-tight text-center"
+  }, s.label))), React.createElement("button", {
+    onClick: () => setSel("otro"),
+    className: "text-xs rounded-xl px-1 py-2 border font-medium flex flex-col items-center gap-0.5 " + (sel === "otro" ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-600 border-slate-200")
+  }, React.createElement("span", {
+    className: "text-base"
+  }, "\u2795"), React.createElement("span", null, "Otro"))), React.createElement("div", {
+    className: "mt-3 space-y-2"
+  }, esOtro && React.createElement("input", {
+    type: "text",
+    value: otro,
+    onChange: e => setOtro(e.target.value),
+    placeholder: "Nombre del s\xEDntoma",
+    className: ic
+  }), React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, React.createElement("span", {
+    className: "text-xs text-slate-500 w-20"
+  }, "Intensidad"), React.createElement("input", {
+    type: "range",
+    min: "1",
+    max: "10",
+    value: intensidad,
+    onChange: e => setIntensidad(e.target.value),
+    className: "flex-1 accent-rose-600"
+  }), React.createElement("span", {
+    className: "text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center " + colorInt(intensidad)
+  }, intensidad)), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Medici\xF3n ", base && base.unidad ? "(" + base.unidad + ")" : "(opcional)", React.createElement("input", {
+    type: "number",
+    inputMode: "decimal",
+    value: valor,
+    onChange: e => setValor(e.target.value),
+    placeholder: base && base.id === "fiebre" ? "Ej. 39" : "Valor",
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Fecha", React.createElement("input", {
+    type: "date",
+    value: fecha,
+    max: hoyISO(),
+    onChange: e => setFecha(e.target.value),
+    className: ic + " mt-0.5"
+  }))), React.createElement("input", {
+    type: "text",
+    value: nota,
+    onChange: e => setNota(e.target.value),
+    placeholder: "Nota (opcional): d\xF3nde, con qu\xE9 mejora/empeora\u2026",
+    className: ic
+  }), React.createElement("button", {
+    onClick: registrar,
+    className: "w-full bg-rose-600 text-white text-sm font-semibold rounded-xl py-2.5 hover:bg-rose-700 flex items-center justify-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " Registrar s\xEDntoma"))), lista.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, React.createElement("h3", {
+    className: "text-sm font-bold text-slate-700"
+  }, "\uD83D\uDDC2\uFE0F Historial (", lista.length, ")"), React.createElement("button", {
+    onClick: exportar,
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5 flex items-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-3.5 h-3.5"
+  }), " PDF")), React.createElement("div", {
+    className: "space-y-2"
+  }, lista.map(s => React.createElement("div", {
+    key: s.id,
+    className: "flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3"
+  }, React.createElement("span", {
+    className: "text-xl shrink-0"
+  }, s.emoji), React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, React.createElement("div", {
+    className: "text-sm font-semibold text-slate-800"
+  }, s.label, " ", s.valor != null && React.createElement("span", {
+    className: "text-rose-600"
+  }, "\xB7 ", s.valor, " ", s.unidad)), React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, s.fecha, s.nota ? " · " + s.nota : "")), React.createElement("span", {
+    className: "text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shrink-0 " + colorInt(s.intensidad)
+  }, s.intensidad), React.createElement("button", {
+    onClick: () => borrar(s.id),
+    className: "text-slate-300 hover:text-red-500 shrink-0"
+  }, React.createElement(ITrash, {
+    cls: "w-4 h-4"
+  })))))));
+}
+const ALTERACIONES_SUENO = ["Ronquidos", "Pausas al respirar (posible apnea)", "Pesadillas", "Hablar dormido", "Moverse mucho", "Levantarse al baño", "Dolor", "Reflujo"];
+const calcHorasSueno = (dormir, despertar) => {
+  if (!dormir || !despertar) return 0;
+  const [h1, m1] = dormir.split(":").map(Number);
+  const [h2, m2] = despertar.split(":").map(Number);
+  let min = h2 * 60 + m2 - (h1 * 60 + m1);
+  if (min <= 0) min += 1440;
+  return Math.round(min / 60 * 10) / 10;
+};
+function ControlSueno({
+  avisar,
+  nombre
+}) {
+  const [lista, setLista] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-sueno-log-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-sueno-log-v1", JSON.stringify(lista));
+    } catch (e) {}
+  }, [lista]);
+  const vacio = {
+    fecha: hoyISO(),
+    dormir: "23:00",
+    despertar: "07:00",
+    despertares: 0,
+    calidad: 3,
+    insomnio: "no",
+    siesta: 0,
+    alteraciones: [],
+    apnea: false,
+    obs: ""
+  };
+  const [f, setF] = useState(vacio);
+  const set = (k, v) => setF(p => ({
+    ...p,
+    [k]: v
+  }));
+  const toggleAlt = a => setF(p => ({
+    ...p,
+    alteraciones: p.alteraciones.indexOf(a) >= 0 ? p.alteraciones.filter(x => x !== a) : [...p.alteraciones, a]
+  }));
+  const horas = calcHorasSueno(f.dormir, f.despertar);
+  const guardar = () => {
+    setLista(l => [{
+      id: Date.now(),
+      ...f,
+      horas
+    }, ...l]);
+    setF(vacio);
+    avisar("Registro de sueño guardado 🌙");
+  };
+  const borrar = id => setLista(l => l.filter(x => x.id !== id));
+  const CAL = ["", "Muy mala", "Mala", "Regular", "Buena", "Excelente"];
+  const calColor = c => c >= 4 ? "text-emerald-600" : c >= 3 ? "text-amber-600" : "text-red-600";
+  const prom = lista.length ? Math.round(lista.reduce((a, r) => a + (r.horas || 0), 0) / lista.length * 10) / 10 : 0;
+  const ic = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white";
+  const exportar = () => {
+    const doc = abrirPDF("landscape");
+    if (!doc) return sinPDF(avisar);
+    encabezadoPDF(doc, "Control de sueño", nombre);
+    doc.autoTable({
+      head: [["Fecha", "Dormir", "Despertar", "Horas", "Despertares", "Calidad", "Insomnio", "Siesta (min)", "Apnea", "Alteraciones", "Obs. del cuidador"]],
+      body: lista.slice().sort((a, b) => a.fecha < b.fecha ? 1 : -1).map(r => [r.fecha, r.dormir, r.despertar, String(r.horas), String(r.despertares), CAL[r.calidad] || "", r.insomnio === "no" ? "No" : r.insomnio, String(r.siesta || 0), r.apnea ? "Sí" : "No", (r.alteraciones || []).join(", ") || "—", r.obs || "—"]),
+      startY: 26,
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 1.5
+      },
+      headStyles: {
+        fillColor: [79, 70, 229],
+        fontSize: 7.5
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 255]
+      }
+    });
+    const y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    doc.text("Promedio de horas de sueño: " + prom + " h   ·   Registros: " + lista.length, 14, y);
+    doc.save("control-sueno-" + todayStr() + ".pdf");
+    avisar("PDF de sueño descargado");
+  };
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(IMoon, {
+    cls: "w-5 h-5"
+  }), " Control de sue\xF1o"), React.createElement("p", {
+    className: "text-indigo-100 text-sm mt-1"
+  }, "Registra c\xF3mo duermes para detectar patrones y problemas como la apnea."), lista.length > 0 && React.createElement("div", {
+    className: "mt-3 inline-flex items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5"
+  }, React.createElement("span", {
+    className: "text-lg font-black leading-none"
+  }, prom, " h"), React.createElement("span", {
+    className: "text-[11px] text-indigo-100"
+  }, "promedio por noche"))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800"
+  }, "\u2795 Nueva noche"), React.createElement("div", {
+    className: "mt-3 grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Fecha", React.createElement("input", {
+    type: "date",
+    value: f.fecha,
+    max: hoyISO(),
+    onChange: e => set("fecha", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("div", {
+    className: "flex items-end"
+  }, React.createElement("div", {
+    className: "w-full rounded-xl bg-indigo-50 text-indigo-700 text-center py-2 font-bold"
+  }, horas, " h de sue\xF1o")), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Hora de dormir", React.createElement("input", {
+    type: "time",
+    value: f.dormir,
+    onChange: e => set("dormir", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Hora de despertar", React.createElement("input", {
+    type: "time",
+    value: f.despertar,
+    onChange: e => set("despertar", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Despertares nocturnos", React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "30",
+    value: f.despertares,
+    onChange: e => set("despertares", Number(e.target.value)),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Siesta (minutos)", React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "600",
+    value: f.siesta,
+    onChange: e => set("siesta", Number(e.target.value)),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Calidad del sue\xF1o: ", React.createElement("b", {
+    className: calColor(f.calidad)
+  }, CAL[f.calidad]), React.createElement("input", {
+    type: "range",
+    min: "1",
+    max: "5",
+    value: f.calidad,
+    onChange: e => set("calidad", Number(e.target.value)),
+    className: "w-full accent-indigo-600 mt-1"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500 col-span-2"
+  }, "Insomnio", React.createElement("select", {
+    value: f.insomnio,
+    onChange: e => set("insomnio", e.target.value),
+    className: ic + " mt-0.5"
+  }, React.createElement("option", {
+    value: "no"
+  }, "Sin insomnio"), React.createElement("option", {
+    value: "Para conciliar el sue\xF1o"
+  }, "Para conciliar el sue\xF1o"), React.createElement("option", {
+    value: "Despertar en la madrugada"
+  }, "Despertar en la madrugada"), React.createElement("option", {
+    value: "Despertar muy temprano"
+  }, "Despertar muy temprano")))), React.createElement("div", {
+    className: "mt-3"
+  }, React.createElement("div", {
+    className: "text-xs font-semibold text-slate-500 mb-1.5"
+  }, "Alteraciones del descanso"), React.createElement("div", {
+    className: "flex flex-wrap gap-1.5"
+  }, ALTERACIONES_SUENO.map(a => React.createElement("button", {
+    key: a,
+    onClick: () => toggleAlt(a),
+    className: "text-[11px] rounded-full px-2.5 py-1 border font-medium " + (f.alteraciones.indexOf(a) >= 0 ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200")
+  }, a)))), React.createElement("label", {
+    className: "flex items-center gap-2 mt-3 text-sm text-slate-700"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: f.apnea,
+    onChange: e => set("apnea", e.target.checked),
+    className: "w-4 h-4 accent-indigo-600"
+  }), " Diagn\xF3stico o sospecha de apnea del sue\xF1o"), React.createElement("label", {
+    className: "text-xs text-slate-500 block mt-3"
+  }, "Observaciones del cuidador", React.createElement("textarea", {
+    rows: "2",
+    value: f.obs,
+    onChange: e => set("obs", e.target.value),
+    placeholder: "Lo que observ\xF3 quien acompa\xF1a al paciente durante la noche\u2026",
+    className: ic + " mt-0.5"
+  })), React.createElement("button", {
+    onClick: guardar,
+    className: "w-full mt-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl py-2.5 hover:bg-indigo-700 flex items-center justify-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " Guardar noche")), lista.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, React.createElement("h3", {
+    className: "text-sm font-bold text-slate-700"
+  }, "\uD83D\uDDC2\uFE0F Historial (", lista.length, ")"), React.createElement("button", {
+    onClick: exportar,
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5 flex items-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-3.5 h-3.5"
+  }), " PDF")), React.createElement("div", {
+    className: "space-y-2"
+  }, lista.map(r => React.createElement("div", {
+    key: r.id,
+    className: "bg-white border border-slate-200 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between"
+  }, React.createElement("div", {
+    className: "font-semibold text-slate-800 text-sm"
+  }, "\uD83C\uDF19 ", r.fecha, " \xB7 ", React.createElement("span", {
+    className: "text-indigo-600"
+  }, r.horas, " h")), React.createElement("button", {
+    onClick: () => borrar(r.id),
+    className: "text-slate-300 hover:text-red-500"
+  }, React.createElement(ITrash, {
+    cls: "w-4 h-4"
+  }))), React.createElement("div", {
+    className: "text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5"
+  }, React.createElement("span", null, r.dormir, "\u2192", r.despertar), React.createElement("span", {
+    className: calColor(r.calidad)
+  }, "Calidad: ", CAL[r.calidad]), React.createElement("span", null, r.despertares, " despertares"), r.siesta > 0 && React.createElement("span", null, "Siesta ", r.siesta, " min"), r.insomnio !== "no" && React.createElement("span", {
+    className: "text-amber-600"
+  }, "Insomnio: ", r.insomnio), r.apnea && React.createElement("span", {
+    className: "text-red-600 font-semibold"
+  }, "Apnea")), r.alteraciones && r.alteraciones.length > 0 && React.createElement("div", {
+    className: "text-[11px] text-slate-400 mt-1"
+  }, r.alteraciones.join(" · ")), r.obs && React.createElement("div", {
+    className: "text-xs text-slate-500 mt-1 bg-slate-50 rounded-lg px-2 py-1"
+  }, "\uD83D\uDC41\uFE0F ", r.obs))))));
+}
+function Emergencia({
+  avisar,
+  data
+}) {
+  const perfil = data && data.perfil || {};
+  const [cfg, setCfg] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-emergencia-v1")) || {
+        medicos: [],
+        contactos: []
+      };
+    } catch (e) {
+      return {
+        medicos: [],
+        contactos: []
+      };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-emergencia-v1", JSON.stringify(cfg));
+    } catch (e) {}
+  }, [cfg]);
+  const [m, setM] = useState({
+    nombre: "",
+    esp: "",
+    tel: ""
+  });
+  const [c, setC] = useState({
+    nombre: "",
+    rel: "",
+    tel: ""
+  });
+  const soloTel = t => (t || "").replace(/[^0-9+]/g, "");
+  const addMedico = () => {
+    if (!m.nombre.trim() || !m.tel.trim()) {
+      avisar("Pon nombre y teléfono del médico");
+      return;
+    }
+    setCfg(p => ({
+      ...p,
+      medicos: [...p.medicos, {
+        id: Date.now(),
+        ...m
+      }]
+    }));
+    setM({
+      nombre: "",
+      esp: "",
+      tel: ""
+    });
+  };
+  const addContacto = () => {
+    if (!c.nombre.trim() || !c.tel.trim()) {
+      avisar("Pon nombre y teléfono del contacto");
+      return;
+    }
+    setCfg(p => ({
+      ...p,
+      contactos: [...p.contactos, {
+        id: Date.now(),
+        ...c
+      }]
+    }));
+    setC({
+      nombre: "",
+      rel: "",
+      tel: ""
+    });
+  };
+  const delMedico = id => setCfg(p => ({
+    ...p,
+    medicos: p.medicos.filter(x => x.id !== id)
+  }));
+  const delContacto = id => setCfg(p => ({
+    ...p,
+    contactos: p.contactos.filter(x => x.id !== id)
+  }));
+  const ic = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 bg-white";
+  const Fila = ({
+    o,
+    sub,
+    onDel
+  }) => React.createElement("div", {
+    className: "flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, React.createElement("div", {
+    className: "font-semibold text-slate-800 text-sm truncate"
+  }, o.nombre), React.createElement("div", {
+    className: "text-xs text-slate-500 truncate"
+  }, sub)), React.createElement("a", {
+    href: "tel:" + soloTel(o.tel),
+    className: "bg-emerald-600 text-white text-xs font-semibold rounded-xl px-3 py-2"
+  }, "\uD83D\uDCDE Llamar"), React.createElement("a", {
+    href: "https://wa.me/52" + soloTel(o.tel).replace(/[^0-9]/g, ""),
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-xl px-2.5 py-2"
+  }, "\uD83D\uDCAC"), React.createElement("button", {
+    onClick: onDel,
+    className: "text-slate-300 hover:text-red-500"
+  }, React.createElement(ITrash, {
+    cls: "w-4 h-4"
+  })));
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-red-600 to-rose-700 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(IWarn, {
+    cls: "w-5 h-5"
+  }), " Emergencia"), React.createElement("p", {
+    className: "text-red-100 text-sm mt-1"
+  }, "Acceso r\xE1pido a ayuda y a tus contactos clave.")), React.createElement("a", {
+    href: "tel:911",
+    className: "block bg-red-600 hover:bg-red-700 text-white rounded-2xl p-5 text-center shadow-lg"
+  }, React.createElement("div", {
+    className: "text-4xl"
+  }, "\uD83D\uDEA8"), React.createElement("div", {
+    className: "text-2xl font-black mt-1"
+  }, "Llamar al 911"), React.createElement("div", {
+    className: "text-red-100 text-sm"
+  }, "Emergencias (M\xE9xico)")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, "\uD83E\uDE78 Ficha de emergencia"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1 mb-2"
+  }, "Datos \xFAtiles para quien te auxilie. Se llenan en Salud \u2192 Perfil del paciente."), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2 text-sm"
+  }, React.createElement("div", {
+    className: "bg-red-50 rounded-xl px-3 py-2"
+  }, React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "Tipo de sangre"), React.createElement("div", {
+    className: "font-bold text-red-700"
+  }, perfil.tipoSangre || "—")), React.createElement("div", {
+    className: "bg-slate-50 rounded-xl px-3 py-2"
+  }, React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "Nombre"), React.createElement("div", {
+    className: "font-bold text-slate-800 truncate"
+  }, perfil.nombre || "—")), React.createElement("div", {
+    className: "bg-amber-50 rounded-xl px-3 py-2 col-span-2"
+  }, React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "Alergias"), React.createElement("div", {
+    className: "font-semibold text-amber-800"
+  }, perfil.alergias || "Ninguna registrada")), React.createElement("div", {
+    className: "bg-sky-50 rounded-xl px-3 py-2 col-span-2"
+  }, React.createElement("div", {
+    className: "text-[11px] text-slate-500"
+  }, "Condiciones / padecimientos"), React.createElement("div", {
+    className: "font-semibold text-sky-800"
+  }, perfil.condiciones || "Ninguna registrada")))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, React.createElement(ISteth, {
+    cls: "w-5 h-5 text-emerald-700"
+  }), " M\xE9dicos tratantes"), React.createElement("div", {
+    className: "space-y-2 mt-3"
+  }, cfg.medicos.map(o => React.createElement(Fila, {
+    key: o.id,
+    o: o,
+    sub: (o.esp || "Médico") + " · " + o.tel,
+    onDel: () => delMedico(o.id)
+  }))), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2 mt-3"
+  }, React.createElement("input", {
+    type: "text",
+    value: m.nombre,
+    onChange: e => setM({
+      ...m,
+      nombre: e.target.value
+    }),
+    placeholder: "Nombre",
+    className: ic
+  }), React.createElement("input", {
+    type: "text",
+    value: m.esp,
+    onChange: e => setM({
+      ...m,
+      esp: e.target.value
+    }),
+    placeholder: "Especialidad",
+    className: ic
+  }), React.createElement("input", {
+    type: "tel",
+    value: m.tel,
+    onChange: e => setM({
+      ...m,
+      tel: e.target.value
+    }),
+    placeholder: "Tel\xE9fono",
+    className: ic + " col-span-2"
+  })), React.createElement("button", {
+    onClick: addMedico,
+    className: "w-full mt-2 bg-emerald-700 text-white text-sm font-semibold rounded-xl py-2 hover:bg-emerald-800"
+  }, "Agregar m\xE9dico")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 flex items-center gap-2"
+  }, React.createElement(IUser, {
+    cls: "w-5 h-5 text-sky-600"
+  }), " Contactos de emergencia"), React.createElement("div", {
+    className: "space-y-2 mt-3"
+  }, cfg.contactos.map(o => React.createElement(Fila, {
+    key: o.id,
+    o: o,
+    sub: (o.rel || "Contacto") + " · " + o.tel,
+    onDel: () => delContacto(o.id)
+  }))), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2 mt-3"
+  }, React.createElement("input", {
+    type: "text",
+    value: c.nombre,
+    onChange: e => setC({
+      ...c,
+      nombre: e.target.value
+    }),
+    placeholder: "Nombre",
+    className: ic
+  }), React.createElement("input", {
+    type: "text",
+    value: c.rel,
+    onChange: e => setC({
+      ...c,
+      rel: e.target.value
+    }),
+    placeholder: "Parentesco",
+    className: ic
+  }), React.createElement("input", {
+    type: "tel",
+    value: c.tel,
+    onChange: e => setC({
+      ...c,
+      tel: e.target.value
+    }),
+    placeholder: "Tel\xE9fono",
+    className: ic + " col-span-2"
+  })), React.createElement("button", {
+    onClick: addContacto,
+    className: "w-full mt-2 bg-sky-600 text-white text-sm font-semibold rounded-xl py-2 hover:bg-sky-700"
+  }, "Agregar contacto")));
+}
+function MiniChart({
+  puntos,
+  rango,
+  color
+}) {
+  if (!puntos || puntos.length === 0) return React.createElement("div", {
+    className: "text-xs text-slate-400 py-6 text-center"
+  }, "Sin datos a\xFAn");
+  const W = 300,
+    H = 112,
+    pad = 8,
+    padL = 26,
+    padB = 12;
+  const vals = puntos.map(p => p.v);
+  let lo = Math.min.apply(null, vals),
+    hi = Math.max.apply(null, vals);
+  if (rango) {
+    lo = Math.min(lo, rango.min);
+    hi = Math.max(hi, rango.max);
+  }
+  if (lo === hi) {
+    lo -= 1;
+    hi += 1;
+  }
+  const span = hi - lo || 1;
+  const x = i => puntos.length === 1 ? padL + (W - padL - pad) / 2 : padL + i * (W - padL - pad) / (puntos.length - 1);
+  const y = v => pad + (hi - v) / span * (H - pad - padB);
+  const dentro = v => rango ? v >= rango.min && v <= rango.max : true;
+  const linea = puntos.map((p, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
+  return React.createElement("svg", {
+    viewBox: "0 0 " + W + " " + H,
+    className: "w-full",
+    style: {
+      height: "118px"
+    }
+  }, rango && React.createElement("rect", {
+    x: padL,
+    y: y(Math.min(rango.max, hi)),
+    width: W - padL - pad,
+    height: Math.max(0, y(Math.max(rango.min, lo)) - y(Math.min(rango.max, hi))),
+    fill: "#10b981",
+    opacity: "0.10"
+  }), rango && React.createElement("line", {
+    x1: padL,
+    x2: W - pad,
+    y1: y(rango.max),
+    y2: y(rango.max),
+    stroke: "#10b981",
+    strokeWidth: "0.6",
+    strokeDasharray: "3 3"
+  }), rango && React.createElement("line", {
+    x1: padL,
+    x2: W - pad,
+    y1: y(rango.min),
+    y2: y(rango.min),
+    stroke: "#10b981",
+    strokeWidth: "0.6",
+    strokeDasharray: "3 3"
+  }), React.createElement("path", {
+    d: linea,
+    fill: "none",
+    stroke: color,
+    strokeWidth: "1.6"
+  }), puntos.map((p, i) => React.createElement("circle", {
+    key: i,
+    cx: x(i),
+    cy: y(p.v),
+    r: "2.6",
+    fill: dentro(p.v) ? color : "#ef4444"
+  })), React.createElement("text", {
+    x: "2",
+    y: y(hi) + 3,
+    fontSize: "7",
+    fill: "#94a3b8"
+  }, Math.round(hi * 10) / 10), React.createElement("text", {
+    x: "2",
+    y: y(lo) + 3,
+    fontSize: "7",
+    fill: "#94a3b8"
+  }, Math.round(lo * 10) / 10));
+}
+const SERIES_DEF = [{
+  key: "peso",
+  tipo: "peso",
+  campo: "a",
+  label: "Peso",
+  unidad: "kg",
+  color: "#6366f1"
+}, {
+  key: "glucosa",
+  tipo: "glucosa",
+  campo: "a",
+  label: "Glucosa",
+  unidad: "mg/dL",
+  color: "#e11d48"
+}, {
+  key: "presion_sis",
+  tipo: "presion",
+  campo: "a",
+  label: "Presión sistólica",
+  unidad: "mmHg",
+  color: "#dc2626"
+}, {
+  key: "presion_dia",
+  tipo: "presion",
+  campo: "b",
+  label: "Presión diastólica",
+  unidad: "mmHg",
+  color: "#f97316"
+}, {
+  key: "spo2",
+  tipo: "spo2",
+  campo: "a",
+  label: "Oxigenación (SpO2)",
+  unidad: "%",
+  color: "#0891b2"
+}, {
+  key: "temp",
+  tipo: "temp",
+  campo: "a",
+  label: "Temperatura",
+  unidad: "°C",
+  color: "#ea580c"
+}, {
+  key: "fc",
+  tipo: "fc",
+  campo: "a",
+  label: "Frecuencia cardiaca",
+  unidad: "lpm",
+  color: "#db2777"
+}];
+const RANGOS_DEF = {
+  peso: {
+    min: 50,
+    max: 90
+  },
+  glucosa: {
+    min: 70,
+    max: 110
+  },
+  presion_sis: {
+    min: 90,
+    max: 130
+  },
+  presion_dia: {
+    min: 60,
+    max: 85
+  },
+  spo2: {
+    min: 95,
+    max: 100
+  },
+  temp: {
+    min: 36,
+    max: 37.5
+  },
+  fc: {
+    min: 60,
+    max: 100
+  }
+};
+function Evolucion({
+  avisar,
+  data
+}) {
+  const [rangos, setRangos] = useState(() => {
+    try {
+      const r = JSON.parse(localStorage.getItem("medicontrol-rangos-v1"));
+      return {
+        ...RANGOS_DEF,
+        ...(r || {})
+      };
+    } catch (e) {
+      return {
+        ...RANGOS_DEF
+      };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("medicontrol-rangos-v1", JSON.stringify(rangos));
+    } catch (e) {}
+  }, [rangos]);
+  const [editR, setEditR] = useState(false);
+  const setRango = (k, campo, v) => setRangos(p => ({
+    ...p,
+    [k]: {
+      ...p[k],
+      [campo]: v === "" ? "" : Number(v)
+    }
+  }));
+  const readings = data && data.vitals && data.vitals.readings || [];
+  const sintomas = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-sintomas-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  })();
+  const suenoLog = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("medicontrol-sueno-log-v1")) || [];
+    } catch (e) {
+      return [];
+    }
+  })();
+  const serie = s => readings.filter(r => r.tipo === s.tipo && r[s.campo] != null && r[s.campo] !== "").map(r => ({
+    fecha: r.fecha,
+    hora: r.hora || "",
+    v: Number(r[s.campo])
+  })).sort((a, b) => a.fecha + a.hora < b.fecha + b.hora ? -1 : 1);
+  const hoy = hoyISO();
+  const adherencia = dias => {
+    const desde = addDays(hoy, -(dias - 1));
+    let prog = 0,
+      hechas = 0;
+    for (const m of data.meds || []) {
+      const fin = fechaFin(m);
+      for (const d of diasTratamiento(m)) {
+        if (d < desde || d > hoy || d > fin) continue;
+        for (const t of m.times || []) {
+          prog++;
+          if (data.taken[doseKey(m.id, d, t)]) hechas++;
+        }
+      }
+    }
+    return {
+      prog,
+      hechas,
+      pct: prog ? Math.round(hechas / prog * 100) : null
+    };
+  };
+  const ad7 = adherencia(7),
+    ad30 = adherencia(30);
+  const sintDesde = addDays(hoy, -29);
+  const sintFreq = {};
+  sintomas.filter(s => s.fecha >= sintDesde).forEach(s => {
+    sintFreq[s.label] = (sintFreq[s.label] || 0) + 1;
+  });
+  const sintTop = Object.keys(sintFreq).map(k => ({
+    k,
+    n: sintFreq[k]
+  })).sort((a, b) => b.n - a.n);
+  const maxSint = sintTop.length ? sintTop[0].n : 1;
+  const suenoProm = suenoLog.length ? Math.round(suenoLog.reduce((a, r) => a + (r.horas || 0), 0) / suenoLog.length * 10) / 10 : null;
+  const resumen = dias => {
+    const desde = addDays(hoy, -(dias - 1));
+    return {
+      lecturas: readings.filter(r => r.fecha >= desde).length,
+      sintomas: sintomas.filter(s => s.fecha >= desde).length,
+      noches: suenoLog.filter(r => r.fecha >= desde).length,
+      adh: adherencia(dias).pct
+    };
+  };
+  const sem = resumen(7),
+    mes = resumen(30);
+  const exportar = () => {
+    const doc = abrirPDF();
+    if (!doc) return sinPDF(avisar);
+    const nombre = data.perfil && data.perfil.nombre || "";
+    encabezadoPDF(doc, "Informe de evolución", nombre);
+    const filas = [];
+    SERIES_DEF.forEach(s => {
+      const p = serie(s);
+      if (!p.length) return;
+      const vals = p.map(x => x.v);
+      const last = vals[vals.length - 1];
+      const prom = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
+      const r = rangos[s.key];
+      const estado = r && (last < r.min || last > r.max) ? "FUERA DE RANGO" : "En rango";
+      filas.push([s.label, last + " " + s.unidad, prom + " " + s.unidad, Math.min.apply(null, vals) + " / " + Math.max.apply(null, vals), r ? r.min + "–" + r.max : "—", estado]);
+    });
+    doc.autoTable({
+      head: [["Indicador", "Último", "Promedio", "Mín / Máx", "Rango", "Estado"]],
+      body: filas,
+      startY: 26,
+      styles: {
+        fontSize: 8.5,
+        cellPadding: 2
+      },
+      headStyles: {
+        fillColor: [4, 120, 87]
+      },
+      alternateRowStyles: {
+        fillColor: [245, 250, 248]
+      },
+      didParseCell: d => {
+        if (d.section === "body" && d.column.index === 5 && String(d.cell.raw).indexOf("FUERA") >= 0) {
+          d.cell.styles.textColor = [190, 18, 60];
+          d.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+    let y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    doc.setFontSize(10);
+    doc.setTextColor(6, 78, 59);
+    doc.text("Resumen", 14, y);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    doc.text("Cumplimiento de medicamentos: 7 días " + (ad7.pct == null ? "—" : ad7.pct + "%") + "   ·   30 días " + (ad30.pct == null ? "—" : ad30.pct + "%"), 14, y);
+    y += 5;
+    doc.text("Sueño promedio: " + (suenoProm == null ? "—" : suenoProm + " h") + "   ·   Registros de síntomas (30 d): " + mes.sintomas, 14, y);
+    y += 5;
+    if (sintTop.length) {
+      doc.text("Síntomas más frecuentes (30 d): " + sintTop.slice(0, 5).map(s => s.k + " (" + s.n + ")").join(", "), 14, y);
+      y += 5;
+    }
+    doc.save("informe-evolucion-" + todayStr() + ".pdf");
+    avisar("Informe de evolución descargado");
+  };
+  const conDatos = SERIES_DEF.map(s => ({
+    s,
+    p: serie(s)
+  })).filter(o => o.p.length > 0);
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(IChart, {
+    cls: "w-5 h-5"
+  }), " Evoluci\xF3n y estad\xEDsticas"), React.createElement("p", {
+    className: "text-violet-100 text-sm mt-1"
+  }, "Mira c\xF3mo cambia tu salud con el tiempo y detecta lo que se sale de rango.")), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-3 text-center"
+  }, React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Resumen semanal"), React.createElement("div", {
+    className: "text-sm font-bold text-slate-800 mt-1"
+  }, sem.lecturas, " lecturas \xB7 ", sem.sintomas, " s\xEDntomas"), React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, sem.noches, " noches \xB7 adh. ", sem.adh == null ? "—" : sem.adh + "%")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-3 text-center"
+  }, React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Resumen mensual"), React.createElement("div", {
+    className: "text-sm font-bold text-slate-800 mt-1"
+  }, mes.lecturas, " lecturas \xB7 ", mes.sintomas, " s\xEDntomas"), React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, mes.noches, " noches \xB7 adh. ", mes.adh == null ? "—" : mes.adh + "%"))), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800"
+  }, "\uD83D\uDC8A Cumplimiento de medicamentos"), React.createElement("button", {
+    onClick: exportar,
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5 flex items-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-3.5 h-3.5"
+  }), " Informe PDF")), [["Últimos 7 días", ad7], ["Últimos 30 días", ad30]].map(o => {
+    const pct = o[1].pct;
+    const col = pct == null ? "bg-slate-300" : pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
+    return React.createElement("div", {
+      key: o[0],
+      className: "mt-2"
+    }, React.createElement("div", {
+      className: "flex justify-between text-xs mb-1"
+    }, React.createElement("span", {
+      className: "text-slate-600"
+    }, o[0]), React.createElement("span", {
+      className: "font-bold text-slate-800"
+    }, pct == null ? "Sin tomas programadas" : pct + "% (" + o[1].hechas + "/" + o[1].prog + ")")), React.createElement("div", {
+      className: "h-2.5 rounded-full bg-slate-100 overflow-hidden"
+    }, React.createElement("div", {
+      className: "h-full rounded-full " + col,
+      style: {
+        width: (pct || 0) + "%"
+      }
+    })));
+  })), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("button", {
+    onClick: () => setEditR(!editR),
+    className: "w-full flex items-center justify-between"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800"
+  }, "\uD83C\uDFAF Rangos de referencia"), React.createElement("span", {
+    className: "text-xs text-emerald-700"
+  }, editR ? "Listo" : "Editar")), editR && React.createElement("div", {
+    className: "mt-3 space-y-2"
+  }, React.createElement("p", {
+    className: "text-xs text-slate-500"
+  }, "Ajusta los rangos a lo que te indique tu m\xE9dico. Se usan para colorear lo que sale de rango."), SERIES_DEF.map(s => React.createElement("div", {
+    key: s.key,
+    className: "flex items-center gap-2 text-xs"
+  }, React.createElement("span", {
+    className: "flex-1 text-slate-700"
+  }, s.label), React.createElement("input", {
+    type: "number",
+    value: rangos[s.key].min,
+    onChange: e => setRango(s.key, "min", e.target.value),
+    className: "w-16 text-center rounded-lg border border-slate-200 py-1"
+  }), React.createElement("span", {
+    className: "text-slate-400"
+  }, "a"), React.createElement("input", {
+    type: "number",
+    value: rangos[s.key].max,
+    onChange: e => setRango(s.key, "max", e.target.value),
+    className: "w-16 text-center rounded-lg border border-slate-200 py-1"
+  }), React.createElement("span", {
+    className: "text-slate-400 w-10"
+  }, s.unidad))))), conDatos.length === 0 && React.createElement("div", {
+    className: "text-center text-sm text-slate-400 py-6 bg-white rounded-2xl border border-slate-200"
+  }, "Registra tus mediciones en el apartado ", React.createElement("b", null, "Salud"), " (peso, glucosa, presi\xF3n, etc.) y aqu\xED ver\xE1s tus gr\xE1ficas de evoluci\xF3n."), conDatos.map(({
+    s,
+    p
+  }) => {
+    const r = rangos[s.key];
+    const last = p[p.length - 1].v;
+    const first = p[0].v;
+    const fueraRango = r && (last < r.min || last > r.max);
+    const tend = p.length < 2 ? "→" : last > first ? "↑" : last < first ? "↓" : "→";
+    const prom = Math.round(p.reduce((a, b) => a + b.v, 0) / p.length * 10) / 10;
+    return React.createElement("div", {
+      key: s.key,
+      className: "bg-white rounded-2xl border border-slate-200 p-4"
+    }, React.createElement("div", {
+      className: "flex items-center justify-between"
+    }, React.createElement("h3", {
+      className: "font-bold text-slate-800 text-sm"
+    }, s.label), React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, React.createElement("span", {
+      className: "text-xs text-slate-400"
+    }, tend, " tendencia"), React.createElement("span", {
+      className: "text-sm font-black " + (fueraRango ? "text-red-600" : "text-emerald-600")
+    }, last, " ", s.unidad))), React.createElement(MiniChart, {
+      puntos: p,
+      rango: r,
+      color: s.color
+    }), React.createElement("div", {
+      className: "flex justify-between text-[11px] text-slate-400 mt-1"
+    }, React.createElement("span", null, "Promedio: ", prom, " ", s.unidad), React.createElement("span", null, "Rango: ", r ? r.min + "–" + r.max : "—", " ", s.unidad), React.createElement("span", null, p.length, " mediciones")), fueraRango && React.createElement("div", {
+      className: "text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5 mt-2"
+    }, "\u26A0\uFE0F El \xFAltimo valor est\xE1 fuera del rango de referencia. Com\xE9ntalo con tu m\xE9dico."));
+  }), sintTop.length > 0 && React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800"
+  }, "\uD83E\uDD12 S\xEDntomas m\xE1s frecuentes (30 d\xEDas)"), React.createElement("div", {
+    className: "space-y-2 mt-3"
+  }, sintTop.slice(0, 8).map(o => React.createElement("div", {
+    key: o.k
+  }, React.createElement("div", {
+    className: "flex justify-between text-xs mb-0.5"
+  }, React.createElement("span", {
+    className: "text-slate-600"
+  }, o.k), React.createElement("span", {
+    className: "font-bold text-slate-700"
+  }, o.n)), React.createElement("div", {
+    className: "h-2 rounded-full bg-slate-100 overflow-hidden"
+  }, React.createElement("div", {
+    className: "h-full rounded-full bg-rose-500",
+    style: {
+      width: Math.round(o.n / maxSint * 100) + "%"
+    }
+  })))))));
+}
 const LOCK_KEY = "medicontrol-lock-v1";
 const hashPin = s => {
   let h = 5381;
@@ -779,9 +2356,21 @@ function MediControl() {
     label: "Inventario",
     Icon: IBox
   }, {
+    id: "citas",
+    label: "Citas",
+    Icon: ICal
+  }, {
     id: "salud",
     label: "Salud",
     Icon: IActivity
+  }, {
+    id: "sintomas",
+    label: "Síntomas",
+    Icon: IThermo
+  }, {
+    id: "sueno",
+    label: "Sueño",
+    Icon: IMoon
   }, {
     id: "comidas",
     label: "Comidas",
@@ -795,9 +2384,17 @@ function MediControl() {
     label: "Bienestar",
     Icon: IHeart
   }, {
+    id: "evolucion",
+    label: "Evolución",
+    Icon: IChart
+  }, {
+    id: "emergencia",
+    label: "Emergencia",
+    Icon: IWarn
+  }, {
     id: "reporte",
     label: "Reporte",
-    Icon: IChart
+    Icon: IDownload
   }, {
     id: "acerca",
     label: "Acerca",
@@ -984,7 +2581,22 @@ function MediControl() {
     data: data,
     persist: persist,
     avisar: avisar
-  })), tab === "acerca" && React.createElement(AcercaDe, {
+  })), tab === "citas" && React.createElement(Citas, {
+    avisar: avisar,
+    nombre: data.perfil && data.perfil.nombre || ""
+  }), tab === "sintomas" && React.createElement(RegistroSintomas, {
+    avisar: avisar,
+    nombre: data.perfil && data.perfil.nombre || ""
+  }), tab === "sueno" && React.createElement(ControlSueno, {
+    avisar: avisar,
+    nombre: data.perfil && data.perfil.nombre || ""
+  }), tab === "emergencia" && React.createElement(Emergencia, {
+    avisar: avisar,
+    data: data
+  }), tab === "evolucion" && React.createElement(Evolucion, {
+    avisar: avisar,
+    data: data
+  }), tab === "acerca" && React.createElement(AcercaDe, {
     avisar: avisar
   })), toast && React.createElement("div", {
     className: "fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2"
@@ -7748,6 +9360,203 @@ function AutoEvaluacion({
     className: "text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-3 py-1.5"
   }, "Repetir evaluaci\xF3n"))));
 }
+function Grounding54321() {
+  const pasos = [["👀", "5 cosas que puedes VER"], ["✋", "4 cosas que puedes TOCAR"], ["👂", "3 cosas que puedes OÍR"], ["👃", "2 cosas que puedes OLER"], ["👅", "1 cosa que puedes SABOREAR"]];
+  const [i, setI] = useState(0);
+  const [fin, setFin] = useState(false);
+  if (fin) return React.createElement("div", {
+    className: "mt-2 text-sm bg-emerald-50 border border-emerald-100 text-emerald-900 rounded-xl p-3"
+  }, "Bien hecho. Volviste al aqu\xED y ahora; respira hondo una vez m\xE1s. ", React.createElement("button", {
+    onClick: () => {
+      setI(0);
+      setFin(false);
+    },
+    className: "underline font-semibold"
+  }, "Repetir"));
+  return React.createElement("div", {
+    className: "mt-2 bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center"
+  }, React.createElement("div", {
+    className: "text-xs font-bold text-emerald-700 uppercase tracking-wide"
+  }, "Herramienta \xB7 Anclaje 5-4-3-2-1"), React.createElement("div", {
+    className: "text-3xl mt-1"
+  }, pasos[i][0]), React.createElement("div", {
+    className: "text-sm font-semibold text-emerald-900 mt-1"
+  }, pasos[i][1]), React.createElement("div", {
+    className: "text-xs text-emerald-700 mt-1"
+  }, "N\xF3mbralas en voz baja, con calma."), React.createElement("button", {
+    onClick: () => {
+      if (i < 4) setI(i + 1);else setFin(true);
+    },
+    className: "mt-2 bg-emerald-600 text-white text-sm font-semibold rounded-full px-5 py-1.5"
+  }, i < 4 ? "Siguiente" : "Terminar"), React.createElement("div", {
+    className: "text-[11px] text-emerald-600 mt-1"
+  }, i + 1, " / 5"));
+}
+const MICRO_ACCIONES = ["Lavar 5 trastes", "Tender la cama", "Caminar a la esquina y volver", "Tomar un vaso de agua", "Estirarte 2 minutos", "Ordenar un cajón", "Escribir una frase de cómo te sientes", "Abrir la ventana y respirar"];
+function MicroReto() {
+  const [accion, setAccion] = useState(MICRO_ACCIONES[0]);
+  const [seg, setSeg] = useState(300);
+  const [run, setRun] = useState(false);
+  const iv = React.useRef(null);
+  useEffect(() => {
+    if (!run) return;
+    iv.current = setInterval(() => setSeg(s => {
+      if (s <= 1) {
+        clearInterval(iv.current);
+        setRun(false);
+        return 0;
+      }
+      return s - 1;
+    }), 1000);
+    return () => clearInterval(iv.current);
+  }, [run]);
+  const mm = String(Math.floor(seg / 60)).padStart(2, "0"),
+    ss = String(seg % 60).padStart(2, "0");
+  return React.createElement("div", {
+    className: "mt-2 bg-sky-50 border border-sky-100 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "text-xs font-bold text-sky-700 uppercase tracking-wide"
+  }, "Herramienta \xB7 Micro-reto de 5 min"), React.createElement("p", {
+    className: "text-xs text-sky-700 mt-1"
+  }, "Elige una acci\xF3n muy peque\xF1a y hazla solo 5 minutos. Empezar es lo m\xE1s dif\xEDcil; la energ\xEDa llega despu\xE9s."), React.createElement("select", {
+    value: accion,
+    onChange: e => setAccion(e.target.value),
+    className: "w-full mt-2 rounded-lg border border-sky-200 px-2 py-1.5 text-sm bg-white"
+  }, MICRO_ACCIONES.map(a => React.createElement("option", {
+    key: a
+  }, a))), React.createElement("div", {
+    className: "text-center text-3xl font-black text-sky-900 tabular-nums mt-2"
+  }, mm, ":", ss), React.createElement("div", {
+    className: "flex gap-2 mt-2"
+  }, React.createElement("button", {
+    onClick: () => {
+      if (seg === 0) setSeg(300);
+      setRun(!run);
+    },
+    className: "flex-1 bg-sky-600 text-white text-sm font-semibold rounded-full py-1.5"
+  }, run ? "Pausar" : "Empezar"), React.createElement("button", {
+    onClick: () => {
+      setRun(false);
+      setSeg(300);
+    },
+    className: "text-sm font-semibold text-sky-700 border border-sky-200 rounded-full px-3"
+  }, "Reiniciar")));
+}
+function DescargaMental() {
+  const [si, setSi] = useState([]);
+  const [no, setNo] = useState([]);
+  const [txt, setTxt] = useState("");
+  const [donde, setDonde] = useState("si");
+  const add = () => {
+    if (!txt.trim()) return;
+    (donde === "si" ? setSi : setNo)(l => [...l, txt.trim()]);
+    setTxt("");
+  };
+  return React.createElement("div", {
+    className: "mt-2 bg-amber-50 border border-amber-100 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "text-xs font-bold text-amber-700 uppercase tracking-wide"
+  }, "Herramienta \xB7 Descarga mental"), React.createElement("p", {
+    className: "text-xs text-amber-700 mt-1"
+  }, "Saca lo que te preocupa y sep\xE1ralo: lo que S\xCD puedes controlar y lo que no. Enf\xF3cate solo en lo primero."), React.createElement("div", {
+    className: "flex gap-1 mt-2"
+  }, React.createElement("input", {
+    value: txt,
+    onChange: e => setTxt(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") add();
+    },
+    placeholder: "Una preocupaci\xF3n\u2026",
+    className: "flex-1 rounded-lg border border-amber-200 px-2 py-1.5 text-sm"
+  }), React.createElement("select", {
+    value: donde,
+    onChange: e => setDonde(e.target.value),
+    className: "rounded-lg border border-amber-200 px-1 text-xs bg-white"
+  }, React.createElement("option", {
+    value: "si"
+  }, "S\xED controlo"), React.createElement("option", {
+    value: "no"
+  }, "No controlo")), React.createElement("button", {
+    onClick: add,
+    className: "bg-amber-500 text-white rounded-lg px-3 text-sm font-bold"
+  }, "+")), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2 mt-2"
+  }, React.createElement("div", null, React.createElement("div", {
+    className: "text-[11px] font-bold text-emerald-700 mb-1"
+  }, "\u2713 Puedo controlar"), si.map((t, i) => React.createElement("div", {
+    key: i,
+    className: "text-xs bg-white rounded px-2 py-1 mb-1 border border-emerald-100 text-slate-700"
+  }, t))), React.createElement("div", null, React.createElement("div", {
+    className: "text-[11px] font-bold text-slate-400 mb-1"
+  }, "Dejar ir"), no.map((t, i) => React.createElement("div", {
+    key: i,
+    className: "text-xs bg-white rounded px-2 py-1 mb-1 border border-slate-100 text-slate-400"
+  }, t)))));
+}
+function TiempoPreocupacion() {
+  const [min, setMin] = useState(10);
+  const [seg, setSeg] = useState(600);
+  const [run, setRun] = useState(false);
+  const iv = React.useRef(null);
+  useEffect(() => {
+    if (!run) return;
+    iv.current = setInterval(() => setSeg(s => {
+      if (s <= 1) {
+        clearInterval(iv.current);
+        setRun(false);
+        return 0;
+      }
+      return s - 1;
+    }), 1000);
+    return () => clearInterval(iv.current);
+  }, [run]);
+  const mm = String(Math.floor(seg / 60)).padStart(2, "0"),
+    ss = String(seg % 60).padStart(2, "0");
+  const fin = seg === 0;
+  return React.createElement("div", {
+    className: "mt-2 bg-violet-50 border border-violet-100 rounded-xl p-3 text-center"
+  }, React.createElement("div", {
+    className: "text-xs font-bold text-violet-700 uppercase tracking-wide"
+  }, "Herramienta \xB7 Tiempo de preocupaci\xF3n"), React.createElement("p", {
+    className: "text-xs text-violet-700 mt-1"
+  }, "Date un rato acotado para darle vueltas. Cuando suene, lo sueltas por hoy."), !run && !fin && React.createElement("div", {
+    className: "flex items-center justify-center gap-2 mt-2 text-xs text-violet-800"
+  }, "Minutos: ", [5, 10, 15].map(m => React.createElement("button", {
+    key: m,
+    onClick: () => {
+      setMin(m);
+      setSeg(m * 60);
+    },
+    className: "rounded-full px-2.5 py-1 border " + (min === m ? "bg-violet-600 text-white border-violet-600" : "border-violet-200 text-violet-700")
+  }, m))), React.createElement("div", {
+    className: "text-3xl font-black text-violet-900 tabular-nums mt-2"
+  }, mm, ":", ss), fin ? React.createElement("div", {
+    className: "text-sm text-violet-800 mt-1"
+  }, "Se acab\xF3 el tiempo. Respira y su\xE9ltalo por hoy. \uD83C\uDF2C\uFE0F ", React.createElement("button", {
+    onClick: () => setSeg(min * 60),
+    className: "underline font-semibold"
+  }, "Reiniciar")) : React.createElement("div", {
+    className: "flex gap-2 mt-2"
+  }, React.createElement("button", {
+    onClick: () => setRun(!run),
+    className: "flex-1 bg-violet-600 text-white text-sm font-semibold rounded-full py-1.5"
+  }, run ? "Pausar" : "Empezar"), React.createElement("button", {
+    onClick: () => {
+      setRun(false);
+      setSeg(min * 60);
+    },
+    className: "text-sm text-violet-700 border border-violet-200 rounded-full px-3"
+  }, "Reiniciar")));
+}
+function HerramientaSituacion({
+  id
+}) {
+  if (id === "ansiedad") return React.createElement(Grounding54321, null);
+  if (id === "depresion") return React.createElement(MicroReto, null);
+  if (id === "estres") return React.createElement(DescargaMental, null);
+  if (id === "rumiacion") return React.createElement(TiempoPreocupacion, null);
+  return null;
+}
 function Bienestar({
   avisar
 }) {
@@ -7927,7 +9736,9 @@ function Bienestar({
       className: "text-slate-600 flex gap-2"
     }, React.createElement("span", {
       className: "text-amber-500"
-    }, "\u2715"), t)))));
+    }, "\u2715"), t))), React.createElement(HerramientaSituacion, {
+      id: s.id
+    })));
   }))), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
