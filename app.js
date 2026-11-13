@@ -4,7 +4,7 @@ const {
   useMemo
 } = React;
 const KEY = "medicontrol-data-v1";
-const EXTRA_KEYS = ["medicontrol-plan-raciones-v1", "medicontrol-control-raciones-v1", "medicontrol-macros-v1", "medicontrol-seguimiento-v1", "medicontrol-nutriologa-v1", "medicontrol-dx-clinicos-v1", "medicontrol-plan-bienestar-v1", "medicontrol-episodios-v1", "medicontrol-pensamientos-v1", "medicontrol-activacion-v1", "medicontrol-sueno-v1", "medicontrol-gratitud-v1", "medicontrol-autoeval-v1", "medicontrol-citas-v1", "medicontrol-sintomas-v1", "medicontrol-sueno-log-v1", "medicontrol-emergencia-v1", "medicontrol-rangos-v1"];
+const EXTRA_KEYS = ["medicontrol-plan-raciones-v1", "medicontrol-control-raciones-v1", "medicontrol-macros-v1", "medicontrol-seguimiento-v1", "medicontrol-nutriologa-v1", "medicontrol-dx-clinicos-v1", "medicontrol-plan-bienestar-v1", "medicontrol-episodios-v1", "medicontrol-pensamientos-v1", "medicontrol-activacion-v1", "medicontrol-sueno-v1", "medicontrol-gratitud-v1", "medicontrol-autoeval-v1", "medicontrol-citas-v1", "medicontrol-sintomas-v1", "medicontrol-sueno-log-v1", "medicontrol-emergencia-v1", "medicontrol-rangos-v1", "medicontrol-insulina-v1"];
 const leerExtras = () => {
   const o = {};
   for (const k of EXTRA_KEYS) {
@@ -26,10 +26,1539 @@ const escribirExtras = extras => {
 const GAP_MIN = 30;
 const FRECUENCIAS = [4, 6, 8, 12, 24];
 const PRESENTACIONES = ["Tabletas", "Tabletas recubiertas", "Tabletas masticables", "Tabletas efervescentes", "Tableta sublingual", "Grageas", "Cápsulas", "Cápsulas de liberación prolongada", "Perlas", "Jarabe / Suspensión", "Solución oral", "Gotas orales", "Gotas oftálmicas", "Gotas óticas", "Gotas nasales", "Colirio", "Inyectable", "Ampolleta", "Vial / Frasco ámpula", "Jeringa precargada", "Sobres / Polvo", "Granulado", "Polvo para solución", "Crema / Ungüento / Gel", "Loción", "Champú medicado", "Parche transdérmico", "Óvulos", "Supositorios", "Enema", "Inhalador", "Nebulización", "Spray nasal", "Aerosol", "Insulina / Pluma", "Otro"];
-const MEDICAMENTOS = Array.from(new Set(["Acarbosa", "Acenocumarol", "Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido ascórbico (Vitamina C)", "Ácido fólico", "Ácido tranexámico", "Ácido ursodesoxicólico", "Ácido valproico", "Albendazol", "Alendronato", "Alopurinol", "Alprazolam", "Amantadina", "Ambroxol", "Amikacina", "Amiodarona", "Amitriptilina", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Ampicilina", "Apixabán", "Aripiprazol", "Atenolol", "Atorvastatina", "Atropina", "Azatioprina", "Azitromicina", "Baclofeno", "Beclometasona", "Betahistina", "Betametasona", "Bezafibrato", "Biperideno", "Bisacodilo", "Bisoprolol", "Bromhexina", "Bromocriptina", "Bromuro de ipratropio", "Budesonida", "Bupropión", "Butilhioscina (Buscapina)", "Cabergolina", "Calcio", "Candesartán", "Captopril", "Carbamazepina", "Carbonato de calcio", "Carvedilol", "Cefalexina", "Cefixima", "Ceftriaxona", "Cefuroxima", "Celecoxib", "Cetirizina", "Ciclobenzaprina", "Ciclosporina", "Cilostazol", "Cinitaprida", "Ciprofloxacino", "Ciproheptadina", "Citalopram", "Claritromicina", "Clindamicina", "Clobazam", "Clomipramina", "Clonazepam", "Clopidogrel", "Cloranfenicol", "Clorfenamina", "Clortalidona", "Clotrimazol", "Codeína", "Colchicina", "Complejo B", "Dabigatrán", "Dapagliflozina", "Desloratadina", "Dexametasona", "Dexketoprofeno", "Dexlansoprazol", "Diazepam", "Diclofenaco", "Difenhidramina", "Digoxina", "Diltiazem", "Dimenhidrinato", "Diosmina", "Domperidona", "Donepezilo", "Doxiciclina", "Duloxetina", "Dutasterida", "Empagliflozina", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Etoricoxib", "Ezetimiba", "Famotidina", "Febuxostat", "Fenazopiridina", "Fenitoína", "Fenobarbital", "Fenofibrato", "Fentanilo", "Fexofenadina", "Finasterida", "Fluconazol", "Flunarizina", "Fluoxetina", "Fluvoxamina", "Formoterol", "Furosemida", "Gabapentina", "Gemfibrozilo", "Gentamicina", "Glibenclamida", "Gliclazida", "Glimepirida", "Guaifenesina", "Haloperidol", "Heparina", "Hidralazina", "Hidroclorotiazida", "Hidrocortisona", "Hidroxicina", "Hidroxicloroquina", "Hidróxido de aluminio y magnesio", "Hierro (sulfato ferroso)", "Ibuprofeno", "Indapamida", "Indometacina", "Insulina degludec", "Insulina detemir", "Insulina glargina", "Insulina lispro", "Insulina NPH", "Insulina regular", "Irbesartán", "Isosorbida", "Itraconazol", "Ivermectina", "Ketoconazol", "Ketoprofeno", "Ketorolaco", "Ketotifeno", "Lactulosa", "Lamotrigina", "Lansoprazol", "Latanoprost", "Lercanidipino", "Levetiracetam", "Levocetirizina", "Levodopa/Carbidopa", "Levofloxacino", "Levotiroxina", "Linagliptina", "Liraglutida", "Lisinopril", "Loperamida", "Loratadina", "Lorazepam", "Losartán", "Lovastatina", "Magnesio", "Mebendazol", "Meloxicam", "Memantina", "Mesalazina", "Metamizol sódico", "Metformina", "Metildopa", "Metilfenidato", "Metilprednisolona", "Metoclopramida", "Metocarbamol", "Metoprolol", "Metronidazol", "Miconazol", "Mirtazapina", "Mometasona", "Montelukast", "Morfina", "Moxifloxacino", "Mupirocina", "Nafazolina", "Naproxeno", "Naproxeno con esomeprazol", "Nebivolol", "Nifedipino", "Nimesulida", "Nistatina", "Nitrofurantoína", "Nitroglicerina", "Norfloxacino", "Olanzapina", "Olmesartán", "Omega 3", "Omeprazol", "Ondansetrón", "Oseltamivir", "Oxcarbazepina", "Oxibutinina", "Oximetazolina", "Pancreatina", "Pantoprazol", "Paracetamol", "Paroxetina", "Penicilina G benzatínica", "Pinaverio", "Pioglitazona", "Piroxicam", "Pramipexol", "Pravastatina", "Prazosina", "Prednisolona", "Prednisona", "Pregabalina", "Prometazina", "Propranolol", "Quetiapina", "Quinapril", "Rabeprazol", "Ramipril", "Ranitidina", "Repaglinida", "Rifaximina", "Risperidona", "Rivaroxabán", "Ropinirol", "Rosuvastatina", "Rupatadina", "Salbutamol", "Salmeterol", "Saxagliptina", "Sertralina", "Sildenafil", "Simvastatina", "Sitagliptina", "Solifenacina", "Subsalicilato de bismuto", "Sucralfato", "Sulfato ferroso", "Sulfametoxazol con trimetoprima", "Sumatriptán", "Tadalafilo", "Tamsulosina", "Telmisartán", "Teofilina", "Terazosina", "Terbinafina", "Tiamazol (Metimazol)", "Tiamina", "Ticagrelor", "Timolol", "Tinidazol", "Tiotropio", "Tolterodina", "Topiramato", "Tramadol", "Trazodona", "Trimebutina", "Valaciclovir", "Valsartán", "Venlafaxina", "Verapamilo", "Vildagliptina", "Vitamina B12", "Vitamina C", "Vitamina D", "Vortioxetina", "Warfarina", "Zinc", "Zolpidem", "Zopiclona"])).sort((a, b) => a.localeCompare(b, "es")).concat("Otro");
+const MEDICAMENTOS = Array.from(new Set(["Acarbosa", "Acenocumarol", "Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido ascórbico (Vitamina C)", "Ácido fólico", "Ácido tranexámico", "Ácido ursodesoxicólico", "Ácido valproico", "Albendazol", "Alendronato", "Alopurinol", "Alprazolam", "Amantadina", "Ambroxol", "Amikacina", "Amiodarona", "Amitriptilina", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Ampicilina", "Apixabán", "Aripiprazol", "Atenolol", "Atorvastatina", "Atropina", "Azatioprina", "Azitromicina", "Baclofeno", "Beclometasona", "Betahistina", "Betametasona", "Bezafibrato", "Biperideno", "Bisacodilo", "Bisoprolol", "Bromhexina", "Bromocriptina", "Bromuro de ipratropio", "Budesonida", "Bupropión", "Butilhioscina (Buscapina)", "Cabergolina", "Calcio", "Candesartán", "Captopril", "Carbamazepina", "Carbonato de calcio", "Carvedilol", "Cefalexina", "Cefixima", "Ceftriaxona", "Cefuroxima", "Celecoxib", "Cetirizina", "Ciclobenzaprina", "Ciclosporina", "Cilostazol", "Cinitaprida", "Ciprofloxacino", "Ciproheptadina", "Citalopram", "Claritromicina", "Clindamicina", "Clobazam", "Clomipramina", "Clonazepam", "Clopidogrel", "Cloranfenicol", "Clorfenamina", "Clortalidona", "Clotrimazol", "Codeína", "Colchicina", "Complejo B", "Dabigatrán", "Dapagliflozina", "Desloratadina", "Dexametasona", "Dexketoprofeno", "Dexlansoprazol", "Diazepam", "Diclofenaco", "Difenhidramina", "Digoxina", "Diltiazem", "Dimenhidrinato", "Diosmina", "Domperidona", "Donepezilo", "Doxiciclina", "Duloxetina", "Dutasterida", "Empagliflozina", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Etoricoxib", "Ezetimiba", "Famotidina", "Febuxostat", "Fenazopiridina", "Fenitoína", "Fenobarbital", "Fenofibrato", "Fentanilo", "Fexofenadina", "Finasterida", "Fluconazol", "Flunarizina", "Fluoxetina", "Fluvoxamina", "Formoterol", "Furosemida", "Gabapentina", "Gemfibrozilo", "Gentamicina", "Glibenclamida", "Gliclazida", "Glimepirida", "Guaifenesina", "Haloperidol", "Heparina", "Hidralazina", "Hidroclorotiazida", "Hidrocortisona", "Hidroxicina", "Hidroxicloroquina", "Hidróxido de aluminio y magnesio", "Hierro (sulfato ferroso)", "Ibuprofeno", "Indapamida", "Indometacina", "Insulina degludec", "Insulina detemir", "Insulina glargina", "Insulina lispro", "Insulina NPH", "Insulina regular", "Irbesartán", "Isosorbida", "Itraconazol", "Ivermectina", "Ketoconazol", "Ketoprofeno", "Ketorolaco", "Ketotifeno", "Lactulosa", "Lamotrigina", "Lansoprazol", "Latanoprost", "Lercanidipino", "Levetiracetam", "Levocetirizina", "Levodopa/Carbidopa", "Levofloxacino", "Levotiroxina", "Linagliptina", "Liraglutida", "Lisinopril", "Loperamida", "Loratadina", "Lorazepam", "Losartán", "Lovastatina", "Magnesio", "Mebendazol", "Meloxicam", "Memantina", "Mesalazina", "Metamizol sódico", "Metformina", "Metildopa", "Metilfenidato", "Metilprednisolona", "Metoclopramida", "Metocarbamol", "Metoprolol", "Metronidazol", "Miconazol", "Mirtazapina", "Mometasona", "Montelukast", "Morfina", "Moxifloxacino", "Mupirocina", "Nafazolina", "Naproxeno", "Naproxeno con esomeprazol", "Nebivolol", "Nifedipino", "Nimesulida", "Nistatina", "Nitrofurantoína", "Nitroglicerina", "Norfloxacino", "Olanzapina", "Olmesartán", "Omega 3", "Omeprazol", "Ondansetrón", "Oseltamivir", "Oxcarbazepina", "Oxibutinina", "Oximetazolina", "Pancreatina", "Pantoprazol", "Paracetamol", "Paroxetina", "Penicilina G benzatínica", "Pinaverio", "Pioglitazona", "Piroxicam", "Pramipexol", "Pravastatina", "Prazosina", "Prednisolona", "Prednisona", "Pregabalina", "Prometazina", "Propranolol", "Quetiapina", "Quinapril", "Rabeprazol", "Ramipril", "Ranitidina", "Repaglinida", "Rifaximina", "Risperidona", "Rivaroxabán", "Ropinirol", "Rosuvastatina", "Rupatadina", "Salbutamol", "Salmeterol", "Saxagliptina", "Sertralina", "Sildenafil", "Simvastatina", "Sitagliptina", "Solifenacina", "Subsalicilato de bismuto", "Sucralfato", "Sulfato ferroso", "Sulfametoxazol con trimetoprima", "Sumatriptán", "Tadalafilo", "Tamsulosina", "Telmisartán", "Teofilina", "Terazosina", "Terbinafina", "Tiamazol (Metimazol)", "Tiamina", "Ticagrelor", "Timolol", "Tinidazol", "Tiotropio", "Tolterodina", "Topiramato", "Tramadol", "Trazodona", "Trimebutina", "Valaciclovir", "Valsartán", "Venlafaxina", "Verapamilo", "Vildagliptina", "Vitamina B12", "Vitamina C", "Vitamina D", "Vortioxetina", "Warfarina", "Zinc", "Zolpidem", "Zopiclona", "Acetilcisteína", "Ácido mefenámico", "Ácido zoledrónico", "Agomelatina", "Alogliptina", "Amisulprida", "Azelastina", "Bilastina", "Brimonidina", "Bromazepam", "Buprenorfina", "Buspirona", "Canagliflozina", "Carbocisteína", "Cefaclor", "Cefadroxilo", "Ciclesonida", "Clobetasol", "Cloroquina", "Cloruro de potasio", "Clozapina", "Deflazacort", "Denosumab", "Desvenlafaxina", "Dextrometorfano", "Diacereína", "Dicloxacilina", "Dienogest", "Difenoxilato con atropina", "Doxazosina", "Drospirenona con etinilestradiol", "Dulaglutida", "Ebastina", "Entecavir", "Epinastina", "Eplerenona", "Ertugliflozina", "Escopolamina", "Estradiol", "Etambutol", "Etinilestradiol con levonorgestrel", "Famciclovir", "Fluticasona", "Fluticasona con salmeterol", "Budesonida con formoterol", "Fosfomicina", "Galantamina", "Glucosamina con condroitina", "Griseofulvina", "Ibandronato", "Imipramina", "Isoniazida", "Itoprida", "Ivabradina", "Labetalol", "Lacosamida", "Lamivudina", "Levomepromazina", "Levonorgestrel", "Linezolid", "Carbonato de litio", "Macrogol (polietilenglicol)", "Manidipino", "Meclizina", "Medroxiprogesterona", "Melatonina", "Metotrexato", "Midazolam", "Mosaprida", "Moxonidina", "Nateglinida", "Nitazoxanida", "Nortriptilina", "Olopatadina", "Paliperidona", "Pamoato de pirantel", "Perindopril", "Pirazinamida", "Prasugrel", "Progesterona", "Pseudoefedrina", "Racecadotrilo", "Ranolazina", "Rebamipida", "Rifampicina", "Risedronato", "Rivastigmina", "Sacubitrilo con valsartán", "Secnidazol", "Semaglutida", "Simeticona", "Tapentadol", "Tenofovir", "Teriparatida", "Tizanidina", "Tobramicina", "Torasemida", "Trimetazidina", "Cloruro de trospio", "Valproato de magnesio", "Vancomicina", "Vitamina A", "Vitamina E", "Vitamina K", "Voriconazol", "Ziprasidona", "Insulina aspart", "Insulina glulisina", "Insulina premezclada 70/30"])).sort((a, b) => a.localeCompare(b, "es")).concat("Otro");
 const DOSIS_PRESET = ["1 mg", "2 mg", "2.5 mg", "4 mg", "5 mg", "8 mg", "10 mg", "12.5 mg", "15 mg", "16 mg", "18 mg", "20 mg", "25 mg", "30 mg", "40 mg", "50 mg", "60 mg", "70 mg", "75 mg", "80 mg", "90 mg", "100 mg", "120 mg", "125 mg", "150 mg", "160 mg", "180 mg", "200 mg", "250 mg", "300 mg", "320 mg", "400 mg", "500 mg", "550 mg", "600 mg", "650 mg", "750 mg", "800 mg", "850 mg", "875 mg", "900 mg", "1 g", "1.5 g", "2 g", "12.5 mcg", "25 mcg", "50 mcg", "75 mcg", "88 mcg", "100 mcg", "112 mcg", "125 mcg", "137 mcg", "150 mcg", "175 mcg", "200 mcg", "¼ de tableta", "½ tableta", "1 tableta", "1½ tabletas", "2 tabletas", "1 cápsula", "2 cápsulas", "1 gragea", "2.5 ml", "5 ml", "7.5 ml", "10 ml", "15 ml", "20 ml", "1 cucharadita (5 ml)", "1 cucharada (15 ml)", "1 sobre", "1 aplicación", "1 óvulo", "1 supositorio", "1 enema", "1 gota", "2 gotas", "3 gotas", "4 gotas", "5 gotas", "1 inhalación (1 disparo)", "2 inhalaciones", "1 nebulización", "1 parche", "2 UI", "4 UI", "6 UI", "8 UI", "10 UI", "12 UI", "15 UI", "20 UI", "25 UI", "30 UI", "40 UI", "Otro"];
 const MOTIVOS_PRESET = ["Dolor", "Dolor de cabeza / migraña", "Dolor muscular o articular", "Dolor de huesos", "Fiebre", "Infección (general)", "Infección de garganta", "Infección respiratoria", "Infección urinaria", "Infección en la piel", "Infección gastrointestinal", "Inflamación", "Presión alta (hipertensión)", "Diabetes / azúcar alta", "Colesterol o triglicéridos altos", "Gastritis / acidez / reflujo", "Úlcera", "Náuseas o vómito", "Diarrea", "Estreñimiento", "Alergia", "Tos / gripa / resfriado", "Asma / EPOC", "Ansiedad", "Depresión", "Insomnio", "Epilepsia / convulsiones", "Tiroides (hipo o hiper)", "Anemia", "Gota / ácido úrico", "Osteoporosis", "Próstata", "Anticoagulación", "Prevención / vitaminas", "Control de un padecimiento crónico", "Otro"];
 const INDICACIONES_PRESET = ["Tomar con alimentos", "Tomar en ayunas (1 h antes o 2 h después de comer)", "No combinar con alcohol", "Tomar con suficiente agua", "No acostarse 30 min después de tomarlo", "Antes de dormir", "Por la mañana", "Antes del desayuno", "Después de cada comida", "Cada que haya dolor o fiebre", "No partir ni masticar (tragar entero)", "Disolver debajo de la lengua", "Agitar antes de usar", "Mantener en refrigeración", "Proteger de la luz", "Suspender si hay reacción y avisar al médico", "No suspender sin indicación médica", "Completar todo el tratamiento aunque haya mejoría", "Vigilar presión / glucosa al tomarlo", "Evitar el sol (puede causar manchas)", "Otro"];
+const normMed = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+const MED_INFO = {
+  "paracetamol": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "acetaminofen": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "metamizol": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "tramadol": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "morfina": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "fentanilo": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "codeina": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "tapentadol": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "buprenorfina": {
+    cat: "analgesico",
+    motivo: "Dolor"
+  },
+  "ibuprofeno": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "naproxeno": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "diclofenaco": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "ketorolaco": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor"
+  },
+  "ketoprofeno": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "dexketoprofeno": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor"
+  },
+  "meloxicam": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "piroxicam": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "celecoxib": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "etoricoxib": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "indometacina": {
+    cat: "antiinflamatorio",
+    motivo: "Inflamación"
+  },
+  "nimesulida": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor"
+  },
+  "acido mefenamico": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor"
+  },
+  "diacereina": {
+    cat: "antiinflamatorio",
+    motivo: "Dolor muscular o articular"
+  },
+  "amoxicilina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "ampicilina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "dicloxacilina": {
+    cat: "antibiotico",
+    motivo: "Infección en la piel"
+  },
+  "penicilina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "azitromicina": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "claritromicina": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "eritromicina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "cefalexina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "cefadroxilo": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "cefixima": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "ceftriaxona": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "cefuroxima": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "cefaclor": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "ciprofloxacino": {
+    cat: "antibiotico",
+    motivo: "Infección urinaria"
+  },
+  "levofloxacino": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "moxifloxacino": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "norfloxacino": {
+    cat: "antibiotico",
+    motivo: "Infección urinaria"
+  },
+  "clindamicina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "doxiciclina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "metronidazol": {
+    cat: "antibiotico",
+    motivo: "Infección gastrointestinal"
+  },
+  "tinidazol": {
+    cat: "antibiotico",
+    motivo: "Infección gastrointestinal"
+  },
+  "secnidazol": {
+    cat: "antibiotico",
+    motivo: "Infección gastrointestinal"
+  },
+  "rifaximina": {
+    cat: "antibiotico",
+    motivo: "Infección gastrointestinal"
+  },
+  "nitrofurantoina": {
+    cat: "antibiotico",
+    motivo: "Infección urinaria"
+  },
+  "fosfomicina": {
+    cat: "antibiotico",
+    motivo: "Infección urinaria"
+  },
+  "sulfametoxazol": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "trimetoprima": {
+    cat: "antibiotico",
+    motivo: "Infección urinaria"
+  },
+  "gentamicina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "amikacina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "cloranfenicol": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "vancomicina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "linezolid": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "rifampicina": {
+    cat: "antibiotico",
+    motivo: "Infección (general)"
+  },
+  "isoniazida": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "etambutol": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "pirazinamida": {
+    cat: "antibiotico",
+    motivo: "Infección respiratoria"
+  },
+  "omeprazol": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "esomeprazol": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "pantoprazol": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "lansoprazol": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "dexlansoprazol": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "rabeprazol": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "ranitidina": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "famotidina": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "sucralfato": {
+    cat: "gastro",
+    motivo: "Úlcera"
+  },
+  "hidroxido": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "subsalicilato": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "butilhioscina": {
+    cat: "gastro",
+    motivo: "Dolor"
+  },
+  "pinaverio": {
+    cat: "gastro",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "trimebutina": {
+    cat: "gastro",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "cinitaprida": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "itoprida": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "mosaprida": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "simeticona": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "pancreatina": {
+    cat: "gastro",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "mesalazina": {
+    cat: "gastro",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "ursodesoxicolico": {
+    cat: "gastro",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "rebamipida": {
+    cat: "gastro",
+    motivo: "Gastritis / acidez / reflujo"
+  },
+  "metoclopramida": {
+    cat: "antiemetico",
+    motivo: "Náuseas o vómito"
+  },
+  "domperidona": {
+    cat: "antiemetico",
+    motivo: "Náuseas o vómito"
+  },
+  "ondansetron": {
+    cat: "antiemetico",
+    motivo: "Náuseas o vómito"
+  },
+  "dimenhidrinato": {
+    cat: "antiemetico",
+    motivo: "Náuseas o vómito"
+  },
+  "meclizina": {
+    cat: "antiemetico",
+    motivo: "Náuseas o vómito"
+  },
+  "loperamida": {
+    cat: "antidiarreico",
+    motivo: "Diarrea"
+  },
+  "racecadotrilo": {
+    cat: "antidiarreico",
+    motivo: "Diarrea"
+  },
+  "difenoxilato": {
+    cat: "antidiarreico",
+    motivo: "Diarrea"
+  },
+  "lactulosa": {
+    cat: "laxante",
+    motivo: "Estreñimiento"
+  },
+  "bisacodilo": {
+    cat: "laxante",
+    motivo: "Estreñimiento"
+  },
+  "macrogol": {
+    cat: "laxante",
+    motivo: "Estreñimiento"
+  },
+  "polietilenglicol": {
+    cat: "laxante",
+    motivo: "Estreñimiento"
+  },
+  "amlodipino": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "nifedipino": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "lercanidipino": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "manidipino": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "losartan": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "valsartan": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "telmisartan": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "candesartan": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "irbesartan": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "olmesartan": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "enalapril": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "captopril": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "lisinopril": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "ramipril": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "quinapril": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "perindopril": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "hidralazina": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "metildopa": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "clonidina": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "moxonidina": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "metoprolol": {
+    cat: "cardio",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "atenolol": {
+    cat: "cardio",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "bisoprolol": {
+    cat: "cardio",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "nebivolol": {
+    cat: "cardio",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "carvedilol": {
+    cat: "cardio",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "propranolol": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "labetalol": {
+    cat: "cardio",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "verapamilo": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "diltiazem": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "digoxina": {
+    cat: "antiarritmico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "amiodarona": {
+    cat: "antiarritmico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "isosorbida": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "nitroglicerina": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "cilostazol": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "diosmina": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "ivabradina": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "trimetazidina": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "ranolazina": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "sacubitrilo": {
+    cat: "cardio",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "furosemida": {
+    cat: "diuretico",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "hidroclorotiazida": {
+    cat: "diuretico",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "clortalidona": {
+    cat: "diuretico",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "indapamida": {
+    cat: "diuretico",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "espironolactona": {
+    cat: "diuretico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "eplerenona": {
+    cat: "diuretico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "torasemida": {
+    cat: "diuretico",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "atorvastatina": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "rosuvastatina": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "simvastatina": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "pravastatina": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "lovastatina": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "ezetimiba": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "fenofibrato": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "bezafibrato": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "gemfibrozilo": {
+    cat: "estatina",
+    motivo: "Colesterol o triglicéridos altos"
+  },
+  "warfarina": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "acenocumarol": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "apixaban": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "rivaroxaban": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "dabigatran": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "heparina": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "clopidogrel": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "ticagrelor": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "prasugrel": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "aspirina": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "acido acetilsalicilico": {
+    cat: "anticoagulante",
+    motivo: "Anticoagulación"
+  },
+  "metformina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "glibenclamida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "gliclazida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "glimepirida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "repaglinida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "nateglinida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "pioglitazona": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "acarbosa": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "sitagliptina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "vildagliptina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "saxagliptina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "linagliptina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "alogliptina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "dapagliflozina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "empagliflozina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "canagliflozina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "ertugliflozina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "liraglutida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "dulaglutida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "semaglutida": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta"
+  },
+  "insulina": {
+    cat: "diabetes",
+    motivo: "Diabetes / azúcar alta",
+    pres: "Insulina / Pluma"
+  },
+  "loratadina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "desloratadina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "cetirizina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "levocetirizina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "fexofenadina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "clorfenamina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "difenhidramina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "hidroxicina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "ciproheptadina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "ketotifeno": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "rupatadina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "ebastina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "bilastina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "epinastina": {
+    cat: "alergia",
+    motivo: "Alergia"
+  },
+  "salbutamol": {
+    cat: "broncodilatador",
+    motivo: "Asma / EPOC",
+    pres: "Inhalador"
+  },
+  "salmeterol": {
+    cat: "broncodilatador",
+    motivo: "Asma / EPOC",
+    pres: "Inhalador"
+  },
+  "formoterol": {
+    cat: "broncodilatador",
+    motivo: "Asma / EPOC",
+    pres: "Inhalador"
+  },
+  "bromuro": {
+    cat: "broncodilatador",
+    motivo: "Asma / EPOC",
+    pres: "Inhalador"
+  },
+  "tiotropio": {
+    cat: "broncodilatador",
+    motivo: "Asma / EPOC",
+    pres: "Inhalador"
+  },
+  "teofilina": {
+    cat: "broncodilatador",
+    motivo: "Asma / EPOC"
+  },
+  "budesonida": {
+    cat: "respiratorio",
+    motivo: "Asma / EPOC"
+  },
+  "beclometasona": {
+    cat: "respiratorio",
+    motivo: "Asma / EPOC"
+  },
+  "fluticasona": {
+    cat: "respiratorio",
+    motivo: "Asma / EPOC"
+  },
+  "ciclesonida": {
+    cat: "respiratorio",
+    motivo: "Asma / EPOC"
+  },
+  "montelukast": {
+    cat: "respiratorio",
+    motivo: "Asma / EPOC"
+  },
+  "ambroxol": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "bromhexina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "guaifenesina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "acetilcisteina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "carbocisteina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "dextrometorfano": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "oximetazolina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "nafazolina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "pseudoefedrina": {
+    cat: "respiratorio",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "fluoxetina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "sertralina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "paroxetina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "citalopram": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "escitalopram": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "fluvoxamina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "venlafaxina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "desvenlafaxina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "duloxetina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "mirtazapina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "bupropion": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "vortioxetina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "trazodona": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "amitriptilina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "clomipramina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "imipramina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "nortriptilina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "agomelatina": {
+    cat: "antidepresivo",
+    motivo: "Depresión"
+  },
+  "alprazolam": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "clonazepam": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "diazepam": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "lorazepam": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "clobazam": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "bromazepam": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "buspirona": {
+    cat: "ansiolitico",
+    motivo: "Ansiedad"
+  },
+  "midazolam": {
+    cat: "ansiolitico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "zolpidem": {
+    cat: "somnifero",
+    motivo: "Insomnio"
+  },
+  "zopiclona": {
+    cat: "somnifero",
+    motivo: "Insomnio"
+  },
+  "melatonina": {
+    cat: "somnifero",
+    motivo: "Insomnio"
+  },
+  "temazepam": {
+    cat: "somnifero",
+    motivo: "Insomnio"
+  },
+  "haloperidol": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "risperidona": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "olanzapina": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "quetiapina": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "aripiprazol": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "paliperidona": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "clozapina": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "ziprasidona": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "litio": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "levomepromazina": {
+    cat: "antipsicotico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "carbamazepina": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "oxcarbazepina": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "acido valproico": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "valproato": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "fenitoina": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "fenobarbital": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "lamotrigina": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "levetiracetam": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "topiramato": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "lacosamida": {
+    cat: "anticonvulsivo",
+    motivo: "Epilepsia / convulsiones"
+  },
+  "gabapentina": {
+    cat: "anticonvulsivo",
+    motivo: "Dolor"
+  },
+  "pregabalina": {
+    cat: "anticonvulsivo",
+    motivo: "Dolor"
+  },
+  "levodopa": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "pramipexol": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "ropinirol": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "biperideno": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "amantadina": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "donepezilo": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "memantina": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "rivastigmina": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "galantamina": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "metilfenidato": {
+    cat: "anticonvulsivo",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "sumatriptan": {
+    cat: "antimigrana",
+    motivo: "Dolor de cabeza / migraña"
+  },
+  "flunarizina": {
+    cat: "antimigrana",
+    motivo: "Dolor de cabeza / migraña"
+  },
+  "prednisona": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "prednisolona": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "metilprednisolona": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "dexametasona": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "betametasona": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "hidrocortisona": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "deflazacort": {
+    cat: "corticoide",
+    motivo: "Inflamación"
+  },
+  "mometasona": {
+    cat: "corticoide",
+    motivo: "Alergia"
+  },
+  "clobetasol": {
+    cat: "corticoide",
+    motivo: "Infección en la piel"
+  },
+  "aciclovir": {
+    cat: "antiviral",
+    motivo: "Infección (general)"
+  },
+  "valaciclovir": {
+    cat: "antiviral",
+    motivo: "Infección (general)"
+  },
+  "oseltamivir": {
+    cat: "antiviral",
+    motivo: "Tos / gripa / resfriado"
+  },
+  "famciclovir": {
+    cat: "antiviral",
+    motivo: "Infección (general)"
+  },
+  "tenofovir": {
+    cat: "antiviral",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "lamivudina": {
+    cat: "antiviral",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "entecavir": {
+    cat: "antiviral",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "albendazol": {
+    cat: "antiparasitario",
+    motivo: "Infección (general)"
+  },
+  "mebendazol": {
+    cat: "antiparasitario",
+    motivo: "Infección (general)"
+  },
+  "ivermectina": {
+    cat: "antiparasitario",
+    motivo: "Infección (general)"
+  },
+  "nitazoxanida": {
+    cat: "antiparasitario",
+    motivo: "Infección gastrointestinal"
+  },
+  "praziquantel": {
+    cat: "antiparasitario",
+    motivo: "Infección (general)"
+  },
+  "pamoato": {
+    cat: "antiparasitario",
+    motivo: "Infección (general)"
+  },
+  "cloroquina": {
+    cat: "antiparasitario",
+    motivo: "Infección (general)"
+  },
+  "fluconazol": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "itraconazol": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "ketoconazol": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "terbinafina": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "nistatina": {
+    cat: "antifungico",
+    motivo: "Infección (general)"
+  },
+  "clotrimazol": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "miconazol": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "griseofulvina": {
+    cat: "antifungico",
+    motivo: "Infección en la piel"
+  },
+  "voriconazol": {
+    cat: "antifungico",
+    motivo: "Infección (general)"
+  },
+  "levotiroxina": {
+    cat: "tiroides",
+    motivo: "Tiroides (hipo o hiper)"
+  },
+  "tiamazol": {
+    cat: "tiroides",
+    motivo: "Tiroides (hipo o hiper)"
+  },
+  "metimazol": {
+    cat: "tiroides",
+    motivo: "Tiroides (hipo o hiper)"
+  },
+  "alopurinol": {
+    cat: "antigotoso",
+    motivo: "Gota / ácido úrico"
+  },
+  "febuxostat": {
+    cat: "antigotoso",
+    motivo: "Gota / ácido úrico"
+  },
+  "colchicina": {
+    cat: "antigotoso",
+    motivo: "Gota / ácido úrico"
+  },
+  "alendronato": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "risedronato": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "ibandronato": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "denosumab": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "teriparatida": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "glucosamina": {
+    cat: "osteoporosis",
+    motivo: "Dolor muscular o articular"
+  },
+  "tamsulosina": {
+    cat: "prostata",
+    motivo: "Próstata"
+  },
+  "finasterida": {
+    cat: "prostata",
+    motivo: "Próstata"
+  },
+  "dutasterida": {
+    cat: "prostata",
+    motivo: "Próstata"
+  },
+  "terazosina": {
+    cat: "prostata",
+    motivo: "Próstata"
+  },
+  "doxazosina": {
+    cat: "prostata",
+    motivo: "Próstata"
+  },
+  "prazosina": {
+    cat: "antihipertensivo",
+    motivo: "Presión alta (hipertensión)"
+  },
+  "oxibutinina": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "tolterodina": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "solifenacina": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "trospio": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "fenazopiridina": {
+    cat: "prostata",
+    motivo: "Infección urinaria"
+  },
+  "sildenafil": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "tadalafil": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "tadalafilo": {
+    cat: "prostata",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "latanoprost": {
+    cat: "oftalmico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "timolol": {
+    cat: "oftalmico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "brimonidina": {
+    cat: "oftalmico",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "olopatadina": {
+    cat: "oftalmico",
+    motivo: "Alergia"
+  },
+  "tobramicina": {
+    cat: "oftalmico",
+    motivo: "Infección (general)"
+  },
+  "mupirocina": {
+    cat: "dermatologico",
+    motivo: "Infección en la piel"
+  },
+  "hierro": {
+    cat: "hierro",
+    motivo: "Anemia"
+  },
+  "sulfato ferroso": {
+    cat: "hierro",
+    motivo: "Anemia"
+  },
+  "metocarbamol": {
+    cat: "relajante",
+    motivo: "Dolor muscular o articular"
+  },
+  "ciclobenzaprina": {
+    cat: "relajante",
+    motivo: "Dolor muscular o articular"
+  },
+  "baclofeno": {
+    cat: "relajante",
+    motivo: "Dolor muscular o articular"
+  },
+  "tizanidina": {
+    cat: "relajante",
+    motivo: "Dolor muscular o articular"
+  },
+  "azatioprina": {
+    cat: "inmunosupresor",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "ciclosporina": {
+    cat: "inmunosupresor",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "hidroxicloroquina": {
+    cat: "inmunosupresor",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "metotrexato": {
+    cat: "inmunosupresor",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "levonorgestrel": {
+    cat: "anticonceptivo",
+    motivo: "Prevención / vitaminas"
+  },
+  "etinilestradiol": {
+    cat: "anticonceptivo",
+    motivo: "Prevención / vitaminas"
+  },
+  "drospirenona": {
+    cat: "anticonceptivo",
+    motivo: "Prevención / vitaminas"
+  },
+  "dienogest": {
+    cat: "anticonceptivo",
+    motivo: "Prevención / vitaminas"
+  },
+  "medroxiprogesterona": {
+    cat: "anticonceptivo",
+    motivo: "Prevención / vitaminas"
+  },
+  "estradiol": {
+    cat: "hormonal",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "progesterona": {
+    cat: "hormonal",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "cabergolina": {
+    cat: "hormonal",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "bromocriptina": {
+    cat: "hormonal",
+    motivo: "Control de un padecimiento crónico"
+  },
+  "vitamina b12": {
+    cat: "vitamina",
+    motivo: "Anemia"
+  },
+  "acido folico": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "complejo": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "vitamina c": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "acido ascorbico": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "vitamina d": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "vitamina e": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "vitamina k": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "vitamina a": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "omega": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "tiamina": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "magnesio": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "zinc": {
+    cat: "vitamina",
+    motivo: "Prevención / vitaminas"
+  },
+  "calcio": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "carbonato de calcio": {
+    cat: "osteoporosis",
+    motivo: "Osteoporosis"
+  },
+  "cloruro de potasio": {
+    cat: "electrolitos",
+    motivo: "Control de un padecimiento crónico"
+  }
+};
+function infoMed(name) {
+  const n = normMed(name);
+  if (!n) return null;
+  if (MED_INFO[n]) return MED_INFO[n];
+  const base = n.split("(")[0].trim();
+  if (MED_INFO[base]) return MED_INFO[base];
+  const first = base.split(/[ /]/)[0];
+  if (first.length >= 4 && MED_INFO[first]) return MED_INFO[first];
+  const alt = base.split(/ con | y |\//)[0].trim();
+  if (MED_INFO[alt]) return MED_INFO[alt];
+  return null;
+}
 const CATEGORIAS = [{
   id: "analgesico",
   label: "Analgésico / Dolor — alivia dolores",
@@ -1590,6 +3119,310 @@ function ControlSueno({
     className: "text-xs text-slate-500 mt-1 bg-slate-50 rounded-lg px-2 py-1"
   }, "\uD83D\uDC41\uFE0F ", r.obs))))));
 }
+const TIPOS_INSULINA = ["Rápida / Ultrarrápida (Lispro, Aspart, Glulisina)", "Rápida / Regular (R)", "Intermedia NPH (N)", "Basal / Lenta (Glargina, Detemir, Degludec)", "Premezclada 70/30", "Premezclada 75/25", "Premezclada 50/50", "Otra"];
+const MOMENTOS_INS = ["Antes del desayuno", "Antes de la comida", "Antes de la cena", "Al acostarse", "En ayunas", "Dosis de corrección", "Otro"];
+const SITIOS_INS = ["Abdomen", "Muslo", "Brazo", "Glúteo", "Rotación habitual"];
+function Insulina({
+  avisar,
+  nombre
+}) {
+  const KEY = "medicontrol-insulina-v1";
+  const [store, setStore] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(KEY)) || {
+        esquema: "",
+        lista: []
+      };
+    } catch (e) {
+      return {
+        esquema: "",
+        lista: []
+      };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(store));
+    } catch (e) {}
+  }, [store]);
+  const lista = store.lista || [];
+  const ahora = new Date();
+  const vacio = {
+    fecha: hoyISO(),
+    hora: pad(ahora.getHours()) + ":" + pad(ahora.getMinutes()),
+    tipo: TIPOS_INSULINA[0],
+    tipoOtra: "",
+    dosis: "",
+    momento: MOMENTOS_INS[0],
+    sitio: SITIOS_INS[0],
+    glucosa: "",
+    notas: ""
+  };
+  const [f, setF] = useState(vacio);
+  const [edit, setEdit] = useState(null);
+  const set = (k, v) => setF(p => ({
+    ...p,
+    [k]: v
+  }));
+  const ic = "w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white";
+  const lbl = "block text-xs font-semibold text-slate-500 mb-1";
+  const guardar = () => {
+    if (!f.dosis || Number(f.dosis) <= 0) {
+      avisar("Escribe cuántas unidades (UI) te aplicaste.");
+      return;
+    }
+    const tipo = f.tipo === "Otra" ? f.tipoOtra.trim() || "Otra" : f.tipo;
+    const reg = {
+      id: edit || Date.now(),
+      fecha: f.fecha,
+      hora: f.hora,
+      tipo,
+      dosis: Number(f.dosis),
+      momento: f.momento,
+      sitio: f.sitio,
+      glucosa: f.glucosa === "" ? null : Number(f.glucosa),
+      notas: f.notas.trim()
+    };
+    setStore(s => ({
+      ...s,
+      lista: edit ? s.lista.map(x => x.id === edit ? reg : x) : [reg, ...s.lista]
+    }));
+    setF(vacio);
+    setEdit(null);
+    avisar(edit ? "Registro actualizado 💉" : "Aplicación de insulina registrada 💉");
+  };
+  const editar = r => {
+    setEdit(r.id);
+    const esPreset = TIPOS_INSULINA.indexOf(r.tipo) >= 0;
+    setF({
+      fecha: r.fecha,
+      hora: r.hora,
+      tipo: esPreset ? r.tipo : "Otra",
+      tipoOtra: esPreset ? "" : r.tipo,
+      dosis: String(r.dosis),
+      momento: r.momento,
+      sitio: r.sitio,
+      glucosa: r.glucosa == null ? "" : String(r.glucosa),
+      notas: r.notas || ""
+    });
+    try {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    } catch (e) {}
+  };
+  const borrar = id => setStore(s => ({
+    ...s,
+    lista: s.lista.filter(x => x.id !== id)
+  }));
+  const uiHoy = lista.filter(r => r.fecha === hoyISO()).reduce((a, r) => a + (Number(r.dosis) || 0), 0);
+  const aplicHoy = lista.filter(r => r.fecha === hoyISO()).length;
+  const exportar = () => {
+    const doc = abrirPDF("landscape");
+    if (!doc) return sinPDF(avisar);
+    encabezadoPDF(doc, "Registro de insulina", nombre);
+    let y = 26;
+    if (store.esquema) {
+      doc.setFontSize(9);
+      doc.setTextColor(60);
+      doc.text("Esquema indicado: " + store.esquema, 14, y);
+      y += 6;
+    }
+    doc.autoTable({
+      head: [["Fecha", "Hora", "Tipo de insulina", "Dosis (UI)", "Momento", "Sitio", "Glucosa (mg/dL)", "Notas"]],
+      body: lista.slice().sort((a, b) => a.fecha + a.hora < b.fecha + b.hora ? 1 : -1).map(r => [r.fecha, r.hora, r.tipo, String(r.dosis), r.momento, r.sitio, r.glucosa == null ? "—" : String(r.glucosa), r.notas || "—"]),
+      startY: y,
+      styles: {
+        fontSize: 8,
+        cellPadding: 1.5
+      },
+      headStyles: {
+        fillColor: [2, 132, 199],
+        fontSize: 8
+      },
+      alternateRowStyles: {
+        fillColor: [240, 249, 255]
+      }
+    });
+    const yy = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 30) + 8;
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    doc.text("Total de aplicaciones: " + lista.length, 14, yy);
+    doc.save("insulina-" + todayStr() + ".pdf");
+    avisar("PDF de insulina descargado");
+  };
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-cyan-600 to-sky-700 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, React.createElement(IDrop, {
+    cls: "w-5 h-5"
+  }), " Insulina"), React.createElement("p", {
+    className: "text-cyan-100 text-sm mt-1"
+  }, "Lleva el control de cada aplicaci\xF3n: tipo, unidades, momento y sitio. \xDAtil para ti y para tu m\xE9dico."), aplicHoy > 0 && React.createElement("div", {
+    className: "mt-3 inline-flex items-center gap-2 bg-white/15 rounded-xl px-3 py-1.5"
+  }, React.createElement("span", {
+    className: "text-lg font-black leading-none"
+  }, uiHoy, " UI"), React.createElement("span", {
+    className: "text-[11px] text-cyan-100"
+  }, "aplicadas hoy \xB7 ", aplicHoy, " ", aplicHoy === 1 ? "aplicación" : "aplicaciones"))), React.createElement("div", {
+    className: "bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-800 flex items-start gap-2"
+  }, React.createElement(IWarn, {
+    cls: "w-4 h-4 shrink-0 mt-0.5"
+  }), " No cambies tu tipo o dosis de insulina sin indicaci\xF3n de tu m\xE9dico. Esta herramienta solo te ayuda a registrar y recordar lo que te indicaron."), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("label", {
+    className: lbl
+  }, "Esquema indicado por mi m\xE9dico (opcional)"), React.createElement("input", {
+    className: ic,
+    value: store.esquema,
+    onChange: e => setStore(s => ({
+      ...s,
+      esquema: e.target.value
+    })),
+    placeholder: "Ej.: NPH 20 UI en ayunas y 10 UI en la noche \xB7 Lispro 6 UI antes de cada comida"
+  })), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800"
+  }, edit ? "✏️ Editar aplicación" : "➕ Nueva aplicación"), React.createElement("div", {
+    className: "mt-3 grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: lbl + " col-span-1"
+  }, "Fecha", React.createElement("input", {
+    type: "date",
+    value: f.fecha,
+    max: hoyISO(),
+    onChange: e => set("fecha", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: lbl + " col-span-1"
+  }, "Hora", React.createElement("input", {
+    type: "time",
+    value: f.hora,
+    onChange: e => set("hora", e.target.value),
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: lbl + " col-span-2"
+  }, "Tipo de insulina", React.createElement("select", {
+    value: f.tipo,
+    onChange: e => set("tipo", e.target.value),
+    className: ic + " mt-0.5"
+  }, TIPOS_INSULINA.map(t => React.createElement("option", {
+    key: t,
+    value: t
+  }, t)))), f.tipo === "Otra" && React.createElement("input", {
+    className: ic + " col-span-2",
+    value: f.tipoOtra,
+    onChange: e => set("tipoOtra", e.target.value),
+    placeholder: "Escribe el nombre o tipo de insulina"
+  }), React.createElement("label", {
+    className: lbl + " col-span-1"
+  }, "Dosis (unidades UI)", React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "200",
+    step: "0.5",
+    value: f.dosis,
+    onChange: e => set("dosis", e.target.value),
+    placeholder: "Ej.: 10",
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: lbl + " col-span-1"
+  }, "Glucosa antes (mg/dL)", React.createElement("input", {
+    type: "number",
+    min: "0",
+    max: "800",
+    value: f.glucosa,
+    onChange: e => set("glucosa", e.target.value),
+    placeholder: "Opcional",
+    className: ic + " mt-0.5"
+  })), React.createElement("label", {
+    className: lbl + " col-span-2"
+  }, "Momento / esquema", React.createElement("select", {
+    value: f.momento,
+    onChange: e => set("momento", e.target.value),
+    className: ic + " mt-0.5"
+  }, MOMENTOS_INS.map(m => React.createElement("option", {
+    key: m,
+    value: m
+  }, m)))), React.createElement("label", {
+    className: lbl + " col-span-2"
+  }, "Sitio de aplicaci\xF3n (rota para cuidar la piel)", React.createElement("select", {
+    value: f.sitio,
+    onChange: e => set("sitio", e.target.value),
+    className: ic + " mt-0.5"
+  }, SITIOS_INS.map(s => React.createElement("option", {
+    key: s,
+    value: s
+  }, s))))), React.createElement("label", {
+    className: lbl + " block mt-3"
+  }, "Notas (opcional)", React.createElement("textarea", {
+    rows: "2",
+    value: f.notas,
+    onChange: e => set("notas", e.target.value),
+    placeholder: "Ej.: me sent\xED mareado, hipoglucemia leve, cambi\xE9 de pluma\u2026",
+    className: ic + " mt-0.5"
+  })), React.createElement("div", {
+    className: "flex gap-2 mt-3"
+  }, React.createElement("button", {
+    onClick: guardar,
+    className: "flex-1 bg-sky-600 text-white text-sm font-semibold rounded-xl py-2.5 hover:bg-sky-700 flex items-center justify-center gap-2"
+  }, React.createElement(IPlus, {
+    cls: "w-4 h-4"
+  }), " ", edit ? "Guardar cambios" : "Registrar aplicación"), edit && React.createElement("button", {
+    onClick: () => {
+      setEdit(null);
+      setF(vacio);
+    },
+    className: "px-4 rounded-xl border border-slate-300 text-slate-600 text-sm"
+  }, "Cancelar"))), lista.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, React.createElement("h3", {
+    className: "text-sm font-bold text-slate-700"
+  }, "\uD83D\uDDC2\uFE0F Historial (", lista.length, ")"), React.createElement("button", {
+    onClick: exportar,
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5 flex items-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-3.5 h-3.5"
+  }), " PDF")), React.createElement("div", {
+    className: "space-y-2"
+  }, lista.slice().sort((a, b) => a.fecha + a.hora < b.fecha + b.hora ? 1 : -1).map(r => React.createElement("div", {
+    key: r.id,
+    className: "bg-white border border-slate-200 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "flex items-center justify-between gap-2"
+  }, React.createElement("div", {
+    className: "font-semibold text-slate-800 text-sm flex items-center gap-1.5"
+  }, React.createElement(IDrop, {
+    cls: "w-4 h-4 text-sky-600"
+  }), " ", r.dosis, " UI \xB7 ", React.createElement("span", {
+    className: "text-sky-700"
+  }, r.momento)), React.createElement("div", {
+    className: "flex items-center gap-2 shrink-0"
+  }, React.createElement("button", {
+    onClick: () => editar(r),
+    className: "text-slate-300 hover:text-sky-600"
+  }, React.createElement(IEdit, {
+    cls: "w-4 h-4"
+  })), React.createElement("button", {
+    onClick: () => borrar(r.id),
+    className: "text-slate-300 hover:text-red-500"
+  }, React.createElement(ITrash, {
+    cls: "w-4 h-4"
+  })))), React.createElement("div", {
+    className: "text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5"
+  }, React.createElement("span", null, r.fecha, " \xB7 ", r.hora), React.createElement("span", {
+    className: "text-slate-600"
+  }, r.tipo), React.createElement("span", null, "Sitio: ", r.sitio), r.glucosa != null && React.createElement("span", {
+    className: r.glucosa < 70 ? "text-red-600 font-semibold" : r.glucosa > 180 ? "text-amber-600 font-semibold" : "text-emerald-600"
+  }, "Glucosa: ", r.glucosa, " mg/dL")), r.notas && React.createElement("div", {
+    className: "text-xs text-slate-500 mt-1 bg-slate-50 rounded-lg px-2 py-1"
+  }, "\uD83D\uDCDD ", r.notas))))));
+}
 function Emergencia({
   avisar,
   data
@@ -2545,6 +4378,13 @@ function MiDia({
   const autoeval = leer("medicontrol-autoeval-v1");
   const pensamientos = leer("medicontrol-pensamientos-v1");
   const gratitud = leer("medicontrol-gratitud-v1");
+  const insulina = (() => {
+    let o;
+    try {
+      o = JSON.parse(localStorage.getItem("medicontrol-insulina-v1"));
+    } catch (e) {}
+    return o && Array.isArray(o.lista) ? o.lista : Array.isArray(o) ? o : [];
+  })();
   let controlRac = {};
   try {
     controlRac = JSON.parse(localStorage.getItem("medicontrol-control-raciones-v1")) || {};
@@ -2580,6 +4420,7 @@ function MiDia({
       sueno: suenoLog.find(r => r.fecha === d) || null,
       sintomas: sintomas.filter(s => s.fecha === d),
       signos: readings.filter(r => r.fecha === d),
+      insulina: insulina.filter(r => r.fecha === d).sort((a, b) => (a.hora || "") < (b.hora || "") ? -1 : 1),
       citas: citas.filter(c => c.fecha === d),
       episodios: episodios.filter(e => e.fecha === d),
       seguimiento: seguimiento.filter(s => s.fecha === d),
@@ -2590,7 +4431,7 @@ function MiDia({
   };
   const dd = datosDia(fecha);
   const medsHechas = dd.meds.filter(x => x.done).length;
-  const hayAlgo = dd.meds.length || dd.comidas.length || dd.agua || dd.raciones || dd.sueno || dd.sintomas.length || dd.signos.length || dd.citas.length || dd.episodios.length || dd.seguimiento.length || dd.autoeval.length || dd.pensamientos.length || dd.gratitud.length;
+  const hayAlgo = dd.meds.length || dd.comidas.length || dd.agua || dd.raciones || dd.sueno || dd.sintomas.length || dd.signos.length || dd.insulina.length || dd.citas.length || dd.episodios.length || dd.seguimiento.length || dd.autoeval.length || dd.pensamientos.length || dd.gratitud.length;
   const fechaTxt = (() => {
     try {
       return new Date(fecha + "T12:00:00").toLocaleDateString("es-MX", {
@@ -2685,6 +4526,10 @@ function MiDia({
     }));else parr("Sin mediciones.");
     titulo("Síntomas");
     if (dd.sintomas.length) tabla(["Síntoma", "Intensidad", "Medición", "Nota"], dd.sintomas.map(s => [s.label, String(s.intensidad), s.valor != null ? s.valor + " " + (s.unidad || "") : "—", s.nota || "—"]));else parr("Sin síntomas.");
+    if (dd.insulina.length) {
+      titulo("Insulina");
+      tabla(["Hora", "Tipo", "Dosis (UI)", "Momento", "Sitio", "Glucosa"], dd.insulina.map(r => [r.hora, r.tipo, String(r.dosis), r.momento, r.sitio, r.glucosa != null ? r.glucosa + " mg/dL" : "—"]));
+    }
     titulo("Alimentación");
     if (dd.agua) parr("Agua: " + dd.agua + " vasos.");
     if (dd.comidas.length) tabla(["Hora", "Tiempo", "Alimentos"], dd.comidas.map(c => [c.hora || "—", (TIPO_COMIDA[c.tipo] || c.tipo || "").replace(/^[^ ]+ /, ""), c.alimentos]));else parr("Sin comidas registradas.");
@@ -2899,7 +4744,19 @@ function MiDia({
     className: "text-sm text-slate-600"
   }, "\uD83D\uDCAD ", dd.pensamientos.length, " registro(s) de pensamientos"), dd.gratitud.length > 0 && React.createElement("div", {
     className: "text-sm text-slate-600"
-  }, "\u2728 Anot\xF3 cosas buenas del d\xEDa")), dd.citas.length > 0 && React.createElement(Seccion, {
+  }, "\u2728 Anot\xF3 cosas buenas del d\xEDa")), dd.insulina.length > 0 && React.createElement(Seccion, {
+    icono: "\uD83D\uDC89",
+    titulo: "Insulina (" + dd.insulina.reduce((a, r) => a + (Number(r.dosis) || 0), 0) + " UI en total)"
+  }, React.createElement("div", {
+    className: "space-y-1"
+  }, dd.insulina.map(r => React.createElement("div", {
+    key: r.id,
+    className: "text-sm text-slate-700 flex flex-wrap gap-x-2"
+  }, React.createElement("span", {
+    className: "font-semibold text-sky-700"
+  }, r.dosis, " UI"), React.createElement("span", null, "\xB7 ", r.tipo), React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "\xB7 ", r.momento, r.hora ? " · " + r.hora : "", r.glucosa != null ? " · glucosa " + r.glucosa : ""))))), dd.citas.length > 0 && React.createElement(Seccion, {
     icono: "\uD83D\uDCC5",
     titulo: "Citas"
   }, React.createElement("div", {
@@ -3277,6 +5134,10 @@ function MediControl() {
     label: "Sueño",
     Icon: IMoon
   }, {
+    id: "insulina",
+    label: "Insulina",
+    Icon: IDrop
+  }, {
     id: "comidas",
     label: "Comidas",
     Icon: IFood
@@ -3497,6 +5358,9 @@ function MediControl() {
     avisar: avisar,
     nombre: data.perfil && data.perfil.nombre || ""
   }), tab === "sueno" && React.createElement(ControlSueno, {
+    avisar: avisar,
+    nombre: data.perfil && data.perfil.nombre || ""
+  }), tab === "insulina" && React.createElement(Insulina, {
     avisar: avisar,
     nombre: data.perfil && data.perfil.nombre || ""
   }), tab === "emergencia" && React.createElement(Emergencia, {
@@ -3871,6 +5735,22 @@ function FormAgregar({
     ...p,
     [k]: v
   }));
+  const pickName = v => setF(p => {
+    const info = infoMed(v);
+    if (!info) return {
+      ...p,
+      name: v
+    };
+    return {
+      ...p,
+      name: v,
+      category: info.cat,
+      categoryCustom: info.cat === "otro" ? p.categoryCustom : "",
+      purpose: info.motivo,
+      presentation: info.pres || p.presentation
+    };
+  });
+  const autoFicha = infoMed(f.name);
   const opciones = useMemo(() => {
     const out = [];
     for (let m = 0; m < 1440; m += 30) {
@@ -3967,16 +5847,18 @@ function FormAgregar({
     cls: "w-5 h-5 text-emerald-700"
   }), " Datos de la receta"), React.createElement("div", {
     className: "grid grid-cols-1 sm:grid-cols-2 gap-3"
-  }, React.createElement(CampoLista, {
+  }, React.createElement("div", null, React.createElement(CampoLista, {
     label: "Nombre del medicamento",
     requerido: true,
     labelCls: labelCls,
     inputCls: inputCls,
     valor: f.name,
-    onChange: v => set("name", v),
+    onChange: pickName,
     opciones: MEDICAMENTOS,
     placeholder: "Escribe el nombre del medicamento"
-  }), React.createElement(CampoLista, {
+  }), autoFicha && React.createElement("div", {
+    className: "text-[11px] text-emerald-600 mt-1 flex items-center gap-1"
+  }, "\u2713 Se complet\xF3 el tipo y el motivo autom\xE1ticamente (puedes cambiarlos).")), React.createElement(CampoLista, {
     label: "Dosis",
     requerido: true,
     labelCls: labelCls,
@@ -11793,6 +13675,10 @@ function Respaldo({
       citas: (ex["medicontrol-citas-v1"] || []).length,
       sint: (ex["medicontrol-sintomas-v1"] || []).length,
       sueno: (ex["medicontrol-sueno-log-v1"] || []).length,
+      insu: (() => {
+        const o = ex["medicontrol-insulina-v1"];
+        return o && Array.isArray(o.lista) ? o.lista.length : 0;
+      })(),
       emer: (() => {
         const e = ex["medicontrol-emergencia-v1"] || {};
         return (e.medicos || []).length + (e.contactos || []).length;
@@ -11816,6 +13702,8 @@ function Respaldo({
   }, "\uD83E\uDD12 ", c.sint, " s\xEDntomas"), React.createElement("span", {
     className: "bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2.5 py-1"
   }, "\uD83C\uDF19 ", c.sueno, " noches de sue\xF1o"), React.createElement("span", {
+    className: "bg-cyan-50 text-cyan-700 border border-cyan-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDC89 ", c.insu, " aplicaciones de insulina"), React.createElement("span", {
     className: "bg-red-50 text-red-700 border border-red-100 rounded-full px-2.5 py-1"
   }, "\uD83D\uDEA8 ", c.emer, " contactos de emergencia"), React.createElement("span", {
     className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
