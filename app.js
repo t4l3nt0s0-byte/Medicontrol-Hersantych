@@ -818,7 +818,12 @@ function Citas({
       setEditId(null);
     },
     className: "text-sm font-semibold text-slate-500 border border-slate-200 rounded-xl px-3"
-  }, "Cancelar")))), proximas.length > 0 && React.createElement("div", null, React.createElement("div", {
+  }, "Cancelar")))), lista.length > 0 && React.createElement("button", {
+    onClick: exportar,
+    className: "w-full text-sm font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-xl py-2 flex items-center justify-center gap-2 hover:bg-emerald-100"
+  }, React.createElement(IDownload, {
+    cls: "w-4 h-4"
+  }), " Exportar todas las citas a PDF"), proximas.length > 0 && React.createElement("div", null, React.createElement("div", {
     className: "flex items-center justify-between mb-2"
   }, React.createElement("h3", {
     className: "text-sm font-bold text-slate-700"
@@ -1126,6 +1131,12 @@ function ControlSueno({
     siesta: 0,
     alteraciones: [],
     apnea: false,
+    oxigeno: false,
+    oxigenoFlujo: "",
+    cpap: false,
+    cpapCond: "",
+    pastillas: false,
+    pastillasCual: "",
     obs: ""
   };
   const [f, setF] = useState(vacio);
@@ -1157,16 +1168,16 @@ function ControlSueno({
     if (!doc) return sinPDF(avisar);
     encabezadoPDF(doc, "Control de sueño", nombre);
     doc.autoTable({
-      head: [["Fecha", "Dormir", "Despertar", "Horas", "Despertares", "Calidad", "Insomnio", "Siesta (min)", "Apnea", "Alteraciones", "Obs. del cuidador"]],
-      body: lista.slice().sort((a, b) => a.fecha < b.fecha ? 1 : -1).map(r => [r.fecha, r.dormir, r.despertar, String(r.horas), String(r.despertares), CAL[r.calidad] || "", r.insomnio === "no" ? "No" : r.insomnio, String(r.siesta || 0), r.apnea ? "Sí" : "No", (r.alteraciones || []).join(", ") || "—", r.obs || "—"]),
+      head: [["Fecha", "Dormir", "Despertar", "Horas", "Desp.", "Calidad", "Insomnio", "Siesta", "Apnea", "Oxígeno", "CPAP", "Pastillas", "Alteraciones", "Obs. cuidador"]],
+      body: lista.slice().sort((a, b) => a.fecha < b.fecha ? 1 : -1).map(r => [r.fecha, r.dormir, r.despertar, String(r.horas), String(r.despertares), CAL[r.calidad] || "", r.insomnio === "no" ? "No" : r.insomnio, String(r.siesta || 0) + "m", r.apnea ? "Sí" : "No", r.oxigeno ? r.oxigenoFlujo ? r.oxigenoFlujo + " L" : "Sí" : "No", r.cpap ? r.cpapCond || "Sí" : "No", r.pastillas ? r.pastillasCual || "Sí" : "No", (r.alteraciones || []).join(", ") || "—", r.obs || "—"]),
       startY: 26,
       styles: {
-        fontSize: 7.5,
-        cellPadding: 1.5
+        fontSize: 7,
+        cellPadding: 1.2
       },
       headStyles: {
         fillColor: [79, 70, 229],
-        fontSize: 7.5
+        fontSize: 7
       },
       alternateRowStyles: {
         fillColor: [245, 245, 255]
@@ -1280,14 +1291,57 @@ function ControlSueno({
     key: a,
     onClick: () => toggleAlt(a),
     className: "text-[11px] rounded-full px-2.5 py-1 border font-medium " + (f.alteraciones.indexOf(a) >= 0 ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200")
-  }, a)))), React.createElement("label", {
-    className: "flex items-center gap-2 mt-3 text-sm text-slate-700"
+  }, a)))), React.createElement("div", {
+    className: "mt-3 space-y-2 bg-indigo-50/60 border border-indigo-100 rounded-xl p-3"
+  }, React.createElement("div", {
+    className: "text-xs font-semibold text-indigo-800"
+  }, "Apoyos respiratorios y medicaci\xF3n"), React.createElement("label", {
+    className: "flex items-center gap-2 text-sm text-slate-700"
   }, React.createElement("input", {
     type: "checkbox",
     checked: f.apnea,
     onChange: e => set("apnea", e.target.checked),
     className: "w-4 h-4 accent-indigo-600"
   }), " Diagn\xF3stico o sospecha de apnea del sue\xF1o"), React.createElement("label", {
+    className: "flex items-center gap-2 text-sm text-slate-700"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: f.oxigeno,
+    onChange: e => set("oxigeno", e.target.checked),
+    className: "w-4 h-4 accent-indigo-600"
+  }), " Usa ox\xEDgeno al dormir"), f.oxigeno && React.createElement("input", {
+    type: "text",
+    value: f.oxigenoFlujo,
+    onChange: e => set("oxigenoFlujo", e.target.value),
+    placeholder: "\xBFCu\xE1nto? Ej.: 2 L/min",
+    className: ic
+  }), React.createElement("label", {
+    className: "flex items-center gap-2 text-sm text-slate-700"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: f.cpap,
+    onChange: e => set("cpap", e.target.checked),
+    className: "w-4 h-4 accent-indigo-600"
+  }), " Usa CPAP / BiPAP"), f.cpap && React.createElement("input", {
+    type: "text",
+    value: f.cpapCond,
+    onChange: e => set("cpapCond", e.target.value),
+    placeholder: "Condiciones de uso: presi\xF3n, horas, mascarilla\u2026",
+    className: ic
+  }), React.createElement("label", {
+    className: "flex items-center gap-2 text-sm text-slate-700"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: f.pastillas,
+    onChange: e => set("pastillas", e.target.checked),
+    className: "w-4 h-4 accent-indigo-600"
+  }), " Tom\xF3 pastillas para dormir"), f.pastillas && React.createElement("input", {
+    type: "text",
+    value: f.pastillasCual,
+    onChange: e => set("pastillasCual", e.target.value),
+    placeholder: "\xBFCu\xE1l y qu\xE9 dosis?",
+    className: ic
+  })), React.createElement("label", {
     className: "text-xs text-slate-500 block mt-3"
   }, "Observaciones del cuidador", React.createElement("textarea", {
     rows: "2",
@@ -1333,7 +1387,13 @@ function ControlSueno({
     className: "text-amber-600"
   }, "Insomnio: ", r.insomnio), r.apnea && React.createElement("span", {
     className: "text-red-600 font-semibold"
-  }, "Apnea")), r.alteraciones && r.alteraciones.length > 0 && React.createElement("div", {
+  }, "Apnea"), r.oxigeno && React.createElement("span", {
+    className: "text-sky-600"
+  }, "O\u2082", r.oxigenoFlujo ? " " + r.oxigenoFlujo : ""), r.cpap && React.createElement("span", {
+    className: "text-indigo-600"
+  }, "CPAP"), r.pastillas && React.createElement("span", {
+    className: "text-violet-600"
+  }, "Pastilla p/dormir")), r.alteraciones && r.alteraciones.length > 0 && React.createElement("div", {
     className: "text-[11px] text-slate-400 mt-1"
   }, r.alteraciones.join(" · ")), r.obs && React.createElement("div", {
     className: "text-xs text-slate-500 mt-1 bg-slate-50 rounded-lg px-2 py-1"
@@ -1365,6 +1425,7 @@ function Emergencia({
   const [m, setM] = useState({
     nombre: "",
     esp: "",
+    espOtra: "",
     tel: ""
   });
   const [c, setC] = useState({
@@ -1378,16 +1439,20 @@ function Emergencia({
       avisar("Pon nombre y teléfono del médico");
       return;
     }
+    const esp = m.esp === "Otra" ? m.espOtra.trim() || "Otra" : m.esp;
     setCfg(p => ({
       ...p,
       medicos: [...p.medicos, {
         id: Date.now(),
-        ...m
+        nombre: m.nombre,
+        esp,
+        tel: m.tel
       }]
     }));
     setM({
       nombre: "",
       esp: "",
+      espOtra: "",
       tel: ""
     });
   };
@@ -1519,15 +1584,27 @@ function Emergencia({
     }),
     placeholder: "Nombre",
     className: ic
-  }), React.createElement("input", {
-    type: "text",
+  }), React.createElement("select", {
     value: m.esp,
     onChange: e => setM({
       ...m,
       esp: e.target.value
     }),
-    placeholder: "Especialidad",
     className: ic
+  }, React.createElement("option", {
+    value: ""
+  }, "Especialidad\u2026"), ESPECIALIDADES.map(e => React.createElement("option", {
+    key: e,
+    value: e
+  }, e))), m.esp === "Otra" && React.createElement("input", {
+    type: "text",
+    value: m.espOtra,
+    onChange: e => setM({
+      ...m,
+      espOtra: e.target.value
+    }),
+    placeholder: "Escribe la especialidad",
+    className: ic + " col-span-2"
   }), React.createElement("input", {
     type: "tel",
     value: m.tel,
@@ -2050,6 +2127,405 @@ function Evolucion({
     }
   })))))));
 }
+const METRICA_LABEL = {
+  peso: ["Peso", "kg"],
+  glucosa: ["Glucosa", "mg/dL"],
+  presion: ["Presión", "mmHg"],
+  spo2: ["Oxigenación", "%"],
+  temp: ["Temperatura", "°C"],
+  fc: ["Frec. cardiaca", "lpm"],
+  fr: ["Frec. respiratoria", "rpm"],
+  cintura: ["Cintura", "cm"],
+  cuello: ["Cuello", "cm"]
+};
+const fmtSigno = r => {
+  const m = METRICA_LABEL[r.tipo] || [r.tipo, ""];
+  const val = r.tipo === "presion" ? r.a + "/" + r.b : r.a;
+  return {
+    label: m[0],
+    valor: val + " " + m[1]
+  };
+};
+const CAL_SUENO = ["", "Muy mala", "Mala", "Regular", "Buena", "Excelente"];
+const TIPO_COMIDA = {
+  desayuno: "🌅 Desayuno",
+  colacion1: "🍎 Colación",
+  comida: "🍲 Comida",
+  colacion2: "🍑 Colación",
+  cena: "🌙 Cena",
+  otro: "🍴 Otro"
+};
+function MiDia({
+  avisar,
+  data
+}) {
+  const hoy = hoyISO();
+  const nombre = data.perfil && data.perfil.nombre || "";
+  const [modo, setModo] = useState("dia");
+  const [fecha, setFecha] = useState(hoy);
+  const [desde, setDesde] = useState(addDays(hoy, -6));
+  const [hasta, setHasta] = useState(hoy);
+  const leer = k => {
+    try {
+      return JSON.parse(localStorage.getItem(k)) || [];
+    } catch (e) {
+      return [];
+    }
+  };
+  const sintomas = leer("medicontrol-sintomas-v1");
+  const suenoLog = leer("medicontrol-sueno-log-v1");
+  const citas = leer("medicontrol-citas-v1");
+  const episodios = leer("medicontrol-episodios-v1");
+  const comidas = data.comidas || [];
+  const agua = data.agua || {};
+  const readings = data.vitals && data.vitals.readings || [];
+  const datosDia = d => {
+    const meds = [];
+    for (const m of data.meds || []) {
+      const fin = fechaFin(m);
+      if (d < m.startDate || d > fin) continue;
+      for (const t of m.times || []) meds.push({
+        name: m.name,
+        dose: m.dose,
+        hora: t,
+        done: !!data.taken[doseKey(m.id, d, t)]
+      });
+    }
+    meds.sort((a, b) => a.hora < b.hora ? -1 : 1);
+    return {
+      meds,
+      comidas: comidas.filter(c => c.fecha === d).sort((a, b) => (a.hora || "") < (b.hora || "") ? -1 : 1),
+      agua: agua[d] || 0,
+      sueno: suenoLog.find(r => r.fecha === d) || null,
+      sintomas: sintomas.filter(s => s.fecha === d),
+      signos: readings.filter(r => r.fecha === d),
+      citas: citas.filter(c => c.fecha === d),
+      episodios: episodios.filter(e => e.fecha === d)
+    };
+  };
+  const dd = datosDia(fecha);
+  const medsHechas = dd.meds.filter(x => x.done).length;
+  const hayAlgo = dd.meds.length || dd.comidas.length || dd.agua || dd.sueno || dd.sintomas.length || dd.signos.length || dd.citas.length || dd.episodios.length;
+  const fechaTxt = (() => {
+    try {
+      return new Date(fecha + "T12:00:00").toLocaleDateString("es-MX", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    } catch (e) {
+      return fecha;
+    }
+  })();
+  const Seccion = ({
+    icono,
+    titulo,
+    children,
+    vacio
+  }) => React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("h3", {
+    className: "font-bold text-slate-800 text-sm flex items-center gap-2"
+  }, icono, " ", titulo), React.createElement("div", {
+    className: "mt-2"
+  }, children || React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, vacio || "Sin registro este día.")));
+  const rango = (() => {
+    const out = [];
+    let d = desde;
+    let guard = 0;
+    while (d <= hasta && guard < 400) {
+      out.push(d);
+      d = addDays(d, 1);
+      guard++;
+    }
+    return out;
+  })();
+  const resumenRango = rango.map(d => ({
+    d,
+    x: datosDia(d)
+  }));
+  const pdfDia = () => {
+    const doc = abrirPDF();
+    if (!doc) return sinPDF(avisar);
+    encabezadoPDF(doc, "Reporte del día · " + fecha, nombre);
+    let y = 28;
+    const titulo = t => {
+      y += 2;
+      doc.setFontSize(11);
+      doc.setTextColor(6, 78, 59);
+      doc.text(t, 14, y);
+      y += 5;
+    };
+    const parr = t => {
+      doc.setFontSize(9);
+      doc.setTextColor(60);
+      const s = doc.splitTextToSize(t, 182);
+      doc.text(s, 14, y);
+      y += s.length * 4.6 + 1;
+    };
+    const tabla = (head, body) => {
+      doc.autoTable({
+        head: [head],
+        body,
+        startY: y,
+        styles: {
+          fontSize: 8,
+          cellPadding: 1.6
+        },
+        headStyles: {
+          fillColor: [4, 120, 87]
+        },
+        margin: {
+          left: 14,
+          right: 14
+        }
+      });
+      y = doc.lastAutoTable.finalY + 2;
+    };
+    titulo("Sueño");
+    parr(dd.sueno ? dd.sueno.horas + " h (" + dd.sueno.dormir + "→" + dd.sueno.despertar + "), calidad " + (CAL_SUENO[dd.sueno.calidad] || "") + ", " + dd.sueno.despertares + " despertares" + (dd.sueno.apnea ? ", apnea" : "") + (dd.sueno.oxigeno ? ", oxígeno " + (dd.sueno.oxigenoFlujo || "") : "") + (dd.sueno.cpap ? ", CPAP" : "") + (dd.sueno.pastillas ? ", pastilla p/dormir" : "") + (dd.sueno.obs ? ". Obs. cuidador: " + dd.sueno.obs : "") : "Sin registro.");
+    titulo("Hidratación");
+    parr(dd.agua ? dd.agua + " vasos de agua" : "Sin registro.");
+    titulo("Ánimo / bienestar");
+    parr(dd.episodios.length ? dd.episodios.map(e => e.tipo + " (intensidad " + e.intensidad + ")" + (e.nota ? ": " + e.nota : "")).join("; ") : "Sin episodios registrados.");
+    titulo("Medicamentos (" + medsHechas + "/" + dd.meds.length + " tomados)");
+    if (dd.meds.length) tabla(["Hora", "Medicamento", "Dosis", "Estado"], dd.meds.map(m => [m.hora, m.name, m.dose || "—", m.done ? "Tomado" : "Pendiente"]));else parr("Sin medicamentos programados.");
+    titulo("Signos y mediciones");
+    if (dd.signos.length) tabla(["Indicador", "Valor", "Hora"], dd.signos.map(r => {
+      const f = fmtSigno(r);
+      return [f.label, f.valor, r.hora || "—"];
+    }));else parr("Sin mediciones.");
+    titulo("Síntomas");
+    if (dd.sintomas.length) tabla(["Síntoma", "Intensidad", "Medición", "Nota"], dd.sintomas.map(s => [s.label, String(s.intensidad), s.valor != null ? s.valor + " " + (s.unidad || "") : "—", s.nota || "—"]));else parr("Sin síntomas.");
+    titulo("Alimentación");
+    if (dd.comidas.length) tabla(["Hora", "Tiempo", "Alimentos"], dd.comidas.map(c => [c.hora || "—", (TIPO_COMIDA[c.tipo] || c.tipo || "").replace(/^[^ ]+ /, ""), c.alimentos]));else parr("Sin comidas registradas.");
+    if (dd.citas.length) {
+      titulo("Citas");
+      parr(dd.citas.map(c => c.especialidad + (c.hora ? " " + c.hora : "") + (c.hospital ? " · " + c.hospital : "")).join("; "));
+    }
+    doc.save("mi-dia-" + fecha + ".pdf");
+    avisar("Reporte del día descargado");
+  };
+  const pdfRango = () => {
+    const doc = abrirPDF("landscape");
+    if (!doc) return sinPDF(avisar);
+    encabezadoPDF(doc, "Reporte " + desde + " a " + hasta, nombre);
+    doc.autoTable({
+      head: [["Fecha", "Meds", "Sueño", "Agua", "Síntomas", "Mediciones", "Ánimo"]],
+      body: resumenRango.map(o => [o.d, o.x.meds.length ? o.x.meds.filter(m => m.done).length + "/" + o.x.meds.length : "—", o.x.sueno ? o.x.sueno.horas + " h" : "—", o.x.agua ? o.x.agua + " vasos" : "—", o.x.sintomas.length ? o.x.sintomas.map(s => s.label).join(", ") : "—", o.x.signos.length ? o.x.signos.map(r => {
+        const f = fmtSigno(r);
+        return f.label + " " + f.valor;
+      }).join("; ") : "—", o.x.episodios.length ? o.x.episodios.map(e => e.tipo).join(", ") : "—"]),
+      startY: 26,
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 1.4
+      },
+      headStyles: {
+        fillColor: [4, 120, 87]
+      },
+      alternateRowStyles: {
+        fillColor: [245, 250, 248]
+      }
+    });
+    doc.save("mi-dia-" + desde + "_a_" + hasta + ".pdf");
+    avisar("Reporte del rango descargado");
+  };
+  return React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-teal-600 to-emerald-700 text-white rounded-2xl p-5"
+  }, React.createElement("h2", {
+    className: "text-lg font-bold flex items-center gap-2"
+  }, "\uD83D\uDCD6 Mi d\xEDa"), React.createElement("p", {
+    className: "text-teal-50 text-sm mt-1"
+  }, "Elige una fecha y mira TODO lo que pas\xF3 ese d\xEDa: c\xF3mo se sinti\xF3, qu\xE9 comi\xF3, c\xF3mo durmi\xF3, s\xEDntomas y mediciones.")), React.createElement("div", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4"
+  }, React.createElement("div", {
+    className: "flex gap-1.5 mb-3"
+  }, React.createElement("button", {
+    onClick: () => setModo("dia"),
+    className: "flex-1 text-sm font-semibold rounded-xl py-2 border " + (modo === "dia" ? "bg-emerald-700 text-white border-emerald-700" : "bg-white text-slate-600 border-slate-200")
+  }, "Un d\xEDa"), React.createElement("button", {
+    onClick: () => setModo("rango"),
+    className: "flex-1 text-sm font-semibold rounded-xl py-2 border " + (modo === "rango" ? "bg-emerald-700 text-white border-emerald-700" : "bg-white text-slate-600 border-slate-200")
+  }, "Rango de d\xEDas")), modo === "dia" ? React.createElement("div", {
+    className: "flex items-center gap-2 flex-wrap"
+  }, React.createElement("input", {
+    type: "date",
+    value: fecha,
+    max: hoy,
+    onChange: e => setFecha(e.target.value || hoy),
+    className: "rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  }), fecha !== hoy && React.createElement("button", {
+    onClick: () => setFecha(hoy),
+    className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5"
+  }, "Hoy"), React.createElement("button", {
+    onClick: pdfDia,
+    className: "ml-auto text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5 flex items-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-3.5 h-3.5"
+  }), " PDF del d\xEDa")) : React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Desde", React.createElement("input", {
+    type: "date",
+    value: desde,
+    max: hasta,
+    onChange: e => setDesde(e.target.value),
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-2 text-sm"
+  })), React.createElement("label", {
+    className: "text-xs text-slate-500"
+  }, "Hasta", React.createElement("input", {
+    type: "date",
+    value: hasta,
+    max: hoy,
+    onChange: e => setHasta(e.target.value),
+    className: "w-full mt-0.5 rounded-xl border border-slate-300 px-2 py-2 text-sm"
+  })), React.createElement("button", {
+    onClick: pdfRango,
+    className: "col-span-2 text-sm font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-xl py-2 flex items-center justify-center gap-1"
+  }, React.createElement(IDownload, {
+    cls: "w-4 h-4"
+  }), " PDF del rango (", rango.length, " d\xEDas)"))), modo === "dia" ? React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "text-center text-sm font-semibold text-slate-600 capitalize"
+  }, fechaTxt), !hayAlgo && React.createElement("div", {
+    className: "text-center text-sm text-slate-400 py-6 bg-white rounded-2xl border border-slate-200"
+  }, "No hay nada registrado este d\xEDa."), React.createElement(Seccion, {
+    icono: "\uD83C\uDF19",
+    titulo: "Sue\xF1o"
+  }, dd.sueno ? React.createElement("div", {
+    className: "text-sm text-slate-700"
+  }, React.createElement("div", null, React.createElement("b", {
+    className: "text-indigo-600"
+  }, dd.sueno.horas, " h"), " \xB7 ", dd.sueno.dormir, "\u2192", dd.sueno.despertar, " \xB7 calidad ", CAL_SUENO[dd.sueno.calidad]), React.createElement("div", {
+    className: "text-xs text-slate-500 mt-0.5 flex flex-wrap gap-x-2"
+  }, dd.sueno.despertares, " despertares", dd.sueno.apnea && React.createElement("span", {
+    className: "text-red-600"
+  }, "\xB7 apnea"), dd.sueno.oxigeno && React.createElement("span", {
+    className: "text-sky-600"
+  }, "\xB7 O\u2082 ", dd.sueno.oxigenoFlujo), dd.sueno.cpap && React.createElement("span", {
+    className: "text-indigo-600"
+  }, "\xB7 CPAP"), dd.sueno.pastillas && React.createElement("span", {
+    className: "text-violet-600"
+  }, "\xB7 pastilla")), dd.sueno.obs && React.createElement("div", {
+    className: "text-xs text-slate-500 mt-1"
+  }, "\uD83D\uDC41\uFE0F ", dd.sueno.obs)) : null), React.createElement(Seccion, {
+    icono: "\uD83D\uDE0A",
+    titulo: "\xC1nimo y bienestar",
+    vacio: "Sin episodios registrados."
+  }, dd.episodios.length ? React.createElement("div", {
+    className: "space-y-1"
+  }, dd.episodios.map(e => React.createElement("div", {
+    key: e.id,
+    className: "text-sm text-slate-700"
+  }, e.tipo, " ", React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "\xB7 intensidad ", e.intensidad, e.nota ? " · " + e.nota : "")))) : null), React.createElement(Seccion, {
+    icono: "\uD83D\uDC8A",
+    titulo: "Medicamentos (" + medsHechas + "/" + dd.meds.length + ")",
+    vacio: "Sin medicamentos programados."
+  }, dd.meds.length ? React.createElement("div", {
+    className: "space-y-1"
+  }, dd.meds.map((m, i) => React.createElement("div", {
+    key: i,
+    className: "flex items-center gap-2 text-sm"
+  }, React.createElement("span", {
+    className: m.done ? "text-emerald-600" : "text-slate-300"
+  }, m.done ? "✓" : "○"), React.createElement("span", {
+    className: "text-slate-400 w-12"
+  }, m.hora), React.createElement("span", {
+    className: "text-slate-700 flex-1"
+  }, m.name, " ", m.dose && React.createElement("span", {
+    className: "text-slate-400"
+  }, "\xB7 ", m.dose))))) : null), React.createElement(Seccion, {
+    icono: "\uD83E\uDE7A",
+    titulo: "Signos y mediciones"
+  }, dd.signos.length ? React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, dd.signos.map((r, i) => {
+    const f = fmtSigno(r);
+    return React.createElement("div", {
+      key: i,
+      className: "bg-slate-50 rounded-xl px-3 py-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, f.label, r.hora ? " · " + r.hora : ""), React.createElement("div", {
+      className: "font-bold text-slate-800"
+    }, f.valor));
+  })) : null), React.createElement(Seccion, {
+    icono: "\uD83E\uDD12",
+    titulo: "S\xEDntomas"
+  }, dd.sintomas.length ? React.createElement("div", {
+    className: "space-y-1"
+  }, dd.sintomas.map(s => React.createElement("div", {
+    key: s.id,
+    className: "flex items-center gap-2 text-sm"
+  }, React.createElement("span", null, s.emoji), React.createElement("span", {
+    className: "text-slate-700 flex-1"
+  }, s.label, s.valor != null && React.createElement("span", {
+    className: "text-rose-600"
+  }, " \xB7 ", s.valor, " ", s.unidad)), React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "int. ", s.intensidad)))) : null), React.createElement(Seccion, {
+    icono: "\uD83C\uDF7D\uFE0F",
+    titulo: "Alimentaci\xF3n"
+  }, dd.comidas.length || dd.agua ? React.createElement("div", null, dd.agua > 0 && React.createElement("div", {
+    className: "text-sm text-sky-700 mb-1"
+  }, "\uD83D\uDCA7 ", dd.agua, " vasos de agua"), dd.comidas.map(c => React.createElement("div", {
+    key: c.id,
+    className: "text-sm text-slate-700 border-l-2 border-emerald-200 pl-2 mb-1"
+  }, React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, c.hora, " ", TIPO_COMIDA[c.tipo] || ""), React.createElement("br", null), c.alimentos))) : null), dd.citas.length > 0 && React.createElement(Seccion, {
+    icono: "\uD83D\uDCC5",
+    titulo: "Citas"
+  }, React.createElement("div", {
+    className: "space-y-1"
+  }, dd.citas.map(c => React.createElement("div", {
+    key: c.id,
+    className: "text-sm text-slate-700"
+  }, "\uD83E\uDE7A ", c.especialidad, " ", c.hora && React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "\xB7 ", c.hora), c.hospital && React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, " \xB7 ", c.hospital)))))) : React.createElement("div", {
+    className: "space-y-2"
+  }, resumenRango.slice().reverse().map(o => {
+    const x = o.x;
+    const algo = x.meds.length || x.comidas.length || x.agua || x.sueno || x.sintomas.length || x.signos.length || x.episodios.length;
+    return React.createElement("div", {
+      key: o.d,
+      className: "bg-white rounded-xl border p-3 " + (algo ? "border-slate-200" : "border-slate-100 opacity-60")
+    }, React.createElement("button", {
+      onClick: () => {
+        setFecha(o.d);
+        setModo("dia");
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      },
+      className: "w-full text-left"
+    }, React.createElement("div", {
+      className: "font-semibold text-slate-800 text-sm"
+    }, o.d), React.createElement("div", {
+      className: "text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5"
+    }, x.meds.length > 0 && React.createElement("span", {
+      className: x.meds.every(m => m.done) ? "text-emerald-600" : "text-amber-600"
+    }, "\uD83D\uDC8A ", x.meds.filter(m => m.done).length, "/", x.meds.length), x.sueno && React.createElement("span", null, "\uD83C\uDF19 ", x.sueno.horas, " h"), x.agua > 0 && React.createElement("span", null, "\uD83D\uDCA7 ", x.agua), x.sintomas.length > 0 && React.createElement("span", {
+      className: "text-rose-600"
+    }, "\uD83E\uDD12 ", x.sintomas.length), x.signos.length > 0 && React.createElement("span", {
+      className: "text-sky-600"
+    }, "\uD83E\uDE7A ", x.signos.length), x.comidas.length > 0 && React.createElement("span", null, "\uD83C\uDF7D\uFE0F ", x.comidas.length), !algo && React.createElement("span", {
+      className: "text-slate-300"
+    }, "sin registros"))));
+  })));
+}
 const LOCK_KEY = "medicontrol-lock-v1";
 const hashPin = s => {
   let h = 5381;
@@ -2384,6 +2860,10 @@ function MediControl() {
     label: "Bienestar",
     Icon: IHeart
   }, {
+    id: "midia",
+    label: "Mi día",
+    Icon: ICal
+  }, {
     id: "evolucion",
     label: "Evolución",
     Icon: IChart
@@ -2591,6 +3071,9 @@ function MediControl() {
     avisar: avisar,
     nombre: data.perfil && data.perfil.nombre || ""
   }), tab === "emergencia" && React.createElement(Emergencia, {
+    avisar: avisar,
+    data: data
+  }), tab === "midia" && React.createElement(MiDia, {
     avisar: avisar,
     data: data
   }), tab === "evolucion" && React.createElement(Evolucion, {
@@ -9360,6 +9843,36 @@ function AutoEvaluacion({
     className: "text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-3 py-1.5"
   }, "Repetir evaluaci\xF3n"))));
 }
+const primeAudio = ref => {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!ref.current) ref.current = new AC();
+    if (ref.current.state === "suspended") ref.current.resume();
+  } catch (e) {}
+};
+const beepCtx = ref => {
+  try {
+    const ctx = ref.current;
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+    let t = ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const o = ctx.createOscillator(),
+        g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = 880;
+      o.connect(g);
+      g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      o.start(t);
+      o.stop(t + 0.38);
+      t += 0.45;
+    }
+  } catch (e) {}
+};
 function Grounding54321() {
   const pasos = [["👀", "5 cosas que puedes VER"], ["✋", "4 cosas que puedes TOCAR"], ["👂", "3 cosas que puedes OÍR"], ["👃", "2 cosas que puedes OLER"], ["👅", "1 cosa que puedes SABOREAR"]];
   const [i, setI] = useState(0);
@@ -9498,12 +10011,14 @@ function TiempoPreocupacion() {
   const [seg, setSeg] = useState(600);
   const [run, setRun] = useState(false);
   const iv = React.useRef(null);
+  const audio = React.useRef(null);
   useEffect(() => {
     if (!run) return;
     iv.current = setInterval(() => setSeg(s => {
       if (s <= 1) {
         clearInterval(iv.current);
         setRun(false);
+        beepCtx(audio);
         return 0;
       }
       return s - 1;
@@ -9513,6 +10028,10 @@ function TiempoPreocupacion() {
   const mm = String(Math.floor(seg / 60)).padStart(2, "0"),
     ss = String(seg % 60).padStart(2, "0");
   const fin = seg === 0;
+  const toggle = () => {
+    primeAudio(audio);
+    setRun(!run);
+  };
   return React.createElement("div", {
     className: "mt-2 bg-violet-50 border border-violet-100 rounded-xl p-3 text-center"
   }, React.createElement("div", {
@@ -9538,7 +10057,7 @@ function TiempoPreocupacion() {
   }, "Reiniciar")) : React.createElement("div", {
     className: "flex gap-2 mt-2"
   }, React.createElement("button", {
-    onClick: () => setRun(!run),
+    onClick: toggle,
     className: "flex-1 bg-violet-600 text-white text-sm font-semibold rounded-full py-1.5"
   }, run ? "Pausar" : "Empezar"), React.createElement("button", {
     onClick: () => {
@@ -9933,7 +10452,7 @@ function AcercaDe({
     className: "font-bold text-slate-800"
   }, "\uD83D\uDC64 Autor"), React.createElement("p", {
     className: "mt-1"
-  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Mtro. en Administraci\xF3n (Organizaciones), UNAM Campo 4, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
+  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Mtro. en Administraci\xF3n, UNAM egresado, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
     className: "text-xs text-slate-400"
   }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
