@@ -3556,35 +3556,66 @@ function Emergencia({
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
-  }, "\uD83E\uDE78 Ficha de emergencia"), React.createElement("p", {
+  }, React.createElement(IUser, {
+    cls: "w-5 h-5 text-red-600"
+  }), " Perfil del paciente (ficha de emergencia)"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1 mb-2"
-  }, "Datos \xFAtiles para quien te auxilie. Se llenan en Mediciones \u2192 Perfil del paciente."), React.createElement("div", {
-    className: "grid grid-cols-2 gap-2 text-sm"
-  }, React.createElement("div", {
-    className: "bg-red-50 rounded-xl px-3 py-2"
-  }, React.createElement("div", {
-    className: "text-[11px] text-slate-500"
-  }, "Tipo de sangre"), React.createElement("div", {
-    className: "font-bold text-red-700"
-  }, perfil.tipoSangre || "—")), React.createElement("div", {
-    className: "bg-slate-50 rounded-xl px-3 py-2"
-  }, React.createElement("div", {
-    className: "text-[11px] text-slate-500"
-  }, "Nombre"), React.createElement("div", {
-    className: "font-bold text-slate-800 truncate"
-  }, perfil.nombre || "—")), React.createElement("div", {
-    className: "bg-amber-50 rounded-xl px-3 py-2 col-span-2"
-  }, React.createElement("div", {
-    className: "text-[11px] text-slate-500"
-  }, "Alergias"), React.createElement("div", {
-    className: "font-semibold text-amber-800"
-  }, perfil.alergias || "Ninguna registrada")), React.createElement("div", {
-    className: "bg-sky-50 rounded-xl px-3 py-2 col-span-2"
-  }, React.createElement("div", {
-    className: "text-[11px] text-slate-500"
-  }, "Condiciones / padecimientos"), React.createElement("div", {
-    className: "font-semibold text-sky-800"
-  }, perfil.condiciones || "Ninguna registrada")))), React.createElement("div", {
+  }, "Todos tus datos a la mano para quien te auxilie. Se llenan en Mediciones \u2192 Perfil del paciente."), (() => {
+    const edad = calcEdad(perfil.fechaNac);
+    const dxTxt = [...(perfil.dx || []), perfil.condiciones].filter(Boolean).join(" · ");
+    const imc = perfil.peso && perfil.estatura ? (Number(perfil.peso) / Math.pow(Number(perfil.estatura) / 100, 2)).toFixed(1) : null;
+    return React.createElement("div", {
+      className: "grid grid-cols-2 gap-2 text-sm"
+    }, React.createElement("div", {
+      className: "bg-slate-50 rounded-xl px-3 py-2 col-span-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Nombre"), React.createElement("div", {
+      className: "font-bold text-slate-800"
+    }, perfil.nombre || "— (complétalo en tu perfil)")), React.createElement("div", {
+      className: "bg-red-50 rounded-xl px-3 py-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Tipo de sangre"), React.createElement("div", {
+      className: "font-bold text-red-700 text-base"
+    }, perfil.tipoSangre || "—")), React.createElement("div", {
+      className: "bg-slate-50 rounded-xl px-3 py-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Edad / sexo"), React.createElement("div", {
+      className: "font-bold text-slate-800"
+    }, edad !== null ? edad + " años" : "—", perfil.sexo ? " · " + perfil.sexo : "")), React.createElement("div", {
+      className: "bg-slate-50 rounded-xl px-3 py-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Peso"), React.createElement("div", {
+      className: "font-semibold text-slate-800"
+    }, perfil.peso ? perfil.peso + " kg" : "—")), React.createElement("div", {
+      className: "bg-slate-50 rounded-xl px-3 py-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Estatura", imc ? " · IMC" : ""), React.createElement("div", {
+      className: "font-semibold text-slate-800"
+    }, perfil.estatura ? perfil.estatura + " cm" : "—", imc ? " · " + imc : "")), React.createElement("div", {
+      className: "bg-amber-50 rounded-xl px-3 py-2 col-span-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "\u26A0\uFE0F Alergias"), React.createElement("div", {
+      className: "font-semibold text-amber-800"
+    }, perfil.alergias || "Ninguna registrada")), React.createElement("div", {
+      className: "bg-sky-50 rounded-xl px-3 py-2 col-span-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Condiciones / padecimientos / diagn\xF3sticos"), React.createElement("div", {
+      className: "font-semibold text-sky-800"
+    }, dxTxt || "Ninguna registrada")), perfil.contacto && React.createElement("div", {
+      className: "bg-emerald-50 rounded-xl px-3 py-2 col-span-2"
+    }, React.createElement("div", {
+      className: "text-[11px] text-slate-500"
+    }, "Contacto en caso de emergencia"), React.createElement("div", {
+      className: "font-semibold text-emerald-800"
+    }, perfil.contacto)));
+  })()), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
     className: "font-bold text-slate-800 flex items-center gap-2"
@@ -5111,7 +5142,7 @@ function MediControl() {
     Icon: IList
   }, {
     id: "agregar",
-    label: "Agregar",
+    label: "Receta",
     Icon: IPlus
   }, {
     id: "inv",
@@ -5305,9 +5336,9 @@ function MediControl() {
     className: "font-semibold flex items-center gap-2"
   }, React.createElement(IPlus, {
     cls: "w-4 h-4"
-  }), " Agregar un medicamento"), React.createElement("p", {
+  }), " Agregar a mi receta activa"), React.createElement("p", {
     className: "text-xs text-amber-800 mt-1"
-  }, "Registra un medicamento nuevo que te hayan recetado: nombre, dosis, cada cu\xE1ntas horas y por cu\xE1ntos d\xEDas. La app calcula solo los horarios de las tomas y cu\xE1ntas cajas necesitas.")), React.createElement(FormAgregar, {
+  }, "Registra cada medicamento que te hayan recetado y est\xE9s tomando: nombre, dosis, cada cu\xE1ntas horas y por cu\xE1ntos d\xEDas. La app arma tu ", React.createElement("b", null, "receta activa"), ", calcula los horarios de las tomas y cu\xE1ntas cajas necesitas. Puedes agregar varios.")), React.createElement(FormAgregar, {
     ocupados: ocupados,
     onGuardar: guardarMed,
     medEditar: data.meds.find(m => m.id === editId) || null,
@@ -6079,8 +6110,10 @@ function FormAgregar({
     cls: "w-5 h-5"
   }), " ", medEditar ? "Guardar cambios del medicamento" : "Guardar medicamento en mi historial"));
 }
-const ENVASES = ["Caja", "Frasco", "Botella", "Blíster", "Tubo", "Sobre", "Otro"];
-const UNIDADES = ["tabletas", "cápsulas", "ml", "g", "piezas", "sobres", "dosis"];
+const ENVASES = ["Caja", "Frasco", "Botella", "Blíster", "Tubo", "Sobre", "Ampolleta", "Vial", "Pluma", "Bolsa", "Otro"];
+const UNIDADES = ["tabletas", "cápsulas", "grageas", "ml", "g", "piezas", "sobres", "dosis", "parches", "supositorios", "óvulos", "gotas", "Otro"];
+const ORIGENES = ["Comprado (farmacia)", "IMSS", "ISSSTE", "IMSS-Bienestar", "Centro de Salud (SSA)", "ISSEMyM", "PEMEX", "SEDENA / SEMAR", "Hospital / clínica privada", "DIF", "Donado / muestra médica", "Otro"];
+const ORIGEN_GRATIS = ["IMSS", "ISSSTE", "IMSS-Bienestar", "Centro de Salud (SSA)", "ISSEMyM", "PEMEX", "SEDENA / SEMAR", "DIF", "Donado / muestra médica"];
 const SEED_MEDS = [["Paracetamol 500 mg", "Tabletas", "Caja", 20, "tabletas"], ["Paracetamol 750 mg", "Tabletas", "Caja", 12, "tabletas"], ["Paracetamol gotas pediátricas 100 mg/ml", "Gotas", "Frasco", 15, "ml"], ["Paracetamol jarabe 160 mg/5 ml", "Jarabe / Suspensión", "Frasco", 120, "ml"], ["Ibuprofeno 400 mg", "Tabletas", "Caja", 10, "tabletas"], ["Ibuprofeno 600 mg", "Tabletas", "Caja", 10, "tabletas"], ["Ibuprofeno suspensión 100 mg/5 ml", "Jarabe / Suspensión", "Frasco", 120, "ml"], ["Naproxeno 250 mg", "Tabletas", "Caja", 30, "tabletas"], ["Naproxeno 550 mg", "Tabletas", "Caja", 10, "tabletas"], ["Ácido acetilsalicílico (Aspirina) 500 mg", "Tabletas", "Caja", 40, "tabletas"], ["Aspirina Protect 100 mg", "Tabletas", "Caja", 28, "tabletas"], ["Diclofenaco 100 mg", "Tabletas", "Caja", 20, "tabletas"], ["Diclofenaco gel 1%", "Crema / Ungüento", "Tubo", 60, "g"], ["Ketorolaco 10 mg", "Tabletas", "Caja", 10, "tabletas"], ["Ketorolaco sublingual 30 mg", "Tabletas", "Caja", 4, "tabletas"], ["Metamizol sódico 500 mg", "Tabletas", "Caja", 10, "tabletas"], ["Tramadol/Paracetamol 37.5/325 mg", "Tabletas", "Caja", 20, "tabletas"], ["Clonixinato de lisina 125 mg", "Tabletas", "Caja", 20, "tabletas"], ["Ácido mefenámico 500 mg", "Tabletas", "Caja", 20, "tabletas"], ["Meloxicam 15 mg", "Tabletas", "Caja", 10, "tabletas"], ["Piroxicam 20 mg", "Cápsulas", "Caja", 20, "cápsulas"], ["Celecoxib 200 mg", "Cápsulas", "Caja", 10, "cápsulas"], ["Colchicina 1 mg", "Tabletas", "Caja", 30, "tabletas"], ["Butilhioscina (Buscapina) 10 mg", "Tabletas", "Caja", 10, "tabletas"], ["Butilhioscina compuesta 10/250 mg", "Tabletas", "Caja", 10, "tabletas"], ["Loratadina 10 mg", "Tabletas", "Caja", 10, "tabletas"], ["Loratadina jarabe 5 mg/5 ml", "Jarabe / Suspensión", "Frasco", 60, "ml"], ["Loratadina/Betametasona 5/0.25 mg", "Tabletas", "Caja", 6, "tabletas"], ["Cetirizina 10 mg", "Tabletas", "Caja", 10, "tabletas"], ["Levocetirizina 5 mg", "Tabletas", "Caja", 10, "tabletas"], ["Fexofenadina 120 mg", "Tabletas", "Caja", 10, "tabletas"], ["Desloratadina 5 mg", "Tabletas", "Caja", 10, "tabletas"], ["Clorfenamina 4 mg", "Tabletas", "Caja", 20, "tabletas"], ["Ambroxol jarabe 30 mg/5 ml", "Jarabe / Suspensión", "Frasco", 120, "ml"], ["Ambroxol/Clenbuterol jarabe", "Jarabe / Suspensión", "Frasco", 120, "ml"], ["Dextrometorfano jarabe 15 mg/5 ml", "Jarabe / Suspensión", "Frasco", 120, "ml"], ["Antigripal (paracetamol/fenilefrina/clorfenamina)", "Tabletas", "Caja", 24, "tabletas"], ["Salbutamol inhalador 100 mcg", "Inhalador", "Caja", 200, "dosis"], ["Salbutamol jarabe 2 mg/5 ml", "Jarabe / Suspensión", "Frasco", 120, "ml"], ["Budesonida inhalador", "Inhalador", "Caja", 200, "dosis"], ["Montelukast 10 mg", "Tabletas", "Caja", 30, "tabletas"], ["Oximetazolina spray nasal 0.05%", "Gotas", "Frasco", 20, "ml"], ["Vick VapoRub", "Crema / Ungüento", "Frasco", 50, "g"], ["Amoxicilina 500 mg", "Cápsulas", "Caja", 12, "cápsulas"], ["Amoxicilina suspensión 250 mg/5 ml", "Jarabe / Suspensión", "Frasco", 75, "ml"], ["Amoxicilina/Ácido clavulánico 875/125 mg", "Tabletas", "Caja", 14, "tabletas"], ["Ampicilina 500 mg", "Cápsulas", "Caja", 20, "cápsulas"], ["Azitromicina 500 mg", "Tabletas", "Caja", 3, "tabletas"], ["Cefalexina 500 mg", "Cápsulas", "Caja", 20, "cápsulas"], ["Ciprofloxacino 500 mg", "Tabletas", "Caja", 14, "tabletas"], ["Levofloxacino 500 mg", "Tabletas", "Caja", 7, "tabletas"], ["Claritromicina 500 mg", "Tabletas", "Caja", 10, "tabletas"], ["Doxiciclina 100 mg", "Cápsulas", "Caja", 10, "cápsulas"], ["Trimetoprim/Sulfametoxazol 80/400 mg", "Tabletas", "Caja", 20, "tabletas"], ["Metronidazol 500 mg", "Tabletas", "Caja", 20, "tabletas"], ["Nitrofurantoína 100 mg", "Cápsulas", "Caja", 40, "cápsulas"], ["Clindamicina 300 mg", "Cápsulas", "Caja", 16, "cápsulas"], ["Fluconazol 150 mg", "Cápsulas", "Caja", 1, "cápsulas"], ["Albendazol 400 mg", "Tabletas", "Caja", 2, "tabletas"], ["Ivermectina 6 mg", "Tabletas", "Caja", 4, "tabletas"], ["Aciclovir 400 mg", "Tabletas", "Caja", 35, "tabletas"], ["Aciclovir crema 5%", "Crema / Ungüento", "Tubo", 5, "g"], ["Omeprazol 20 mg", "Cápsulas", "Caja", 14, "cápsulas"], ["Pantoprazol 40 mg", "Tabletas", "Caja", 14, "tabletas"], ["Esomeprazol 40 mg", "Tabletas", "Caja", 14, "tabletas"], ["Lansoprazol 30 mg", "Cápsulas", "Caja", 14, "cápsulas"], ["Famotidina 40 mg", "Tabletas", "Caja", 10, "tabletas"], ["Sucralfato 1 g", "Tabletas", "Caja", 40, "tabletas"], ["Aluminio/Magnesio suspensión (Melox)", "Jarabe / Suspensión", "Frasco", 360, "ml"], ["Subsalicilato de bismuto (Pepto-Bismol)", "Jarabe / Suspensión", "Frasco", 236, "ml"], ["Loperamida 2 mg", "Tabletas", "Caja", 12, "tabletas"], ["Electrolitos orales (Vida Suero Oral)", "Sobres", "Caja", 4, "sobres"], ["Electrolit bebida", "Otro", "Botella", 625, "ml"], ["Senósidos A-B 8.6 mg", "Tabletas", "Caja", 20, "tabletas"], ["Psyllium plantago (fibra)", "Otro", "Frasco", 340, "g"], ["Simeticona 125 mg", "Cápsulas", "Caja", 10, "cápsulas"], ["Metoclopramida 10 mg", "Tabletas", "Caja", 20, "tabletas"], ["Ondansetrón 8 mg", "Tabletas", "Caja", 10, "tabletas"], ["Trimebutina 200 mg", "Tabletas", "Caja", 20, "tabletas"], ["Cinitaprida 1 mg", "Tabletas", "Caja", 25, "tabletas"], ["Domperidona 10 mg", "Tabletas", "Caja", 30, "tabletas"], ["Metformina 500 mg", "Tabletas", "Caja", 30, "tabletas"], ["Metformina 850 mg", "Tabletas", "Caja", 30, "tabletas"], ["Glibenclamida 5 mg", "Tabletas", "Caja", 50, "tabletas"], ["Sitagliptina 100 mg", "Tabletas", "Caja", 28, "tabletas"], ["Linagliptina 5 mg", "Tabletas", "Caja", 30, "tabletas"], ["Empagliflozina 25 mg", "Tabletas", "Caja", 30, "tabletas"], ["Dapagliflozina 10 mg", "Tabletas", "Caja", 28, "tabletas"], ["Insulina glargina (pluma)", "Inyectable", "Caja", 3, "ml"], ["Insulina NPH", "Inyectable", "Frasco", 10, "ml"], ["Losartán 50 mg", "Tabletas", "Caja", 30, "tabletas"], ["Telmisartán 40 mg", "Tabletas", "Caja", 30, "tabletas"], ["Enalapril 10 mg", "Tabletas", "Caja", 30, "tabletas"], ["Captopril 25 mg", "Tabletas", "Caja", 30, "tabletas"], ["Amlodipino 5 mg", "Tabletas", "Caja", 30, "tabletas"], ["Metoprolol 100 mg", "Tabletas", "Caja", 20, "tabletas"], ["Hidroclorotiazida 25 mg", "Tabletas", "Caja", 30, "tabletas"], ["Furosemida 40 mg", "Tabletas", "Caja", 20, "tabletas"], ["Espironolactona 25 mg", "Tabletas", "Caja", 20, "tabletas"], ["Isosorbida 10 mg", "Tabletas", "Caja", 20, "tabletas"], ["Atorvastatina 20 mg", "Tabletas", "Caja", 30, "tabletas"], ["Rosuvastatina 20 mg", "Tabletas", "Caja", 30, "tabletas"], ["Pravastatina 10 mg", "Tabletas", "Caja", 30, "tabletas"], ["Ezetimiba 10 mg", "Tabletas", "Caja", 28, "tabletas"], ["Bezafibrato 200 mg", "Tabletas", "Caja", 30, "tabletas"], ["Clopidogrel 75 mg", "Tabletas", "Caja", 28, "tabletas"], ["Warfarina 5 mg", "Tabletas", "Caja", 25, "tabletas"], ["Pentoxifilina 400 mg", "Tabletas", "Caja", 30, "tabletas"], ["Diosmina/Hesperidina 500 mg", "Tabletas", "Caja", 30, "tabletas"], ["Levotiroxina 100 mcg", "Tabletas", "Caja", 100, "tabletas"], ["Alopurinol 300 mg", "Tabletas", "Caja", 20, "tabletas"], ["Prednisona 5 mg", "Tabletas", "Caja", 20, "tabletas"], ["Prednisona 50 mg", "Tabletas", "Caja", 20, "tabletas"], ["Tamsulosina 0.4 mg", "Cápsulas", "Caja", 20, "cápsulas"], ["Finasterida 5 mg", "Tabletas", "Caja", 30, "tabletas"], ["Sildenafil 100 mg", "Tabletas", "Caja", 4, "tabletas"], ["Anticonceptivo oral 28 días", "Tabletas", "Caja", 28, "tabletas"], ["Levonorgestrel 1.5 mg (emergencia)", "Tabletas", "Caja", 1, "tabletas"], ["Sertralina 50 mg", "Tabletas", "Caja", 14, "tabletas"], ["Fluoxetina 20 mg", "Cápsulas", "Caja", 14, "cápsulas"], ["Escitalopram 10 mg", "Tabletas", "Caja", 28, "tabletas"], ["Amitriptilina 25 mg", "Tabletas", "Caja", 20, "tabletas"], ["Gabapentina 300 mg", "Cápsulas", "Caja", 15, "cápsulas"], ["Pregabalina 75 mg", "Cápsulas", "Caja", 14, "cápsulas"], ["Carbamazepina 200 mg", "Tabletas", "Caja", 20, "tabletas"], ["Melatonina 5 mg", "Tabletas", "Frasco", 60, "tabletas"], ["Complejo B", "Tabletas", "Frasco", 30, "tabletas"], ["Vitamina C 500 mg", "Tabletas", "Frasco", 60, "tabletas"], ["Vitamina D3 4000 UI", "Cápsulas", "Frasco", 30, "cápsulas"], ["Ácido fólico 5 mg", "Tabletas", "Frasco", 90, "tabletas"], ["Multivitamínico", "Tabletas", "Frasco", 60, "tabletas"], ["Calcio + Vitamina D", "Tabletas", "Frasco", 60, "tabletas"], ["Fumarato ferroso 200 mg", "Tabletas", "Caja", 50, "tabletas"], ["Omega 3 1000 mg", "Cápsulas", "Frasco", 60, "cápsulas"], ["Magnesio 500 mg", "Tabletas", "Frasco", 60, "tabletas"], ["Ketoconazol crema 2%", "Crema / Ungüento", "Tubo", 30, "g"], ["Clotrimazol crema 1%", "Crema / Ungüento", "Tubo", 20, "g"], ["Miconazol crema 2%", "Crema / Ungüento", "Tubo", 20, "g"], ["Hidrocortisona crema 1%", "Crema / Ungüento", "Tubo", 30, "g"], ["Mupirocina ungüento 2%", "Crema / Ungüento", "Tubo", 15, "g"], ["Óxido de zinc pasta", "Crema / Ungüento", "Tubo", 60, "g"], ["Cloranfenicol gotas oftálmicas", "Gotas", "Frasco", 15, "ml"], ["Nafazolina gotas oftálmicas", "Gotas", "Frasco", 15, "ml"], ["Lágrimas artificiales", "Gotas", "Frasco", 15, "ml"], ["Neomicina/Polimixina gotas óticas", "Gotas", "Frasco", 10, "ml"], ["Suero fisiológico 0.9%", "Otro", "Botella", 250, "ml"], ["Alcohol etílico 70%", "Otro", "Botella", 500, "ml"], ["Agua oxigenada", "Otro", "Botella", 480, "ml"], ["Yodopovidona solución (Isodine)", "Otro", "Frasco", 120, "ml"]];
 const normTxt = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const conLotes = i => {
@@ -6240,19 +6273,31 @@ function Inventario({
     name: "",
     presentation: "Tabletas",
     envase: "Caja",
+    envaseOtro: "",
     contenido: 20,
     unidad: "tabletas",
+    unidadOtro: "",
     cantidad: 1,
     caducidad: "",
     notas: "",
     stockMin: 1,
     imagen: "",
-    precio: ""
+    precio: "",
+    origen: "Comprado (farmacia)",
+    origenOtro: "",
+    esTratamiento: false,
+    dose: "",
+    freqHours: 8,
+    durationDays: 7,
+    startDate: todayStr(),
+    horaInicio: "08:00",
+    unitsPerDose: 1
   };
   const catalogo = data.catalogo || {};
   const [catOpen, setCatOpen] = useState(false);
   const [f, setF] = useState(vacio);
   const [err, setErr] = useState(null);
+  const [verImg, setVerImg] = useState(null);
   const set = (k, v) => setF(p => ({
     ...p,
     [k]: v
@@ -6410,19 +6455,34 @@ function Inventario({
     avisar("Producto eliminado del inventario");
   };
   const editarItem = item => {
+    const envOtro = ENVASES.indexOf(item.envase) < 0;
+    const uniOtro = UNIDADES.indexOf(item.unidad) < 0;
+    const oriOtro = item.origen && ORIGENES.indexOf(item.origen) < 0;
+    const med = item.medId ? (data.meds || []).find(x => x.id === item.medId) : null;
     setF({
       code: item.code,
       name: item.name,
       presentation: item.presentation,
-      envase: item.envase,
+      envase: envOtro ? "Otro" : item.envase,
+      envaseOtro: envOtro ? item.envase : "",
       contenido: item.contenido,
-      unidad: item.unidad,
+      unidad: uniOtro ? "Otro" : item.unidad,
+      unidadOtro: uniOtro ? item.unidad : "",
       cantidad: item.cantidad,
       caducidad: item.caducidad || "",
       notas: item.notas || "",
       stockMin: item.stockMin || 1,
       imagen: item.imagen || "",
-      precio: item.precio || ""
+      precio: item.precio || "",
+      origen: item.origen ? oriOtro ? "Otro" : item.origen : "Comprado (farmacia)",
+      origenOtro: oriOtro ? item.origen : "",
+      esTratamiento: !!med,
+      dose: med ? med.dose || "" : "",
+      freqHours: med ? med.freqHours : 8,
+      durationDays: med ? med.durationDays : 7,
+      startDate: med ? med.startDate || todayStr() : todayStr(),
+      horaInicio: med && med.times && med.times[0] ? med.times[0] : "08:00",
+      unitsPerDose: med ? med.unitsPerDose || 1 : 1
     });
     setEditKey(item.key);
     setFormOpen(true);
@@ -6476,19 +6536,30 @@ function Inventario({
     if (!f.contenido || Number(f.contenido) <= 0) return setErr("Indica el contenido por envase (ej. 20 tabletas, 120 ml).");
     const code = f.code.trim() || "MED-" + Math.random().toString(36).slice(2, 7).toUpperCase();
     if (inv.some(i => i.code === code && i.key !== editKey)) return setErr("Ese código/ID ya existe en otro producto. Usa la captura rápida de arriba para sumar unidades.");
+    const envaseF = f.envase === "Otro" ? f.envaseOtro.trim() || "Otro" : f.envase;
+    const unidadF = f.unidad === "Otro" ? f.unidadOtro.trim() || "unidades" : f.unidad;
+    const origenF = f.origen === "Otro" ? f.origenOtro.trim() || "Otro" : f.origen;
+    const itemKey = editKey || uid();
+    const prevLinkedMedId = (() => {
+      const it = editKey ? inv.find(i => i.key === editKey) : null;
+      return it && it.medId ? it.medId : null;
+    })();
+    const medId = f.esTratamiento ? prevLinkedMedId || "rx-" + itemKey : prevLinkedMedId;
     const base = {
       code,
       name: f.name.trim(),
       presentation: f.presentation,
-      envase: f.envase,
+      envase: envaseF,
       contenido: Number(f.contenido),
-      unidad: f.unidad,
+      unidad: unidadF,
       cantidad: Math.max(0, Number(f.cantidad) || 0),
       caducidad: f.caducidad,
       notas: f.notas.trim(),
       stockMin: Math.max(1, Number(f.stockMin) || 1),
       imagen: f.imagen || "",
-      precio: Math.max(0, Number(f.precio) || 0)
+      precio: Math.max(0, Number(f.precio) || 0),
+      origen: origenF,
+      medId: medId || null
     };
     const prevItem = editKey ? inv.find(i => i.key === editKey) : null;
     const prevMulti = prevItem ? conLotes(prevItem).filter(l => l.cantidad > 0).length > 1 : false;
@@ -6506,7 +6577,7 @@ function Inventario({
         cantidad: base.cantidad
       }]);
     }) : [...inv, sincLotes({
-      key: uid(),
+      key: itemKey,
       ...base,
       createdAt: new Date().toISOString()
     }, [{
@@ -6525,15 +6596,47 @@ function Inventario({
         precio: base.precio,
         imagen: base.imagen,
         stockMin: base.stockMin,
+        origen: origenF,
         updatedAt: todayStr()
       }
     };
-    persist({
+    let nextData = {
       ...data,
       inv: nextInv,
       catalogo: nextCat
-    });
-    avisar(editKey ? "Producto actualizado (catálogo sincronizado)" : "Agregado al inventario y guardado en tu catálogo");
+    };
+    if (f.esTratamiento && medId) {
+      const info = infoMed(f.name);
+      const [hh, mm] = (f.horaInicio || "08:00").split(":").map(Number);
+      const startMin = (hh || 8) * 60 + (mm || 0);
+      const freq = Number(f.freqHours) || 8;
+      const times = genSerie(startMin, freq).map(minToTime);
+      const meds = (data.meds || []).slice();
+      const prevMed = meds.find(x => x.id === medId);
+      const med = {
+        id: medId,
+        name: f.name.trim(),
+        presentation: f.presentation,
+        dose: f.dose.trim() || f.unitsPerDose + " " + unidadF,
+        category: info ? info.cat : prevMed ? prevMed.category : "otro",
+        categoryCustom: prevMed ? prevMed.categoryCustom || "" : "",
+        purpose: info ? info.motivo : prevMed ? prevMed.purpose : "",
+        notes: prevMed ? prevMed.notes || "" : "",
+        doctor: prevMed ? prevMed.doctor || "" : "",
+        freqHours: freq,
+        durationDays: Number(f.durationDays) || 7,
+        startDate: f.startDate || todayStr(),
+        times,
+        unitsPerDose: Number(f.unitsPerDose) || 1,
+        unitsPerBox: Number(f.contenido) || 0,
+        status: prevMed ? prevMed.status : "activo",
+        createdAt: prevMed ? prevMed.createdAt : new Date().toISOString(),
+        invKey: itemKey
+      };
+      nextData.meds = prevMed ? meds.map(x => x.id === medId ? med : x) : [...meds, med];
+    }
+    persist(nextData);
+    avisar(editKey ? "Producto actualizado" + (f.esTratamiento ? " · receta sincronizada" : "") : f.esTratamiento ? "Agregado al inventario y a tu receta activa" : "Agregado al inventario y guardado en tu catálogo");
     setF(vacio);
     setErr(null);
     setFormOpen(false);
@@ -6569,14 +6672,19 @@ function Inventario({
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const S = 96;
-        const esc = Math.min(S / img.width, S / img.height, 1);
+        const S = 256;
+        const lado = Math.min(img.width, img.height);
+        const sx = (img.width - lado) / 2,
+          sy = (img.height - lado) / 2;
         const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * esc));
-        canvas.height = Math.max(1, Math.round(img.height * esc));
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        set("imagen", canvas.toDataURL("image/jpeg", 0.72));
-        avisar("Imagen cargada y optimizada");
+        canvas.width = S;
+        canvas.height = S;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, S, S);
+        ctx.drawImage(img, sx, sy, lado, lado, 0, 0, S, S);
+        set("imagen", canvas.toDataURL("image/jpeg", 0.7));
+        avisar("Foto lista (optimizada)");
       };
       img.src = reader.result;
     };
@@ -6619,9 +6727,9 @@ function Inventario({
     const orden = inv.slice().sort((a, b) => String(a.code).localeCompare(String(b.code), undefined, {
       numeric: true
     }));
-    const filas = orden.map(i => [i.code, i.name, i.presentation, i.envase + " · " + i.contenido + " " + i.unidad, String(i.cantidad), i.cantidad * i.contenido + " " + i.unidad, i.precio ? fmtMoney(i.precio) : "—", fmtMoney((i.precio || 0) * i.cantidad), lotesTexto(i, parseDate(todayStr())), estadoProducto(i)]);
+    const filas = orden.map(i => [i.code, i.name, i.presentation, i.envase + " · " + i.contenido + " " + i.unidad, String(i.cantidad), i.cantidad * i.contenido + " " + i.unidad, i.origen || "—", i.precio ? fmtMoney(i.precio) : "—", fmtMoney((i.precio || 0) * i.cantidad), lotesTexto(i, parseDate(todayStr())), estadoProducto(i)]);
     doc.autoTable({
-      head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Envases", "Total disponible", "Precio c/u", "Valor", "Caducidad", "Estado"]],
+      head: [["ID / Código", "Medicamento", "Presentación", "Envase", "Envases", "Total disponible", "Origen", "Precio c/u", "Valor", "Caducidad", "Estado"]],
       body: filas,
       startY: 26,
       styles: {
@@ -6636,11 +6744,11 @@ function Inventario({
         fillColor: [245, 250, 248]
       },
       didParseCell: d => {
-        if (d.section === "body" && d.column.index === 9 && d.cell.raw !== "OK") {
+        if (d.section === "body" && d.column.index === 10 && d.cell.raw !== "OK") {
           d.cell.styles.textColor = [190, 18, 60];
           d.cell.styles.fontStyle = "bold";
         }
-        if (d.section === "body" && d.column.index === 8 && String(d.cell.raw).indexOf("CADUCADO") >= 0) {
+        if (d.section === "body" && d.column.index === 9 && String(d.cell.raw).indexOf("CADUCADO") >= 0) {
           d.cell.styles.textColor = [190, 18, 60];
           d.cell.styles.fontStyle = "bold";
         }
@@ -6730,7 +6838,23 @@ function Inventario({
   const multiLoteEdit = editItem ? conLotes(editItem).filter(l => l.cantidad > 0).length > 1 : false;
   return React.createElement("div", {
     className: "space-y-4"
-  }, React.createElement("div", {
+  }, verImg && React.createElement("div", {
+    onClick: () => setVerImg(null),
+    className: "fixed inset-0 z-[100000] bg-black/80 flex items-center justify-center p-6",
+    style: {
+      cursor: "zoom-out"
+    }
+  }, React.createElement("img", {
+    src: verImg,
+    alt: "producto",
+    className: "max-w-full max-h-full rounded-xl shadow-2xl",
+    style: {
+      imageRendering: "auto"
+    }
+  }), React.createElement("button", {
+    onClick: () => setVerImg(null),
+    className: "absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 text-slate-700 text-xl font-bold flex items-center justify-center"
+  }, "\u2715")), React.createElement("div", {
     className: "bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 text-sm text-emerald-900"
   }, React.createElement("p", {
     className: "font-semibold flex items-center gap-2"
@@ -6957,7 +7081,12 @@ function Inventario({
     onChange: e => set("envase", e.target.value)
   }, ENVASES.map(p => React.createElement("option", {
     key: p
-  }, p)))), React.createElement("div", {
+  }, p))), f.envase === "Otro" && React.createElement("input", {
+    className: inputCls + " mt-2",
+    placeholder: "Escribe el tipo de envase",
+    value: f.envaseOtro,
+    onChange: e => set("envaseOtro", e.target.value)
+  })), React.createElement("div", {
     className: "grid grid-cols-2 gap-2"
   }, React.createElement("div", null, React.createElement("label", {
     className: labelCls
@@ -6975,7 +7104,12 @@ function Inventario({
     onChange: e => set("unidad", e.target.value)
   }, UNIDADES.map(u => React.createElement("option", {
     key: u
-  }, u))))), multiLoteEdit ? React.createElement("div", {
+  }, u))), f.unidad === "Otro" && React.createElement("input", {
+    className: inputCls + " mt-2",
+    placeholder: "Escribe la unidad",
+    value: f.unidadOtro,
+    onChange: e => set("unidadOtro", e.target.value)
+  }))), multiLoteEdit ? React.createElement("div", {
     className: "bg-sky-50 border border-sky-100 rounded-xl px-3 py-2.5 text-xs text-sky-900"
   }, React.createElement("b", null, "Este producto tiene ", conLotes(editItem).filter(l => l.cantidad > 0).length, " lotes con caducidades distintas"), " (", conLotes(editItem).filter(l => l.cantidad > 0).map(l => l.cantidad + "× " + (l.caducidad ? fmtDate(l.caducidad) : "sin fecha")).join(" · "), "). Las cantidades y fechas se administran por lote desde la tarjeta del producto; aqu\xED solo se editan nombre, envase, precio y dem\xE1s datos.") : React.createElement("div", {
     className: "grid grid-cols-2 gap-2"
@@ -6998,17 +7132,32 @@ function Inventario({
     className: "grid grid-cols-1 sm:grid-cols-2 gap-3"
   }, React.createElement("div", null, React.createElement("label", {
     className: labelCls
+  }, "\xBFC\xF3mo lo obtuviste?"), React.createElement("select", {
+    className: inputCls,
+    value: f.origen,
+    onChange: e => set("origen", e.target.value)
+  }, ORIGENES.map(o => React.createElement("option", {
+    key: o
+  }, o))), f.origen === "Otro" && React.createElement("input", {
+    className: inputCls + " mt-2",
+    placeholder: "\xBFDe d\xF3nde lo recibiste?",
+    value: f.origenOtro,
+    onChange: e => set("origenOtro", e.target.value)
+  }), ORIGEN_GRATIS.includes(f.origen) && React.createElement("div", {
+    className: "text-xs text-emerald-600 mt-0.5"
+  }, "Gratuito del sector salud \u2014 puedes dejar el precio en 0.")), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
   }, "Precio por envase (MXN)"), React.createElement("input", {
     type: "number",
     min: "0",
     step: "0.01",
     className: inputCls,
-    placeholder: "Ej. 85.50",
+    placeholder: ORIGEN_GRATIS.includes(f.origen) ? "0 (gratuito)" : "Ej. 85.50",
     value: f.precio,
     onChange: e => set("precio", e.target.value)
   }), React.createElement("div", {
     className: "text-xs text-slate-400 mt-0.5"
-  }, "Se guarda en tu cat\xE1logo para futuras compras y el valor del inventario")), React.createElement("div", null, React.createElement("label", {
+  }, "Se guarda en tu cat\xE1logo y para el valor del inventario")), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "L\xEDmite de stock (m\xEDnimo deseado)"), React.createElement("input", {
     type: "number",
@@ -7020,19 +7169,34 @@ function Inventario({
     className: "text-xs text-slate-400 mt-0.5"
   }, "Cuando queden esta cantidad de envases o menos, se marcar\xE1 \"por acabarse\"")), React.createElement("div", null, React.createElement("label", {
     className: labelCls
-  }, "Imagen del producto (opcional)"), React.createElement("div", {
-    className: "flex items-center gap-2"
-  }, f.imagen ? React.createElement("img", {
+  }, "Foto del producto (opcional)"), React.createElement("div", {
+    className: "flex items-center gap-2 flex-wrap"
+  }, f.imagen ? React.createElement("button", {
+    type: "button",
+    onClick: () => setVerImg(f.imagen),
+    title: "Toca para ampliar",
+    className: "shrink-0"
+  }, React.createElement("img", {
     src: f.imagen,
     alt: "producto",
-    className: "w-12 h-12 rounded-lg object-cover border border-slate-200"
-  }) : React.createElement("div", {
-    className: "w-12 h-12 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center"
+    className: "w-14 h-14 rounded-lg object-cover border border-emerald-200"
+  })) : React.createElement("div", {
+    className: "w-14 h-14 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center shrink-0"
   }, React.createElement(ICamera, {
     cls: "w-5 h-5 text-slate-400"
   })), React.createElement("label", {
+    className: "cursor-pointer text-sm font-medium px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 flex items-center gap-1"
+  }, React.createElement(ICamera, {
+    cls: "w-4 h-4"
+  }), " Tomar foto", React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    capture: "environment",
+    className: "hidden",
+    onChange: subirImagen
+  })), React.createElement("label", {
     className: "cursor-pointer text-sm font-medium px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
-  }, f.imagen ? "Cambiar" : "Subir foto", React.createElement("input", {
+  }, f.imagen ? "Cambiar" : "Subir", React.createElement("input", {
     type: "file",
     accept: "image/*",
     className: "hidden",
@@ -7042,7 +7206,70 @@ function Inventario({
     className: "text-xs text-slate-400 hover:text-rose-600"
   }, "quitar")), React.createElement("div", {
     className: "text-xs text-slate-400 mt-0.5"
-  }, "Se comprime autom\xE1ticamente a miniatura para identificarlo f\xE1cil"))), React.createElement("div", null, React.createElement("label", {
+  }, "Se recorta a un cuadro peque\xF1o (igual para todas) y se optimiza. T\xF3cala para ampliarla."))), React.createElement("div", {
+    className: "bg-emerald-50/60 border border-emerald-100 rounded-xl p-3"
+  }, React.createElement("label", {
+    className: "flex items-start gap-2.5 cursor-pointer"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: f.esTratamiento,
+    onChange: e => set("esTratamiento", e.target.checked),
+    className: "w-5 h-5 mt-0.5 accent-emerald-600 shrink-0"
+  }), React.createElement("span", null, React.createElement("span", {
+    className: "font-bold text-slate-700 flex items-center gap-2"
+  }, React.createElement(IPill, {
+    cls: "w-5 h-5 text-emerald-700"
+  }), " Este medicamento lo tomo (crear su horario de tomas)"), React.createElement("span", {
+    className: "block text-xs text-slate-500 mt-0.5"
+  }, "Se agrega a tu ", React.createElement("b", null, "receta activa"), " con recordatorio de horarios, usando el nombre y la presentaci\xF3n que ya pusiste. No tendr\xE1s que capturarlo de nuevo en \xABReceta\xBB."))), f.esTratamiento && React.createElement("div", {
+    className: "mt-3 grid grid-cols-2 gap-2 pl-1"
+  }, React.createElement("div", {
+    className: "col-span-2"
+  }, React.createElement(CampoLista, {
+    label: "Dosis por toma",
+    labelCls: labelCls,
+    inputCls: inputCls,
+    valor: f.dose,
+    onChange: v => set("dose", v),
+    opciones: DOSIS_PRESET,
+    placeholder: "Ej. 1 tableta \xB7 500 mg \xB7 10 ml"
+  })), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "Cada cu\xE1ntas horas"), React.createElement("select", {
+    className: inputCls,
+    value: f.freqHours,
+    onChange: e => set("freqHours", Number(e.target.value))
+  }, [4, 6, 8, 12, 24].map(h => React.createElement("option", {
+    key: h,
+    value: h
+  }, "Cada ", h, " h (", Math.round(24 / h), "/d\xEDa)")))), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "Primera toma"), React.createElement("input", {
+    type: "time",
+    className: inputCls,
+    value: f.horaInicio,
+    onChange: e => set("horaInicio", e.target.value)
+  })), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "Por cu\xE1ntos d\xEDas"), React.createElement("input", {
+    type: "number",
+    min: "1",
+    className: inputCls,
+    value: f.durationDays,
+    onChange: e => set("durationDays", e.target.value)
+  })), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "Desde"), React.createElement("input", {
+    type: "date",
+    className: inputCls,
+    value: f.startDate,
+    onChange: e => set("startDate", e.target.value)
+  })), React.createElement("div", {
+    className: "col-span-2 text-xs text-emerald-700 bg-white/70 border border-emerald-100 rounded-lg px-2.5 py-1.5"
+  }, "Horarios: ", React.createElement("b", null, (() => {
+    const [hh, mm] = (f.horaInicio || "08:00").split(":").map(Number);
+    return genSerie((hh || 8) * 60 + (mm || 0), Number(f.freqHours) || 8).map(x => fmt12(minToTime(x))).join(" · ");
+  })())))), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "Notas (opcional)"), React.createElement("input", {
     className: inputCls,
@@ -7093,11 +7320,16 @@ function Inventario({
       className: "bg-white rounded-2xl border p-4 " + (loteScan === i.key ? "border-emerald-400 ring-2 ring-emerald-200" : cad.nivel === 2 ? "border-rose-300" : cad.nivel === 1 ? "border-amber-300" : "border-slate-200")
     }, React.createElement("div", {
       className: "flex items-start gap-3"
-    }, i.imagen ? React.createElement("img", {
+    }, i.imagen ? React.createElement("button", {
+      type: "button",
+      onClick: () => setVerImg(i.imagen),
+      title: "Toca para ampliar",
+      className: "shrink-0"
+    }, React.createElement("img", {
       src: i.imagen,
       alt: i.name,
-      className: "w-11 h-11 rounded-xl object-cover border shrink-0 " + (i.cantidad === 0 ? "border-slate-200 opacity-60" : "border-emerald-200")
-    }) : React.createElement("div", {
+      className: "w-11 h-11 rounded-xl object-cover border " + (i.cantidad === 0 ? "border-slate-200 opacity-60" : "border-emerald-200")
+    })) : React.createElement("div", {
       className: "rounded-xl p-2 border shrink-0 " + (i.cantidad === 0 ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-emerald-50 text-emerald-700 border-emerald-200")
     }, React.createElement(IBox, {
       cls: "w-5 h-5"
@@ -7115,13 +7347,19 @@ function Inventario({
       className: "text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-600"
     }, "agotado"), i.cantidad > 0 && i.cantidad <= (i.stockMin || 1) && React.createElement("span", {
       className: "text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200"
-    }, "por acabarse \xB7 m\xEDn ", i.stockMin || 1)), React.createElement("div", {
+    }, "por acabarse \xB7 m\xEDn ", i.stockMin || 1), i.medId && React.createElement("span", {
+      className: "text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1"
+    }, React.createElement(IPill, {
+      cls: "w-3 h-3"
+    }), " en mi receta"), i.origen && ORIGEN_GRATIS.includes(i.origen) && React.createElement("span", {
+      className: "text-xs px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200"
+    }, "\uD83C\uDFE5 ", i.origen)), React.createElement("div", {
       className: "text-sm text-slate-500 mt-0.5"
     }, i.presentation, " \xB7 ", i.envase, " con ", i.contenido, " ", i.unidad, " \xB7 disponible: ", React.createElement("b", {
       className: "text-slate-700"
     }, total, " ", i.unidad), i.precio > 0 && React.createElement("span", null, " \xB7 ", fmtMoney(i.precio), " c/u \xB7 ", React.createElement("b", {
       className: "text-emerald-700"
-    }, fmtMoney(i.precio * i.cantidad)), " en stock")), React.createElement("div", {
+    }, fmtMoney(i.precio * i.cantidad)), " en stock"), i.origen && !ORIGEN_GRATIS.includes(i.origen) && i.origen !== "Comprado (farmacia)" && React.createElement("span", null, " \xB7 ", i.origen)), React.createElement("div", {
       className: "mt-1.5 flex items-center gap-1.5 flex-wrap"
     }, conLotes(i).filter(l => l.cantidad > 0).map(l => {
       const ec = estadoCad(l.caducidad);
@@ -7257,11 +7495,15 @@ function Inventario({
     return React.createElement("div", {
       key: c,
       className: "flex items-center gap-2 px-3 py-2 text-sm"
-    }, it.imagen ? React.createElement("img", {
+    }, it.imagen ? React.createElement("button", {
+      type: "button",
+      onClick: () => setVerImg(it.imagen),
+      className: "shrink-0"
+    }, React.createElement("img", {
       src: it.imagen,
       alt: "",
-      className: "w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
-    }) : React.createElement("div", {
+      className: "w-8 h-8 rounded-lg object-cover border border-slate-200"
+    })) : React.createElement("div", {
       className: "w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"
     }, React.createElement(IPill, {
       cls: "w-4 h-4 text-slate-400"
