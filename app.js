@@ -2565,12 +2565,18 @@ function MiDia({
       });
     }
     meds.sort((a, b) => a.hora < b.hora ? -1 : 1);
-    const rac = controlRac[d] || null;
+    const racAuto = racionesDeComidas(comidas, d);
+    const racMerge = {
+      ...(controlRac[d] || {})
+    };
+    GRUPOS_ORDEN.forEach(g => {
+      if (racAuto[g]) racMerge[g] = (Number(racMerge[g]) || 0) + racAuto[g];
+    });
     return {
       meds,
       comidas: comidas.filter(c => c.fecha === d).sort((a, b) => (a.hora || "") < (b.hora || "") ? -1 : 1),
       agua: agua[d] || 0,
-      raciones: rac && Object.keys(rac).some(k => rac[k] > 0) ? rac : null,
+      raciones: Object.keys(racMerge).some(k => racMerge[k] > 0) ? racMerge : null,
       sueno: suenoLog.find(r => r.fecha === d) || null,
       sintomas: sintomas.filter(s => s.fecha === d),
       signos: readings.filter(r => r.fecha === d),
@@ -3182,11 +3188,18 @@ function MediControl() {
     avisar("Medicamento eliminado");
   };
   const guardarMed = med => {
-    const existe = data.meds.some(m => m.id === med.id);
-    persist({
+    const invOpts = med._inv || null;
+    const limpio = {
+      ...med
+    };
+    delete limpio._inv;
+    const existe = data.meds.some(m => m.id === limpio.id);
+    let next = {
       ...data,
-      meds: existe ? data.meds.map(m => m.id === med.id ? med : m) : [...data.meds, med]
-    });
+      meds: existe ? data.meds.map(m => m.id === limpio.id ? limpio : m) : [...data.meds, limpio]
+    };
+    next = aplicarMedAInventario(next, limpio, invOpts);
+    persist(next);
     setEditId(null);
     setTab("meds");
     setExpanded(med.id);
@@ -3826,7 +3839,10 @@ function FormAgregar({
     durationDays: 7,
     startDate: todayStr(),
     unitsPerDose: 1,
-    unitsPerBox: 10
+    unitsPerBox: 10,
+    addInv: true,
+    invCajas: "",
+    invCaducidad: ""
   });
   const [startTime, setStartTime] = useState(null);
   const [err, setErr] = useState(null);
@@ -3903,7 +3919,12 @@ function FormAgregar({
       unitsPerDose: Number(f.unitsPerDose) || 1,
       unitsPerBox: Number(f.unitsPerBox) || 0,
       status: medEditar ? medEditar.status : "activo",
-      createdAt: medEditar ? medEditar.createdAt : new Date().toISOString()
+      createdAt: medEditar ? medEditar.createdAt : new Date().toISOString(),
+      _inv: {
+        add: f.addInv,
+        cajas: f.invCajas === "" ? Number(cajas) || 0 : Number(f.invCajas) || 0,
+        caducidad: f.invCaducidad
+      }
     });
     setF({
       name: "",
@@ -3918,7 +3939,10 @@ function FormAgregar({
       durationDays: 7,
       startDate: todayStr(),
       unitsPerDose: 1,
-      unitsPerBox: 10
+      unitsPerBox: 10,
+      addInv: true,
+      invCajas: "",
+      invCaducidad: ""
     });
     setStartTime(null);
   };
@@ -4125,7 +4149,44 @@ function FormAgregar({
     className: "text-xs text-slate-400 mt-0.5"
   }, "Ej. caja con 10 tabletas, frasco de 120 ml"))), React.createElement("div", {
     className: "bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5 text-sm text-emerald-900"
-  }, "Necesitas ", React.createElement("b", null, totalUnid), " unidades en total (", totalTomas, " tomas \xD7 ", f.unitsPerDose || 1, ").", cajas ? React.createElement("span", null, " Compra ", React.createElement("b", null, cajas, " ", cajas === 1 ? "caja/frasco" : "cajas/frascos"), ".") : null)), err && React.createElement("div", {
+  }, "Necesitas ", React.createElement("b", null, totalUnid), " unidades en total (", totalTomas, " tomas \xD7 ", f.unitsPerDose || 1, ").", cajas ? React.createElement("span", null, " Compra ", React.createElement("b", null, cajas, " ", cajas === 1 ? "caja/frasco" : "cajas/frascos"), ".") : null)), React.createElement("section", {
+    className: "bg-white rounded-2xl border border-slate-200 p-4 space-y-3"
+  }, React.createElement("label", {
+    className: "flex items-start gap-2.5 cursor-pointer"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: f.addInv,
+    onChange: e => set("addInv", e.target.checked),
+    className: "w-5 h-5 mt-0.5 accent-emerald-600 shrink-0"
+  }), React.createElement("span", null, React.createElement("span", {
+    className: "font-bold text-slate-700 flex items-center gap-2"
+  }, React.createElement(IBox, {
+    cls: "w-5 h-5 text-emerald-700"
+  }), " Agregarlo tambi\xE9n a mi inventario"), React.createElement("span", {
+    className: "block text-xs text-slate-500 mt-0.5"
+  }, "Se dar\xE1 de alta solo en el apartado ", React.createElement("b", null, "Inventario"), " con sus datos; no tendr\xE1s que capturarlo otra vez. Ah\xED podr\xE1s ajustar cantidad, caducidad y precio."))), f.addInv && React.createElement("div", {
+    className: "grid grid-cols-2 gap-3 pl-7"
+  }, React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "\xBFCu\xE1ntas cajas/frascos tienes ya?"), React.createElement("input", {
+    type: "number",
+    min: "0",
+    className: inputCls,
+    placeholder: cajas ? "Sugerido: " + cajas : "0",
+    value: f.invCajas,
+    onChange: e => set("invCajas", e.target.value)
+  }), React.createElement("div", {
+    className: "text-xs text-slate-400 mt-0.5"
+  }, "Si lo dejas vac\xEDo, usa el sugerido (", cajas || 0, ").")), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "Caducidad (opcional)"), React.createElement("input", {
+    type: "date",
+    className: inputCls,
+    value: f.invCaducidad,
+    onChange: e => set("invCaducidad", e.target.value)
+  }), React.createElement("div", {
+    className: "text-xs text-slate-400 mt-0.5"
+  }, "Puedes agregarla despu\xE9s en Inventario.")))), err && React.createElement("div", {
     className: "bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-3 py-2.5 flex items-center gap-2"
   }, React.createElement(IWarn, {
     cls: "w-4 h-4 shrink-0"
@@ -4166,6 +4227,114 @@ const lotesTexto = (i, hoy0) => {
     return l.cantidad + "x " + fmtDate(l.caducidad) + (venc ? " CADUCADO" : "");
   }).join("  ·  ");
 };
+function unidadDePresentacion(p) {
+  const s = String(p || "").toLowerCase();
+  if (/(jarabe|suspens|soluci|gotas|elixir|\bml\b|inyect|ampoll|vial|colirio|emulsi)/.test(s)) return "ml";
+  if (/(cápsula|capsula|perla)/.test(s)) return "cápsulas";
+  if (/gragea/.test(s)) return "grageas";
+  if (/(sobre|granulado|polvo)/.test(s)) return "sobres";
+  if (/parche/.test(s)) return "parches";
+  if (/supositorio/.test(s)) return "supositorios";
+  if (/(óvulo|ovulo)/.test(s)) return "óvulos";
+  if (/(crema|pomada|gel|ungüento|unguento|loción|locion|champú|champu)/.test(s)) return "g";
+  if (/(spray|aerosol|inhalad|nebuliz)/.test(s)) return "disparos";
+  return "tabletas";
+}
+function envaseDePresentacion(p) {
+  return unidadDePresentacion(p) === "ml" ? "Frasco" : "Caja";
+}
+function aplicarMedAInventario(data, med, inv) {
+  const items = (data.inv || []).slice();
+  const catalogo = {
+    ...(data.catalogo || {})
+  };
+  const unidad = unidadDePresentacion(med.presentation);
+  const envase = envaseDePresentacion(med.presentation);
+  const contenido = Number(med.unitsPerBox) > 0 ? Number(med.unitsPerBox) : unidad === "ml" ? 120 : 20;
+  const idx = items.findIndex(i => i.medId === med.id);
+  if (idx >= 0) {
+    const prev = items[idx];
+    const merged = {
+      ...prev,
+      name: med.name,
+      presentation: med.presentation,
+      envase: prev.envase || envase,
+      contenido: prev.contenido || contenido,
+      unidad: prev.unidad || unidad
+    };
+    items[idx] = merged;
+    if (merged.code) catalogo[merged.code] = {
+      name: med.name,
+      presentation: med.presentation,
+      envase: merged.envase,
+      contenido: merged.contenido,
+      unidad: merged.unidad,
+      precio: Number(prev.precio) || 0,
+      imagen: prev.imagen || "",
+      stockMin: prev.stockMin || 1,
+      updatedAt: todayStr()
+    };
+    return {
+      ...data,
+      inv: items,
+      catalogo
+    };
+  }
+  if (!inv || inv.add === false) return data;
+  const yaExiste = items.findIndex(i => !i.medId && normTxt(i.name) === normTxt(med.name));
+  if (yaExiste >= 0) {
+    items[yaExiste] = {
+      ...items[yaExiste],
+      medId: med.id
+    };
+    return {
+      ...data,
+      inv: items,
+      catalogo
+    };
+  }
+  const cajas = Math.max(0, Number(inv.cajas) || 0);
+  const cad = inv.caducidad || "";
+  const code = "MED-" + Math.random().toString(36).slice(2, 7).toUpperCase();
+  const base = {
+    key: uid(),
+    medId: med.id,
+    code,
+    name: med.name,
+    presentation: med.presentation,
+    envase,
+    contenido,
+    unidad,
+    cantidad: cajas,
+    caducidad: cad,
+    notas: "Alta automática desde +Agregar",
+    stockMin: 1,
+    imagen: "",
+    precio: 0,
+    createdAt: new Date().toISOString()
+  };
+  items.push(sincLotes(base, [{
+    id: uid(),
+    caducidad: cad,
+    cantidad: cajas
+  }]));
+  catalogo[code] = {
+    name: med.name,
+    presentation: med.presentation,
+    envase,
+    contenido,
+    unidad,
+    precio: 0,
+    imagen: "",
+    stockMin: 1,
+    updatedAt: todayStr()
+  };
+  return {
+    ...data,
+    inv: items,
+    catalogo
+  };
+}
 function Inventario({
   data,
   persist,
@@ -7392,6 +7561,7 @@ function Comidas({
     tipo: "Desayuno",
     alimentos: "",
     grupos: [],
+    raciones: {},
     hambre: 3,
     saciedad: 3,
     contexto: "",
@@ -7421,16 +7591,35 @@ function Comidas({
     if (d > 0 && n === META_AGUA) avisar("¡Meta de agua del día cumplida! 💧");
   };
   const toggleGrupo = id => set("grupos", f.grupos.includes(id) ? f.grupos.filter(g => g !== id) : [...f.grupos, id]);
+  const setRacion = (g, delta) => setF(p => {
+    const cur = Math.max(0, Math.min(20, (Number(p.raciones[g]) || 0) + delta));
+    const r = {
+      ...p.raciones,
+      [g]: cur
+    };
+    if (!cur) delete r[g];
+    return {
+      ...p,
+      raciones: r
+    };
+  });
   const guardar = () => {
     if (!f.alimentos.trim()) return setErr("Describe qué comiste (ej. 2 tacos de pollo, ensalada, agua de jamaica).");
     setErr(null);
+    const racLimpias = {};
+    GRUPOS_ORDEN.forEach(g => {
+      const n = Number(f.raciones[g]) || 0;
+      if (n) racLimpias[g] = n;
+    });
+    const gruposFinal = Array.from(new Set([...(f.grupos || []), ...Object.keys(racLimpias).map(g => RAC_A_ALIM[g]).filter(Boolean)]));
     const c = {
       id: editCom || uid(),
       fecha: f.fecha,
       hora: f.hora,
       tipo: f.tipo,
       alimentos: f.alimentos.trim(),
-      grupos: f.grupos,
+      grupos: gruposFinal,
+      raciones: racLimpias,
       hambre: Number(f.hambre),
       saciedad: Number(f.saciedad),
       contexto: f.contexto,
@@ -7457,6 +7646,7 @@ function Comidas({
       tipo: c.tipo,
       alimentos: c.alimentos,
       grupos: c.grupos || [],
+      raciones: c.raciones || {},
       hambre: c.hambre,
       saciedad: c.saciedad,
       contexto: c.contexto || "",
@@ -7719,6 +7909,35 @@ function Comidas({
     onClick: () => toggleGrupo(g.id),
     className: "text-xs px-2.5 py-1.5 rounded-full border transition-colors " + (f.grupos.includes(g.id) ? g.buena ? "bg-emerald-600 border-emerald-600 text-white" : "bg-rose-500 border-rose-500 text-white" : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400")
   }, g.label.split(" (")[0])))), React.createElement("div", {
+    className: "bg-emerald-50/60 border border-emerald-100 rounded-xl p-3"
+  }, React.createElement("label", {
+    className: labelCls + " flex items-center gap-1.5"
+  }, "\uD83C\uDF7D\uFE0F Raciones por grupo (opcional)"), React.createElement("p", {
+    className: "text-xs text-slate-500 -mt-0.5 mb-2"
+  }, "Marca cu\xE1ntas raciones tuvo esta comida. Se suman solas a tu ", React.createElement("b", null, "Control de raciones"), " en Saludable, sin capturarlas dos veces."), React.createElement("div", {
+    className: "space-y-1.5"
+  }, GRUPOS_ORDEN.map(g => {
+    const n = Number(f.raciones[g]) || 0;
+    return React.createElement("div", {
+      key: g,
+      className: "flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 border " + (n > 0 ? "bg-white border-emerald-200" : "bg-white/70 border-slate-100")
+    }, React.createElement("span", {
+      className: "text-sm text-slate-700 min-w-0 truncate"
+    }, GRUPOS[g].emoji, " ", GRUPOS[g].label), React.createElement("div", {
+      className: "flex items-center gap-2 shrink-0"
+    }, React.createElement("button", {
+      type: "button",
+      onClick: () => setRacion(g, -1),
+      disabled: n === 0,
+      className: "w-7 h-7 rounded-full font-bold flex items-center justify-center " + (n === 0 ? "bg-slate-50 text-slate-300" : "bg-slate-100 text-slate-600 hover:bg-slate-200")
+    }, "\u2212"), React.createElement("span", {
+      className: "text-sm font-bold tabular-nums w-5 text-center " + (n > 0 ? "text-emerald-700" : "text-slate-300")
+    }, n), React.createElement("button", {
+      type: "button",
+      onClick: () => setRacion(g, 1),
+      className: "w-7 h-7 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center hover:bg-emerald-700"
+    }, "+")));
+  }))), React.createElement("div", {
     className: "grid grid-cols-2 sm:grid-cols-3 gap-3"
   }, React.createElement("div", null, React.createElement("label", {
     className: labelCls
@@ -8650,6 +8869,27 @@ const MEALS = [{
   emoji: "🌙"
 }];
 const GRUPOS_ORDEN = ["verdura", "fruta", "cereal", "leguminosa", "aoa", "leche", "grasa"];
+const RAC_A_ALIM = {
+  verdura: "verduras",
+  fruta: "frutas",
+  cereal: "cereales",
+  leguminosa: "proteina",
+  aoa: "proteina",
+  leche: "lacteos",
+  grasa: "grasas"
+};
+const racionesDeComidas = (comidas, fecha) => {
+  const out = {};
+  (comidas || []).forEach(c => {
+    if (c.fecha !== fecha) return;
+    const r = c.raciones || {};
+    GRUPOS_ORDEN.forEach(g => {
+      const n = Number(r[g]) || 0;
+      if (n) out[g] = (out[g] || 0) + n;
+    });
+  });
+  return out;
+};
 const PLAN_EJEMPLO = {
   verdura: {
     desayuno: 1,
@@ -8975,7 +9215,8 @@ function MiPlanRaciones({
 }
 function ControlDiarioRaciones({
   plan,
-  avisar
+  avisar,
+  comidas
 }) {
   const hoyStr = hoyISO;
   const [fecha, setFecha] = useState(hoyStr);
@@ -8993,6 +9234,9 @@ function ControlDiarioRaciones({
     } catch (e) {}
   }, [data]);
   const dia = data[fecha] || {};
+  const deComidas = racionesDeComidas(comidas, fecha);
+  const totComidas = GRUPOS_ORDEN.reduce((a, g) => a + (deComidas[g] || 0), 0);
+  const doneDe = g => (Number(dia[g]) || 0) + (deComidas[g] || 0);
   const add = (g, delta) => setData(d => {
     const cur = {
       ...(d[fecha] || {})
@@ -9008,11 +9252,11 @@ function ControlDiarioRaciones({
       ...d,
       [fecha]: {}
     }));
-    avisar("Día reiniciado ↺");
+    avisar("Ajustes manuales del día reiniciados ↺");
   };
   const conMeta = GRUPOS_ORDEN.filter(g => totalDiaGrupo(plan, g) > 0);
   const totTarget = conMeta.reduce((a, g) => a + totalDiaGrupo(plan, g), 0);
-  const totDone = conMeta.reduce((a, g) => a + Math.min(Number(dia[g]) || 0, totalDiaGrupo(plan, g)), 0);
+  const totDone = conMeta.reduce((a, g) => a + Math.min(doneDe(g), totalDiaGrupo(plan, g)), 0);
   const pctDia = totTarget ? Math.round(totDone / totTarget * 100) : 0;
   const fechaTxt = (() => {
     try {
@@ -9031,7 +9275,7 @@ function ControlDiarioRaciones({
     className: "font-bold text-slate-800 flex items-center gap-2"
   }, "\u2705 Control diario de raciones"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1"
-  }, "Marca lo que vas comiendo durante el d\xEDa. Cada grupo se compara con el total que pusiste en tu plan. Se guarda por d\xEDa en este tel\xE9fono."), React.createElement("div", {
+  }, "Lo que registras en ", React.createElement("b", null, "Comidas"), " (con sus raciones) se suma aqu\xED ", React.createElement("b", null, "autom\xE1ticamente"), ". Usa los botones + / \u2212 solo para un ajuste manual extra. Se guarda por d\xEDa en este tel\xE9fono."), React.createElement("div", {
     className: "flex items-center gap-2 mt-3 flex-wrap"
   }, React.createElement("input", {
     type: "date",
@@ -9044,7 +9288,11 @@ function ControlDiarioRaciones({
     className: "text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-full px-3 py-1.5"
   }, "Hoy"), React.createElement("span", {
     className: "text-xs text-slate-500 capitalize"
-  }, fechaTxt)), totTarget === 0 && React.createElement("div", {
+  }, fechaTxt)), totComidas > 0 && React.createElement("div", {
+    className: "mt-3 text-xs bg-sky-50 border border-sky-100 text-sky-800 rounded-xl px-3 py-2 flex items-center gap-2"
+  }, React.createElement(IFood, {
+    cls: "w-4 h-4 shrink-0"
+  }), " ", totComidas, " ", totComidas === 1 ? "ración viene" : "raciones vienen", " de tus comidas registradas de este d\xEDa."), totTarget === 0 && React.createElement("div", {
     className: "mt-4 text-sm bg-amber-50 border border-amber-100 text-amber-800 rounded-xl px-3 py-2.5 flex items-center gap-2"
   }, React.createElement(IWarn, {
     cls: "w-4 h-4 shrink-0"
@@ -9067,7 +9315,9 @@ function ControlDiarioRaciones({
     className: "space-y-2.5 mt-4"
   }, GRUPOS_ORDEN.map(g => {
     const target = totalDiaGrupo(plan, g);
-    const done = Number(dia[g]) || 0;
+    const auto = deComidas[g] || 0;
+    const manual = Number(dia[g]) || 0;
+    const done = auto + manual;
     const pct = target ? Math.min(100, Math.round(done / target * 100)) : 0;
     const completo = target > 0 && done >= target;
     const idx = sel[g];
@@ -9083,13 +9333,16 @@ function ControlDiarioRaciones({
       className: "flex items-center gap-2"
     }, React.createElement("button", {
       onClick: () => add(g, -1),
-      className: "w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200"
+      disabled: manual === 0,
+      className: "w-7 h-7 rounded-full font-bold flex items-center justify-center " + (manual === 0 ? "bg-slate-50 text-slate-300" : "bg-slate-100 text-slate-600 hover:bg-slate-200")
     }, "\u2212"), React.createElement("span", {
       className: "text-sm font-bold tabular-nums min-w-[3rem] text-center " + (completo ? "text-emerald-700" : "text-slate-700")
     }, done, " / ", target), React.createElement("button", {
       onClick: () => add(g, 1),
       className: "w-7 h-7 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center hover:bg-emerald-700"
-    }, "+"))), target > 0 ? React.createElement("div", {
+    }, "+"))), (auto > 0 || manual > 0) && React.createElement("div", {
+      className: "text-[11px] text-slate-400 mt-1"
+    }, auto > 0 ? auto + " de tus comidas" : "", auto > 0 && manual > 0 ? " · " : "", manual > 0 ? manual + " manual" : ""), target > 0 ? React.createElement("div", {
       className: "h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2"
     }, React.createElement("div", {
       className: "h-full rounded-full " + (completo ? "bg-emerald-500" : "bg-emerald-400"),
@@ -11105,7 +11358,8 @@ function Saludable({
     avisar: avisar
   }), React.createElement(ControlDiarioRaciones, {
     plan: plan,
-    avisar: avisar
+    avisar: avisar,
+    comidas: data.comidas || []
   }), React.createElement(MacronutrientesTabla, null), React.createElement(SeguimientoLogros, {
     avisar: avisar,
     sexoPerfil: sexoPerfil,
