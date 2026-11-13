@@ -26,8 +26,8 @@ const escribirExtras = extras => {
 const GAP_MIN = 30;
 const FRECUENCIAS = [4, 6, 8, 12, 24];
 const PRESENTACIONES = ["Tabletas", "Cápsulas", "Jarabe / Suspensión", "Solución oral", "Gotas", "Gotas oftálmicas", "Gotas óticas", "Inyectable", "Ampolleta", "Sobres / Polvo", "Crema / Ungüento / Gel", "Parche", "Óvulos / Supositorios", "Inhalador", "Nebulización", "Spray nasal", "Insulina / Pluma", "Otro"];
-const MEDICAMENTOS = ["Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido fólico", "Albendazol", "Alprazolam", "Ambroxol", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Atorvastatina", "Azitromicina", "Betametasona", "Bromuro de ipratropio", "Budesonida", "Calcio", "Captopril", "Carbamazepina", "Cefalexina", "Cetirizina", "Ciprofloxacino", "Claritromicina", "Clonazepam", "Clopidogrel", "Complejo B", "Dexametasona", "Diclofenaco", "Difenhidramina", "Digoxina", "Dimenhidrinato", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Fenitoína", "Fluoxetina", "Furosemida", "Gabapentina", "Glibenclamida", "Hidroclorotiazida", "Hierro (sulfato ferroso)", "Ibuprofeno", "Insulina glargina", "Insulina NPH", "Ketorolaco", "Lansoprazol", "Levofloxacino", "Levotiroxina", "Loratadina", "Losartán", "Magnesio", "Metamizol sódico", "Metformina", "Metoclopramida", "Metoprolol", "Metronidazol", "Naproxeno", "Nifedipino", "Omega 3", "Omeprazol", "Ondansetrón", "Pantoprazol", "Paracetamol", "Prednisona", "Pregabalina", "Ranitidina", "Salbutamol", "Sertralina", "Simvastatina", "Trimetoprima con sulfametoxazol", "Vitamina C", "Vitamina D", "Warfarina", "Otro"];
-const DOSIS_PRESET = ["125 mg", "250 mg", "500 mg", "650 mg", "750 mg", "850 mg", "1 g", "5 mg", "10 mg", "20 mg", "25 mg", "40 mg", "50 mg", "100 mg", "½ tableta", "1 tableta", "2 tabletas", "1 cápsula", "5 ml", "10 ml", "15 ml", "1 aplicación", "2 gotas", "1 inhalación", "4 UI", "10 UI", "20 UI", "Otro"];
+const MEDICAMENTOS = ["Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido ascórbico (Vitamina C)", "Ácido fólico", "Ácido valproico", "Albendazol", "Alopurinol", "Alprazolam", "Amantadina", "Ambroxol", "Amikacina", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Ampicilina", "Atenolol", "Atorvastatina", "Azitromicina", "Baclofeno", "Beclometasona", "Betahistina", "Betametasona", "Bisacodilo", "Bromhexina", "Bromuro de ipratropio", "Budesonida", "Butilhioscina (Buscapina)", "Calcio", "Candesartán", "Captopril", "Carbamazepina", "Carbonato de calcio", "Carvedilol", "Cefalexina", "Cefixima", "Ceftriaxona", "Cefuroxima", "Celecoxib", "Cetirizina", "Ciprofloxacino", "Citalopram", "Claritromicina", "Clindamicina", "Clonazepam", "Clopidogrel", "Cloranfenicol", "Clorfenamina", "Clortalidona", "Codeína", "Colchicina", "Complejo B", "Desloratadina", "Dexametasona", "Dexketoprofeno", "Diazepam", "Diclofenaco", "Difenhidramina", "Digoxina", "Dimenhidrinato", "Diosmina", "Domperidona", "Doxiciclina", "Duloxetina", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Etoricoxib", "Famotidina", "Fenitoína", "Fenofibrato", "Fexofenadina", "Finasterida", "Fluconazol", "Flunarizina", "Fluoxetina", "Furosemida", "Gabapentina", "Gemfibrozilo", "Gentamicina", "Glibenclamida", "Gliclazida", "Glimepirida", "Guaifenesina", "Haloperidol", "Heparina", "Hidroclorotiazida", "Hidrocortisona", "Hidróxido de aluminio y magnesio", "Hierro (sulfato ferroso)", "Ibuprofeno", "Indometacina", "Insulina glargina", "Insulina lispro", "Insulina NPH", "Insulina regular", "Irbesartán", "Isosorbida", "Itraconazol", "Ivermectina", "Ketoconazol", "Ketoprofeno", "Ketorolaco", "Lactulosa", "Lansoprazol", "Levetiracetam", "Levocetirizina", "Levodopa/Carbidopa", "Levofloxacino", "Levotiroxina", "Loperamida", "Loratadina", "Lorazepam", "Losartán", "Lovastatina", "Magnesio", "Mebendazol", "Meloxicam", "Memantina", "Metamizol sódico", "Metformina", "Metildopa", "Metilfenidato", "Metilprednisolona", "Metoclopramida", "Metoprolol", "Metronidazol", "Miconazol", "Montelukast", "Morfina", "Mupirocina", "Nafazolina", "Naproxeno", "Naproxeno con esomeprazol", "Nifedipino", "Nimesulida", "Nistatina", "Nitrofurantoína", "Nitroglicerina", "Norfloxacino", "Olanzapina", "Omega 3", "Omeprazol", "Ondansetrón", "Oseltamivir", "Oxcarbazepina", "Oxibutinina", "Oximetazolina", "Pantoprazol", "Paracetamol", "Paroxetina", "Penicilina G benzatínica", "Pinaverio", "Piroxicam", "Pravastatina", "Prednisolona", "Prednisona", "Pregabalina", "Prometazina", "Propranolol", "Quetiapina", "Ranitidina", "Risperidona", "Rivaroxabán", "Rosuvastatina", "Salbutamol", "Salmeterol", "Sertralina", "Sildenafil", "Simvastatina", "Subsalicilato de bismuto", "Sucralfato", "Sulfato ferroso", "Sulfametoxazol con trimetoprima", "Sumatriptán", "Tamsulosina", "Telmisartán", "Teofilina", "Tiamina", "Timolol", "Tramadol", "Trazodona", "Trimebutina", "Valaciclovir", "Valsartán", "Venlafaxina", "Verapamilo", "Vitamina B12", "Vitamina C", "Vitamina D", "Warfarina", "Zinc", "Otro"];
+const DOSIS_PRESET = ["2.5 mg", "5 mg", "10 mg", "12.5 mg", "15 mg", "20 mg", "25 mg", "30 mg", "40 mg", "50 mg", "60 mg", "70 mg", "75 mg", "80 mg", "100 mg", "125 mg", "150 mg", "200 mg", "250 mg", "300 mg", "400 mg", "500 mg", "600 mg", "650 mg", "750 mg", "800 mg", "850 mg", "875 mg", "1 g", "25 mcg", "50 mcg", "75 mcg", "88 mcg", "100 mcg", "112 mcg", "125 mcg", "150 mcg", "½ tableta", "1 tableta", "2 tabletas", "1 cápsula", "2 cápsulas", "2.5 ml", "5 ml", "7.5 ml", "10 ml", "15 ml", "20 ml", "1 cucharadita (5 ml)", "1 cucharada (15 ml)", "1 sobre", "1 aplicación", "1 óvulo", "1 supositorio", "1 gota", "2 gotas", "3 gotas", "1 inhalación", "2 inhalaciones", "1 nebulización", "1 parche", "2 UI", "4 UI", "6 UI", "8 UI", "10 UI", "15 UI", "20 UI", "30 UI", "40 UI", "Otro"];
 const MOTIVOS_PRESET = ["Dolor", "Dolor de cabeza", "Dolor muscular", "Fiebre", "Infección", "Infección de garganta", "Infección urinaria", "Inflamación", "Presión alta", "Diabetes / azúcar alta", "Colesterol alto", "Gastritis / acidez", "Alergia", "Tos / gripa", "Asma", "Ansiedad / depresión", "Insomnio", "Tiroides", "Prevención / vitaminas", "Control de un padecimiento crónico", "Otro"];
 const INDICACIONES_PRESET = ["Tomar con alimentos", "Tomar en ayunas", "No combinar con alcohol", "Tomar con suficiente agua", "Antes de dormir", "Por la mañana", "Cada que haya dolor o fiebre", "No partir ni masticar", "Mantener en refrigeración", "Suspender si hay reacción y avisar al médico", "Completar todo el tratamiento aunque haya mejoría", "Otro"];
 const CATEGORIAS = [{
@@ -2416,6 +2416,14 @@ function MiDia({
   const suenoLog = leer("medicontrol-sueno-log-v1");
   const citas = leer("medicontrol-citas-v1");
   const episodios = leer("medicontrol-episodios-v1");
+  const seguimiento = leer("medicontrol-seguimiento-v1");
+  const autoeval = leer("medicontrol-autoeval-v1");
+  const pensamientos = leer("medicontrol-pensamientos-v1");
+  const gratitud = leer("medicontrol-gratitud-v1");
+  let controlRac = {};
+  try {
+    controlRac = JSON.parse(localStorage.getItem("medicontrol-control-raciones-v1")) || {};
+  } catch (e) {}
   const comidas = data.comidas || [];
   const agua = data.agua || {};
   const readings = data.vitals && data.vitals.readings || [];
@@ -2432,20 +2440,26 @@ function MiDia({
       });
     }
     meds.sort((a, b) => a.hora < b.hora ? -1 : 1);
+    const rac = controlRac[d] || null;
     return {
       meds,
       comidas: comidas.filter(c => c.fecha === d).sort((a, b) => (a.hora || "") < (b.hora || "") ? -1 : 1),
       agua: agua[d] || 0,
+      raciones: rac && Object.keys(rac).some(k => rac[k] > 0) ? rac : null,
       sueno: suenoLog.find(r => r.fecha === d) || null,
       sintomas: sintomas.filter(s => s.fecha === d),
       signos: readings.filter(r => r.fecha === d),
       citas: citas.filter(c => c.fecha === d),
-      episodios: episodios.filter(e => e.fecha === d)
+      episodios: episodios.filter(e => e.fecha === d),
+      seguimiento: seguimiento.filter(s => s.fecha === d),
+      autoeval: autoeval.filter(a => a.fecha === d),
+      pensamientos: pensamientos.filter(p => p.fecha === d),
+      gratitud: gratitud.filter(g => g.fecha === d)
     };
   };
   const dd = datosDia(fecha);
   const medsHechas = dd.meds.filter(x => x.done).length;
-  const hayAlgo = dd.meds.length || dd.comidas.length || dd.agua || dd.sueno || dd.sintomas.length || dd.signos.length || dd.citas.length || dd.episodios.length;
+  const hayAlgo = dd.meds.length || dd.comidas.length || dd.agua || dd.raciones || dd.sueno || dd.sintomas.length || dd.signos.length || dd.citas.length || dd.episodios.length || dd.seguimiento.length || dd.autoeval.length || dd.pensamientos.length || dd.gratitud.length;
   const fechaTxt = (() => {
     try {
       return new Date(fecha + "T12:00:00").toLocaleDateString("es-MX", {
@@ -2541,7 +2555,17 @@ function MiDia({
     titulo("Síntomas");
     if (dd.sintomas.length) tabla(["Síntoma", "Intensidad", "Medición", "Nota"], dd.sintomas.map(s => [s.label, String(s.intensidad), s.valor != null ? s.valor + " " + (s.unidad || "") : "—", s.nota || "—"]));else parr("Sin síntomas.");
     titulo("Alimentación");
+    if (dd.agua) parr("Agua: " + dd.agua + " vasos.");
     if (dd.comidas.length) tabla(["Hora", "Tiempo", "Alimentos"], dd.comidas.map(c => [c.hora || "—", (TIPO_COMIDA[c.tipo] || c.tipo || "").replace(/^[^ ]+ /, ""), c.alimentos]));else parr("Sin comidas registradas.");
+    if (dd.raciones) parr("Raciones consumidas: " + GRUPOS_ORDEN.filter(g => dd.raciones[g] > 0).map(g => GRUPOS[g].label + " " + dd.raciones[g]).join(", "));
+    if (dd.seguimiento.length) {
+      titulo("Peso y medidas");
+      parr(dd.seguimiento.map(s => (s.peso ? s.peso + " kg" : "") + (s.imc ? " · IMC " + s.imc + " (" + clasifIMC(s.imc).txt + ")" : "") + (s.cintura ? " · cintura " + s.cintura + " cm" : "") + (s.grasa ? " · grasa " + s.grasa + "%" : "")).join("; "));
+    }
+    if (dd.autoeval.length || dd.pensamientos.length || dd.gratitud.length) {
+      titulo("Bienestar emocional");
+      parr(dd.autoeval.map(a => "Autoevaluación: predomina " + (a.top && a.top !== "ninguno" ? a.top : "sin señales")).concat(dd.pensamientos.length ? [dd.pensamientos.length + " registro(s) de pensamientos"] : [], dd.gratitud.length ? ["Anotó cosas buenas del día"] : []).join(". ") || "—");
+    }
     if (dd.citas.length) {
       titulo("Citas");
       parr(dd.citas.map(c => c.especialidad + (c.hora ? " " + c.hora : "") + (c.hospital ? " · " + c.hospital : "")).join("; "));
@@ -2713,15 +2737,38 @@ function MiDia({
     className: "text-xs text-slate-400"
   }, "int. ", s.intensidad)))) : null), React.createElement(Seccion, {
     icono: "\uD83C\uDF7D\uFE0F",
-    titulo: "Alimentaci\xF3n"
-  }, dd.comidas.length || dd.agua ? React.createElement("div", null, dd.agua > 0 && React.createElement("div", {
+    titulo: "Alimentaci\xF3n e hidrataci\xF3n"
+  }, dd.comidas.length || dd.agua || dd.raciones ? React.createElement("div", null, dd.agua > 0 && React.createElement("div", {
     className: "text-sm text-sky-700 mb-1"
   }, "\uD83D\uDCA7 ", dd.agua, " vasos de agua"), dd.comidas.map(c => React.createElement("div", {
     key: c.id,
     className: "text-sm text-slate-700 border-l-2 border-emerald-200 pl-2 mb-1"
   }, React.createElement("span", {
     className: "text-xs text-slate-400"
-  }, c.hora, " ", TIPO_COMIDA[c.tipo] || ""), React.createElement("br", null), c.alimentos))) : null), dd.citas.length > 0 && React.createElement(Seccion, {
+  }, c.hora, " ", TIPO_COMIDA[c.tipo] || ""), React.createElement("br", null), c.alimentos)), dd.raciones && React.createElement("div", {
+    className: "mt-2 flex flex-wrap gap-1.5"
+  }, GRUPOS_ORDEN.filter(g => dd.raciones[g] > 0).map(g => React.createElement("span", {
+    key: g,
+    className: "text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2 py-0.5"
+  }, GRUPOS[g].emoji, " ", GRUPOS[g].label, ": ", dd.raciones[g])))) : null), dd.seguimiento.length > 0 && React.createElement(Seccion, {
+    icono: "\u2696\uFE0F",
+    titulo: "Peso y medidas"
+  }, React.createElement("div", {
+    className: "space-y-1"
+  }, dd.seguimiento.map(s => React.createElement("div", {
+    key: s.id,
+    className: "text-sm text-slate-700"
+  }, s.peso ? s.peso + " kg" : "", s.imc ? " · IMC " + s.imc + " (" + clasifIMC(s.imc).txt + ")" : "", s.cintura ? " · cintura " + s.cintura + " cm" : "", s.grasa ? " · grasa " + s.grasa + "%" : "")))), (dd.autoeval.length > 0 || dd.episodios.length > 0 || dd.pensamientos.length > 0 || dd.gratitud.length > 0) && React.createElement(Seccion, {
+    icono: "\uD83E\uDDE0",
+    titulo: "Bienestar emocional"
+  }, dd.autoeval.map(a => React.createElement("div", {
+    key: a.id,
+    className: "text-sm text-slate-700"
+  }, "Autoevaluaci\xF3n: predomina ", React.createElement("b", null, a.top && a.top !== "ninguno" ? a.top : "sin señales"))), dd.pensamientos.length > 0 && React.createElement("div", {
+    className: "text-sm text-slate-600"
+  }, "\uD83D\uDCAD ", dd.pensamientos.length, " registro(s) de pensamientos"), dd.gratitud.length > 0 && React.createElement("div", {
+    className: "text-sm text-slate-600"
+  }, "\u2728 Anot\xF3 cosas buenas del d\xEDa")), dd.citas.length > 0 && React.createElement(Seccion, {
     icono: "\uD83D\uDCC5",
     titulo: "Citas"
   }, React.createElement("div", {
@@ -2737,7 +2784,7 @@ function MiDia({
     className: "space-y-2"
   }, resumenRango.slice().reverse().map(o => {
     const x = o.x;
-    const algo = x.meds.length || x.comidas.length || x.agua || x.sueno || x.sintomas.length || x.signos.length || x.episodios.length;
+    const algo = x.meds.length || x.comidas.length || x.agua || x.raciones || x.sueno || x.sintomas.length || x.signos.length || x.episodios.length || x.seguimiento.length || x.autoeval.length || x.pensamientos.length || x.gratitud.length;
     return React.createElement("div", {
       key: o.d,
       className: "bg-white rounded-xl border p-3 " + (algo ? "border-slate-200" : "border-slate-100 opacity-60")
@@ -2761,7 +2808,11 @@ function MiDia({
       className: "text-rose-600"
     }, "\uD83E\uDD12 ", x.sintomas.length), x.signos.length > 0 && React.createElement("span", {
       className: "text-sky-600"
-    }, "\uD83E\uDE7A ", x.signos.length), x.comidas.length > 0 && React.createElement("span", null, "\uD83C\uDF7D\uFE0F ", x.comidas.length), !algo && React.createElement("span", {
+    }, "\uD83E\uDE7A ", x.signos.length), x.comidas.length > 0 && React.createElement("span", null, "\uD83C\uDF7D\uFE0F ", x.comidas.length), x.seguimiento.length > 0 && React.createElement("span", {
+      className: "text-indigo-600"
+    }, "\u2696\uFE0F ", x.seguimiento.length), (x.episodios.length > 0 || x.autoeval.length > 0) && React.createElement("span", {
+      className: "text-violet-600"
+    }, "\uD83E\uDDE0"), !algo && React.createElement("span", {
       className: "text-slate-300"
     }, "sin registros"))));
   })));
@@ -6099,6 +6150,92 @@ function Perfil({
     className: "text-xs text-slate-400"
   }, "El respaldo descarga todos tus datos (medicamentos, inventario, mediciones y perfil) en un archivo. Gu\xE1rdalo para no perder nada si cambias de navegador o computadora.")));
 }
+function ContadorPulso({
+  tipo
+}) {
+  const esFR = tipo === "fr";
+  const dur = esFR ? 60 : 30;
+  const [seg, setSeg] = useState(dur);
+  const [run, setRun] = useState(false);
+  const [count, setCount] = useState(0);
+  const [res, setRes] = useState(null);
+  const cRef = React.useRef(0);
+  const iv = React.useRef(null);
+  const audio = React.useRef(null);
+  const iniciar = () => {
+    primeAudio(audio);
+    cRef.current = 0;
+    setCount(0);
+    setRes(null);
+    setSeg(dur);
+    setRun(true);
+  };
+  const cancelar = () => {
+    setRun(false);
+    setRes(null);
+    setSeg(dur);
+  };
+  useEffect(() => {
+    if (!run) return;
+    iv.current = setInterval(() => setSeg(s => {
+      if (s <= 1) {
+        clearInterval(iv.current);
+        setRun(false);
+        beepCtx(audio);
+        setRes(Math.round(cRef.current * 60 / dur));
+        return 0;
+      }
+      return s - 1;
+    }), 1000);
+    return () => clearInterval(iv.current);
+  }, [run]);
+  const tap = () => {
+    if (!run) return;
+    cRef.current += 1;
+    setCount(cRef.current);
+  };
+  const unidad = esFR ? "rpm" : "lpm";
+  const accion = esFR ? "respiración" : "latido";
+  return React.createElement("div", {
+    className: "mt-3 bg-white rounded-xl border border-sky-200 p-3"
+  }, React.createElement("div", {
+    className: "text-xs font-bold text-sky-700 uppercase tracking-wide flex items-center gap-1"
+  }, React.createElement(IClock, {
+    cls: "w-3.5 h-3.5"
+  }), " Cron\xF3metro-contador"), React.createElement("p", {
+    className: "text-xs text-slate-500 mt-1"
+  }, "Toca \xABIniciar\xBB y pulsa el bot\xF3n grande en cada ", accion, " durante ", dur, " segundos. La app lo convierte a ", unidad, " y suena al terminar."), !run && res === null && React.createElement("button", {
+    onClick: iniciar,
+    className: "w-full mt-2 bg-sky-600 text-white text-sm font-semibold rounded-xl py-2 hover:bg-sky-700"
+  }, "\u25B6 Iniciar (", dur, " s)"), run && React.createElement("div", {
+    className: "mt-2"
+  }, React.createElement("div", {
+    className: "text-center"
+  }, React.createElement("span", {
+    className: "text-3xl font-black text-sky-900 tabular-nums"
+  }, seg), React.createElement("span", {
+    className: "text-sm text-slate-400"
+  }, " s")), React.createElement("button", {
+    onClick: tap,
+    className: "w-full mt-2 bg-sky-600 text-white text-lg font-bold rounded-xl py-5 active:bg-sky-800 select-none"
+  }, "Toca aqu\xED \xB7 ", count), React.createElement("button", {
+    onClick: cancelar,
+    className: "w-full mt-1 text-xs text-slate-500"
+  }, "Cancelar")), res !== null && !run && React.createElement("div", {
+    className: "mt-2 text-center"
+  }, React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Resultado"), React.createElement("div", {
+    className: "text-3xl font-black text-emerald-600"
+  }, res, " ", React.createElement("span", {
+    className: "text-base"
+  }, unidad)), React.createElement("div", {
+    className: "text-[11px] text-slate-400"
+  }, count, " ", esFR ? "respiraciones" : "latidos", " en ", dur, " s \u2014 escr\xEDbelo arriba en el valor"), React.createElement("button", {
+    onClick: iniciar,
+    className: "mt-1 text-xs font-semibold text-sky-600"
+  }, "Medir otra vez")));
+}
 function Salud({
   data,
   persist,
@@ -6735,7 +6872,9 @@ function Salud({
     cls: "w-4 h-4"
   })), guiaOpen && React.createElement("p", {
     className: "text-sm text-sky-900 mt-2"
-  }, M.guia)), React.createElement("section", {
+  }, M.guia), (tipo === "fc" || tipo === "fr") && React.createElement(ContadorPulso, {
+    tipo: tipo
+  })), React.createElement("section", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("button", {
     onClick: () => setHorarioOpen(!horarioOpen),
@@ -10751,7 +10890,7 @@ function AcercaDe({
     className: "font-bold text-slate-800"
   }, "\uD83D\uDC64 Autor"), React.createElement("p", {
     className: "mt-1"
-  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Maestro en Administraci\xF3n por la UNAM, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
+  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", UNAM, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
     className: "text-xs text-slate-400"
   }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
