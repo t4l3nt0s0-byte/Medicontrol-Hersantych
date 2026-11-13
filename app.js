@@ -25,11 +25,11 @@ const escribirExtras = extras => {
 };
 const GAP_MIN = 30;
 const FRECUENCIAS = [4, 6, 8, 12, 24];
-const PRESENTACIONES = ["Tabletas", "Cápsulas", "Jarabe / Suspensión", "Solución oral", "Gotas", "Gotas oftálmicas", "Gotas óticas", "Inyectable", "Ampolleta", "Sobres / Polvo", "Crema / Ungüento / Gel", "Parche", "Óvulos / Supositorios", "Inhalador", "Nebulización", "Spray nasal", "Insulina / Pluma", "Otro"];
-const MEDICAMENTOS = ["Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido ascórbico (Vitamina C)", "Ácido fólico", "Ácido valproico", "Albendazol", "Alopurinol", "Alprazolam", "Amantadina", "Ambroxol", "Amikacina", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Ampicilina", "Atenolol", "Atorvastatina", "Azitromicina", "Baclofeno", "Beclometasona", "Betahistina", "Betametasona", "Bisacodilo", "Bromhexina", "Bromuro de ipratropio", "Budesonida", "Butilhioscina (Buscapina)", "Calcio", "Candesartán", "Captopril", "Carbamazepina", "Carbonato de calcio", "Carvedilol", "Cefalexina", "Cefixima", "Ceftriaxona", "Cefuroxima", "Celecoxib", "Cetirizina", "Ciprofloxacino", "Citalopram", "Claritromicina", "Clindamicina", "Clonazepam", "Clopidogrel", "Cloranfenicol", "Clorfenamina", "Clortalidona", "Codeína", "Colchicina", "Complejo B", "Desloratadina", "Dexametasona", "Dexketoprofeno", "Diazepam", "Diclofenaco", "Difenhidramina", "Digoxina", "Dimenhidrinato", "Diosmina", "Domperidona", "Doxiciclina", "Duloxetina", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Etoricoxib", "Famotidina", "Fenitoína", "Fenofibrato", "Fexofenadina", "Finasterida", "Fluconazol", "Flunarizina", "Fluoxetina", "Furosemida", "Gabapentina", "Gemfibrozilo", "Gentamicina", "Glibenclamida", "Gliclazida", "Glimepirida", "Guaifenesina", "Haloperidol", "Heparina", "Hidroclorotiazida", "Hidrocortisona", "Hidróxido de aluminio y magnesio", "Hierro (sulfato ferroso)", "Ibuprofeno", "Indometacina", "Insulina glargina", "Insulina lispro", "Insulina NPH", "Insulina regular", "Irbesartán", "Isosorbida", "Itraconazol", "Ivermectina", "Ketoconazol", "Ketoprofeno", "Ketorolaco", "Lactulosa", "Lansoprazol", "Levetiracetam", "Levocetirizina", "Levodopa/Carbidopa", "Levofloxacino", "Levotiroxina", "Loperamida", "Loratadina", "Lorazepam", "Losartán", "Lovastatina", "Magnesio", "Mebendazol", "Meloxicam", "Memantina", "Metamizol sódico", "Metformina", "Metildopa", "Metilfenidato", "Metilprednisolona", "Metoclopramida", "Metoprolol", "Metronidazol", "Miconazol", "Montelukast", "Morfina", "Mupirocina", "Nafazolina", "Naproxeno", "Naproxeno con esomeprazol", "Nifedipino", "Nimesulida", "Nistatina", "Nitrofurantoína", "Nitroglicerina", "Norfloxacino", "Olanzapina", "Omega 3", "Omeprazol", "Ondansetrón", "Oseltamivir", "Oxcarbazepina", "Oxibutinina", "Oximetazolina", "Pantoprazol", "Paracetamol", "Paroxetina", "Penicilina G benzatínica", "Pinaverio", "Piroxicam", "Pravastatina", "Prednisolona", "Prednisona", "Pregabalina", "Prometazina", "Propranolol", "Quetiapina", "Ranitidina", "Risperidona", "Rivaroxabán", "Rosuvastatina", "Salbutamol", "Salmeterol", "Sertralina", "Sildenafil", "Simvastatina", "Subsalicilato de bismuto", "Sucralfato", "Sulfato ferroso", "Sulfametoxazol con trimetoprima", "Sumatriptán", "Tamsulosina", "Telmisartán", "Teofilina", "Tiamina", "Timolol", "Tramadol", "Trazodona", "Trimebutina", "Valaciclovir", "Valsartán", "Venlafaxina", "Verapamilo", "Vitamina B12", "Vitamina C", "Vitamina D", "Warfarina", "Zinc", "Otro"];
-const DOSIS_PRESET = ["2.5 mg", "5 mg", "10 mg", "12.5 mg", "15 mg", "20 mg", "25 mg", "30 mg", "40 mg", "50 mg", "60 mg", "70 mg", "75 mg", "80 mg", "100 mg", "125 mg", "150 mg", "200 mg", "250 mg", "300 mg", "400 mg", "500 mg", "600 mg", "650 mg", "750 mg", "800 mg", "850 mg", "875 mg", "1 g", "25 mcg", "50 mcg", "75 mcg", "88 mcg", "100 mcg", "112 mcg", "125 mcg", "150 mcg", "½ tableta", "1 tableta", "2 tabletas", "1 cápsula", "2 cápsulas", "2.5 ml", "5 ml", "7.5 ml", "10 ml", "15 ml", "20 ml", "1 cucharadita (5 ml)", "1 cucharada (15 ml)", "1 sobre", "1 aplicación", "1 óvulo", "1 supositorio", "1 gota", "2 gotas", "3 gotas", "1 inhalación", "2 inhalaciones", "1 nebulización", "1 parche", "2 UI", "4 UI", "6 UI", "8 UI", "10 UI", "15 UI", "20 UI", "30 UI", "40 UI", "Otro"];
-const MOTIVOS_PRESET = ["Dolor", "Dolor de cabeza", "Dolor muscular", "Fiebre", "Infección", "Infección de garganta", "Infección urinaria", "Inflamación", "Presión alta", "Diabetes / azúcar alta", "Colesterol alto", "Gastritis / acidez", "Alergia", "Tos / gripa", "Asma", "Ansiedad / depresión", "Insomnio", "Tiroides", "Prevención / vitaminas", "Control de un padecimiento crónico", "Otro"];
-const INDICACIONES_PRESET = ["Tomar con alimentos", "Tomar en ayunas", "No combinar con alcohol", "Tomar con suficiente agua", "Antes de dormir", "Por la mañana", "Cada que haya dolor o fiebre", "No partir ni masticar", "Mantener en refrigeración", "Suspender si hay reacción y avisar al médico", "Completar todo el tratamiento aunque haya mejoría", "Otro"];
+const PRESENTACIONES = ["Tabletas", "Tabletas recubiertas", "Tabletas masticables", "Tabletas efervescentes", "Tableta sublingual", "Grageas", "Cápsulas", "Cápsulas de liberación prolongada", "Perlas", "Jarabe / Suspensión", "Solución oral", "Gotas orales", "Gotas oftálmicas", "Gotas óticas", "Gotas nasales", "Colirio", "Inyectable", "Ampolleta", "Vial / Frasco ámpula", "Jeringa precargada", "Sobres / Polvo", "Granulado", "Polvo para solución", "Crema / Ungüento / Gel", "Loción", "Champú medicado", "Parche transdérmico", "Óvulos", "Supositorios", "Enema", "Inhalador", "Nebulización", "Spray nasal", "Aerosol", "Insulina / Pluma", "Otro"];
+const MEDICAMENTOS = Array.from(new Set(["Acarbosa", "Acenocumarol", "Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido ascórbico (Vitamina C)", "Ácido fólico", "Ácido tranexámico", "Ácido ursodesoxicólico", "Ácido valproico", "Albendazol", "Alendronato", "Alopurinol", "Alprazolam", "Amantadina", "Ambroxol", "Amikacina", "Amiodarona", "Amitriptilina", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Ampicilina", "Apixabán", "Aripiprazol", "Atenolol", "Atorvastatina", "Atropina", "Azatioprina", "Azitromicina", "Baclofeno", "Beclometasona", "Betahistina", "Betametasona", "Bezafibrato", "Biperideno", "Bisacodilo", "Bisoprolol", "Bromhexina", "Bromocriptina", "Bromuro de ipratropio", "Budesonida", "Bupropión", "Butilhioscina (Buscapina)", "Cabergolina", "Calcio", "Candesartán", "Captopril", "Carbamazepina", "Carbonato de calcio", "Carvedilol", "Cefalexina", "Cefixima", "Ceftriaxona", "Cefuroxima", "Celecoxib", "Cetirizina", "Ciclobenzaprina", "Ciclosporina", "Cilostazol", "Cinitaprida", "Ciprofloxacino", "Ciproheptadina", "Citalopram", "Claritromicina", "Clindamicina", "Clobazam", "Clomipramina", "Clonazepam", "Clopidogrel", "Cloranfenicol", "Clorfenamina", "Clortalidona", "Clotrimazol", "Codeína", "Colchicina", "Complejo B", "Dabigatrán", "Dapagliflozina", "Desloratadina", "Dexametasona", "Dexketoprofeno", "Dexlansoprazol", "Diazepam", "Diclofenaco", "Difenhidramina", "Digoxina", "Diltiazem", "Dimenhidrinato", "Diosmina", "Domperidona", "Donepezilo", "Doxiciclina", "Duloxetina", "Dutasterida", "Empagliflozina", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Etoricoxib", "Ezetimiba", "Famotidina", "Febuxostat", "Fenazopiridina", "Fenitoína", "Fenobarbital", "Fenofibrato", "Fentanilo", "Fexofenadina", "Finasterida", "Fluconazol", "Flunarizina", "Fluoxetina", "Fluvoxamina", "Formoterol", "Furosemida", "Gabapentina", "Gemfibrozilo", "Gentamicina", "Glibenclamida", "Gliclazida", "Glimepirida", "Guaifenesina", "Haloperidol", "Heparina", "Hidralazina", "Hidroclorotiazida", "Hidrocortisona", "Hidroxicina", "Hidroxicloroquina", "Hidróxido de aluminio y magnesio", "Hierro (sulfato ferroso)", "Ibuprofeno", "Indapamida", "Indometacina", "Insulina degludec", "Insulina detemir", "Insulina glargina", "Insulina lispro", "Insulina NPH", "Insulina regular", "Irbesartán", "Isosorbida", "Itraconazol", "Ivermectina", "Ketoconazol", "Ketoprofeno", "Ketorolaco", "Ketotifeno", "Lactulosa", "Lamotrigina", "Lansoprazol", "Latanoprost", "Lercanidipino", "Levetiracetam", "Levocetirizina", "Levodopa/Carbidopa", "Levofloxacino", "Levotiroxina", "Linagliptina", "Liraglutida", "Lisinopril", "Loperamida", "Loratadina", "Lorazepam", "Losartán", "Lovastatina", "Magnesio", "Mebendazol", "Meloxicam", "Memantina", "Mesalazina", "Metamizol sódico", "Metformina", "Metildopa", "Metilfenidato", "Metilprednisolona", "Metoclopramida", "Metocarbamol", "Metoprolol", "Metronidazol", "Miconazol", "Mirtazapina", "Mometasona", "Montelukast", "Morfina", "Moxifloxacino", "Mupirocina", "Nafazolina", "Naproxeno", "Naproxeno con esomeprazol", "Nebivolol", "Nifedipino", "Nimesulida", "Nistatina", "Nitrofurantoína", "Nitroglicerina", "Norfloxacino", "Olanzapina", "Olmesartán", "Omega 3", "Omeprazol", "Ondansetrón", "Oseltamivir", "Oxcarbazepina", "Oxibutinina", "Oximetazolina", "Pancreatina", "Pantoprazol", "Paracetamol", "Paroxetina", "Penicilina G benzatínica", "Pinaverio", "Pioglitazona", "Piroxicam", "Pramipexol", "Pravastatina", "Prazosina", "Prednisolona", "Prednisona", "Pregabalina", "Prometazina", "Propranolol", "Quetiapina", "Quinapril", "Rabeprazol", "Ramipril", "Ranitidina", "Repaglinida", "Rifaximina", "Risperidona", "Rivaroxabán", "Ropinirol", "Rosuvastatina", "Rupatadina", "Salbutamol", "Salmeterol", "Saxagliptina", "Sertralina", "Sildenafil", "Simvastatina", "Sitagliptina", "Solifenacina", "Subsalicilato de bismuto", "Sucralfato", "Sulfato ferroso", "Sulfametoxazol con trimetoprima", "Sumatriptán", "Tadalafilo", "Tamsulosina", "Telmisartán", "Teofilina", "Terazosina", "Terbinafina", "Tiamazol (Metimazol)", "Tiamina", "Ticagrelor", "Timolol", "Tinidazol", "Tiotropio", "Tolterodina", "Topiramato", "Tramadol", "Trazodona", "Trimebutina", "Valaciclovir", "Valsartán", "Venlafaxina", "Verapamilo", "Vildagliptina", "Vitamina B12", "Vitamina C", "Vitamina D", "Vortioxetina", "Warfarina", "Zinc", "Zolpidem", "Zopiclona"])).sort((a, b) => a.localeCompare(b, "es")).concat("Otro");
+const DOSIS_PRESET = ["1 mg", "2 mg", "2.5 mg", "4 mg", "5 mg", "8 mg", "10 mg", "12.5 mg", "15 mg", "16 mg", "18 mg", "20 mg", "25 mg", "30 mg", "40 mg", "50 mg", "60 mg", "70 mg", "75 mg", "80 mg", "90 mg", "100 mg", "120 mg", "125 mg", "150 mg", "160 mg", "180 mg", "200 mg", "250 mg", "300 mg", "320 mg", "400 mg", "500 mg", "550 mg", "600 mg", "650 mg", "750 mg", "800 mg", "850 mg", "875 mg", "900 mg", "1 g", "1.5 g", "2 g", "12.5 mcg", "25 mcg", "50 mcg", "75 mcg", "88 mcg", "100 mcg", "112 mcg", "125 mcg", "137 mcg", "150 mcg", "175 mcg", "200 mcg", "¼ de tableta", "½ tableta", "1 tableta", "1½ tabletas", "2 tabletas", "1 cápsula", "2 cápsulas", "1 gragea", "2.5 ml", "5 ml", "7.5 ml", "10 ml", "15 ml", "20 ml", "1 cucharadita (5 ml)", "1 cucharada (15 ml)", "1 sobre", "1 aplicación", "1 óvulo", "1 supositorio", "1 enema", "1 gota", "2 gotas", "3 gotas", "4 gotas", "5 gotas", "1 inhalación (1 disparo)", "2 inhalaciones", "1 nebulización", "1 parche", "2 UI", "4 UI", "6 UI", "8 UI", "10 UI", "12 UI", "15 UI", "20 UI", "25 UI", "30 UI", "40 UI", "Otro"];
+const MOTIVOS_PRESET = ["Dolor", "Dolor de cabeza / migraña", "Dolor muscular o articular", "Dolor de huesos", "Fiebre", "Infección (general)", "Infección de garganta", "Infección respiratoria", "Infección urinaria", "Infección en la piel", "Infección gastrointestinal", "Inflamación", "Presión alta (hipertensión)", "Diabetes / azúcar alta", "Colesterol o triglicéridos altos", "Gastritis / acidez / reflujo", "Úlcera", "Náuseas o vómito", "Diarrea", "Estreñimiento", "Alergia", "Tos / gripa / resfriado", "Asma / EPOC", "Ansiedad", "Depresión", "Insomnio", "Epilepsia / convulsiones", "Tiroides (hipo o hiper)", "Anemia", "Gota / ácido úrico", "Osteoporosis", "Próstata", "Anticoagulación", "Prevención / vitaminas", "Control de un padecimiento crónico", "Otro"];
+const INDICACIONES_PRESET = ["Tomar con alimentos", "Tomar en ayunas (1 h antes o 2 h después de comer)", "No combinar con alcohol", "Tomar con suficiente agua", "No acostarse 30 min después de tomarlo", "Antes de dormir", "Por la mañana", "Antes del desayuno", "Después de cada comida", "Cada que haya dolor o fiebre", "No partir ni masticar (tragar entero)", "Disolver debajo de la lengua", "Agitar antes de usar", "Mantener en refrigeración", "Proteger de la luz", "Suspender si hay reacción y avisar al médico", "No suspender sin indicación médica", "Completar todo el tratamiento aunque haya mejoría", "Vigilar presión / glucosa al tomarlo", "Evitar el sol (puede causar manchas)", "Otro"];
 const CATEGORIAS = [{
   id: "analgesico",
   label: "Analgésico / Dolor — alivia dolores",
@@ -114,6 +114,131 @@ const CATEGORIAS = [{
   id: "antiparasitario",
   label: "Antiparasitario — elimina parásitos",
   corto: "Antiparasitario",
+  cls: "bg-green-100 text-green-700 border-green-200"
+}, {
+  id: "antifungico",
+  label: "Antimicótico / Antihongos — combate hongos",
+  corto: "Antimicótico",
+  cls: "bg-emerald-100 text-emerald-700 border-emerald-200"
+}, {
+  id: "broncodilatador",
+  label: "Broncodilatador / Inhalador — abre las vías respiratorias",
+  corto: "Broncodilatador",
+  cls: "bg-cyan-100 text-cyan-700 border-cyan-200"
+}, {
+  id: "antihipertensivo",
+  label: "Antihipertensivo — baja la presión alta",
+  corto: "Antihipertensivo",
+  cls: "bg-red-100 text-red-700 border-red-200"
+}, {
+  id: "estatina",
+  label: "Estatina / Colesterol — baja el colesterol",
+  corto: "Colesterol / Estatina",
+  cls: "bg-yellow-100 text-yellow-700 border-yellow-200"
+}, {
+  id: "antiarritmico",
+  label: "Antiarrítmico — regula el ritmo del corazón",
+  corto: "Antiarrítmico",
+  cls: "bg-rose-100 text-rose-700 border-rose-200"
+}, {
+  id: "ansiolitico",
+  label: "Ansiolítico / Tranquilizante — calma la ansiedad",
+  corto: "Ansiolítico",
+  cls: "bg-indigo-100 text-indigo-700 border-indigo-200"
+}, {
+  id: "somnifero",
+  label: "Somnífero / Para dormir — ayuda a conciliar el sueño",
+  corto: "Para dormir",
+  cls: "bg-violet-100 text-violet-700 border-violet-200"
+}, {
+  id: "antipsicotico",
+  label: "Antipsicótico / Neurológico — salud mental",
+  corto: "Antipsicótico",
+  cls: "bg-purple-100 text-purple-700 border-purple-200"
+}, {
+  id: "relajante",
+  label: "Relajante muscular — alivia contracturas",
+  corto: "Relajante muscular",
+  cls: "bg-orange-100 text-orange-700 border-orange-200"
+}, {
+  id: "laxante",
+  label: "Laxante — facilita la evacuación",
+  corto: "Laxante",
+  cls: "bg-lime-100 text-lime-700 border-lime-200"
+}, {
+  id: "antidiarreico",
+  label: "Antidiarreico — controla la diarrea",
+  corto: "Antidiarreico",
+  cls: "bg-amber-100 text-amber-700 border-amber-200"
+}, {
+  id: "antiemetico",
+  label: "Antiemético — quita náuseas y vómito",
+  corto: "Antiemético",
+  cls: "bg-teal-100 text-teal-700 border-teal-200"
+}, {
+  id: "antigotoso",
+  label: "Antigotoso / Ácido úrico — controla la gota",
+  corto: "Ácido úrico / Gota",
+  cls: "bg-stone-100 text-stone-700 border-stone-200"
+}, {
+  id: "tiroides",
+  label: "Tiroides — regula la glándula tiroides",
+  corto: "Tiroides",
+  cls: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200"
+}, {
+  id: "osteoporosis",
+  label: "Óseo / Osteoporosis — fortalece los huesos",
+  corto: "Huesos / Osteoporosis",
+  cls: "bg-slate-100 text-slate-700 border-slate-200"
+}, {
+  id: "prostata",
+  label: "Próstata / Urológico — vías urinarias",
+  corto: "Próstata / Urológico",
+  cls: "bg-blue-100 text-blue-700 border-blue-200"
+}, {
+  id: "oftalmico",
+  label: "Oftálmico / Gotas para ojos — salud visual",
+  corto: "Oftálmico",
+  cls: "bg-sky-100 text-sky-700 border-sky-200"
+}, {
+  id: "dermatologico",
+  label: "Dermatológico / Piel — cremas y pomadas",
+  corto: "Dermatológico",
+  cls: "bg-pink-100 text-pink-700 border-pink-200"
+}, {
+  id: "antimigrana",
+  label: "Antimigrañoso — previene o corta la migraña",
+  corto: "Migraña",
+  cls: "bg-rose-100 text-rose-700 border-rose-200"
+}, {
+  id: "hierro",
+  label: "Hierro / Antianémico — trata la anemia",
+  corto: "Hierro / Anemia",
+  cls: "bg-red-100 text-red-700 border-red-200"
+}, {
+  id: "electrolitos",
+  label: "Electrolitos / Suero — hidratación",
+  corto: "Electrolitos / Suero",
+  cls: "bg-cyan-100 text-cyan-700 border-cyan-200"
+}, {
+  id: "quimioterapia",
+  label: "Oncológico / Quimioterapia — tratamiento de cáncer",
+  corto: "Oncológico",
+  cls: "bg-purple-100 text-purple-700 border-purple-200"
+}, {
+  id: "inmunosupresor",
+  label: "Inmunosupresor — regula las defensas",
+  corto: "Inmunosupresor",
+  cls: "bg-indigo-100 text-indigo-700 border-indigo-200"
+}, {
+  id: "anticonceptivo",
+  label: "Anticonceptivo / Planificación — método hormonal",
+  corto: "Anticonceptivo",
+  cls: "bg-pink-100 text-pink-700 border-pink-200"
+}, {
+  id: "vacuna",
+  label: "Vacuna / Inmunización — previene enfermedades",
+  corto: "Vacuna",
   cls: "bg-green-100 text-green-700 border-green-200"
 }, {
   id: "vitamina",
@@ -551,7 +676,7 @@ const encabezadoPDF = (doc, titulo, nombre) => {
   doc.text((nombre ? "Paciente: " + nombre + "   ·   " : "") + "Generado: " + fmtDateLong(todayStr()) + "   ·   MediControl", 14, 21);
 };
 const sinPDF = avisar => avisar("No se pudo cargar el generador de PDF. Conéctate a internet una vez y recarga.");
-const ESPECIALIDADES = ["Alergología", "Anestesiología", "Angiología", "Cardiología", "Cirugía general", "Cirugía plástica", "Dermatología", "Endocrinología", "Gastroenterología", "Genética", "Geriatría", "Ginecología y Obstetricia", "Hematología", "Infectología", "Inmunología", "Medicina del deporte", "Medicina familiar", "Medicina general", "Medicina interna", "Nefrología", "Neumología", "Neurocirugía", "Neurología", "Nutrición", "Odontología", "Oftalmología", "Oncología", "Ortopedia y Traumatología", "Otorrinolaringología", "Pediatría", "Proctología", "Psicología", "Psiquiatría", "Radiología", "Rehabilitación / Fisioterapia", "Reumatología", "Urgencias", "Urología", "Otra"];
+const ESPECIALIDADES = ["Alergología", "Anestesiología", "Angiología", "Audiología", "Cardiología", "Cardiología pediátrica", "Cirugía bariátrica", "Cirugía cardiovascular", "Cirugía general", "Cirugía maxilofacial", "Cirugía oncológica", "Cirugía pediátrica", "Cirugía plástica y reconstructiva", "Cirugía vascular", "Dermatología", "Endocrinología", "Endocrinología pediátrica", "Enfermería", "Estomatología", "Foniatría", "Gastroenterología", "Genética médica", "Geriatría", "Ginecología y Obstetricia", "Hematología", "Hepatología", "Infectología", "Inmunología clínica", "Medicina del deporte", "Medicina del dolor y paliativos", "Medicina familiar", "Medicina general", "Medicina interna", "Medicina preventiva", "Nefrología", "Neumología", "Neonatología", "Neurocirugía", "Neurología", "Neuropsicología", "Nutrición clínica", "Odontología", "Oftalmología", "Oncología médica", "Oncología pediátrica", "Optometría", "Ortopedia y Traumatología", "Otorrinolaringología", "Patología", "Pediatría", "Proctología (Coloproctología)", "Psicología", "Psiquiatría", "Quiropráctica", "Radiología e imagen", "Radio-oncología", "Rehabilitación / Fisioterapia", "Reumatología", "Terapia del lenguaje", "Terapia ocupacional", "Toxicología", "Trabajo social", "Urgencias", "Urología", "Otra"];
 const ESTADOS_CITA = {
   programada: {
     label: "Programada",
@@ -770,7 +895,7 @@ function Citas({
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", {
-    className: "bg-gradient-to-br from-sky-600 to-emerald-600 text-white rounded-2xl p-5"
+    className: "bg-gradient-to-br from-sky-500 to-blue-700 text-white rounded-2xl p-5"
   }, React.createElement("h2", {
     className: "text-lg font-bold flex items-center gap-2"
   }, React.createElement(ICal, {
@@ -1259,7 +1384,7 @@ function ControlSueno({
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", {
-    className: "bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-2xl p-5"
+    className: "bg-gradient-to-br from-indigo-700 to-blue-900 text-white rounded-2xl p-5"
   }, React.createElement("h2", {
     className: "text-lg font-bold flex items-center gap-2"
   }, React.createElement(IMoon, {
@@ -2234,13 +2359,13 @@ function Evolucion({
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", {
-    className: "bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-2xl p-5"
+    className: "bg-gradient-to-br from-teal-600 to-emerald-700 text-white rounded-2xl p-5"
   }, React.createElement("h2", {
     className: "text-lg font-bold flex items-center gap-2"
   }, React.createElement(IChart, {
     cls: "w-5 h-5"
   }), " Evoluci\xF3n y estad\xEDsticas"), React.createElement("p", {
-    className: "text-violet-100 text-sm mt-1"
+    className: "text-teal-100 text-sm mt-1"
   }, "Gr\xE1ficas claras de todos tus registros para que t\xFA y tu m\xE9dico vean tu evoluci\xF3n.")), React.createElement("div", {
     className: "grid grid-cols-2 gap-2"
   }, React.createElement("div", {
@@ -2332,7 +2457,7 @@ function Evolucion({
     }, React.createElement("h3", {
       className: "text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"
     }, React.createElement("span", {
-      className: "h-4 w-1 rounded bg-violet-400"
+      className: "h-4 w-1 rounded bg-teal-500"
     }), grupo), React.createElement("div", {
       className: "space-y-3"
     }, items.map(({
@@ -4710,7 +4835,29 @@ function Inventario({
     placeholder: "Escanea, escribe o deja vac\xEDo para generar uno",
     value: f.code,
     onChange: e => set("code", e.target.value)
-  })), React.createElement("div", {
+  })), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "Elegir medicamento de la lista"), React.createElement("select", {
+    className: inputCls,
+    value: MEDICAMENTOS.includes(f.name) ? f.name : f.name ? "__otro__" : "",
+    onChange: e => {
+      const v = e.target.value;
+      if (v === "__otro__") {
+        set("name", "");
+      } else if (v) {
+        set("name", v);
+      }
+    }
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 Selecciona un medicamento \u2014"), MEDICAMENTOS.filter(m => m !== "Otro").map(m => React.createElement("option", {
+    key: m,
+    value: m
+  }, m)), React.createElement("option", {
+    value: "__otro__"
+  }, "Otro (escribir manualmente)\u2026")), React.createElement("div", {
+    className: "text-xs text-slate-400 mt-0.5"
+  }, "El\xEDgelo de la lista o selecciona \xABOtro\xBB para escribirlo abajo")), React.createElement("div", {
     className: "relative"
   }, React.createElement("label", {
     className: labelCls
@@ -10890,7 +11037,7 @@ function AcercaDe({
     className: "font-bold text-slate-800"
   }, "\uD83D\uDC64 Autor"), React.createElement("p", {
     className: "mt-1"
-  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", UNAM, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
+  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", ", React.createElement("b", null, "egresado de la UNAM"), ", para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
     className: "text-xs text-slate-400"
   }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"

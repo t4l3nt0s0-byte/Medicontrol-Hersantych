@@ -1,31 +1,34 @@
-# MediControl — Listas robustas, cronómetro, Mi día ampliado
+# MediControl — Instalar y usar SIN internet
 
-Todos los archivos van JUNTOS a la raíz del repositorio (sin carpeta lib/).
+Esta app funciona 100% sin conexión y se instala en el celular. Cada persona
+guarda su propia información en su teléfono (no se comparte con nadie).
 
-## Novedades
-### +Agregar
-- Nombre del medicamento: listado muy amplio (casi 200 medicamentos) para
-  seleccionar sin escribir; si no está, opción "Otro".
-- Dosis: listado mucho más robusto (mg, mcg, ml, UI, gotas, inhalaciones,
-  parches, cucharadas…); si no está, opción "Otro".
+## 1) Subir a GitHub Pages
+Sube TODO el contenido de esta carpeta (no la carpeta, su interior) al
+repositorio, incluyendo la subcarpeta `lib/`:
+- index.html
+- app.js
+- tailwind.css
+- manifest.json
+- sw.js
+- icon-192.png, icon-512.png, icon-180.png
+- lib/ (react, react-dom, jspdf, autotable)
 
-### Mediciones
-- En Frecuencia cardiaca y Frecuencia respiratoria se agregó un
-  CRONÓMETRO-CONTADOR: inicia, toca el botón en cada latido/respiración
-  durante 30 s (FC) o 60 s (FR), suena al terminar y convierte a lpm/rpm.
+En el repo: Settings → Pages → Branch: main → Save.
 
-### Mi día
-- Ahora reúne todos los registros relevantes de la fecha (o rango): sueño,
-  ánimo/bienestar, medicamentos, signos y mediciones, síntomas, alimentación
-  e hidratación, raciones consumidas, peso y medidas (IMC/grasa),
-  autoevaluación emocional y citas. Pensado como apoyo para el médico.
-  El reporte PDF del día incluye todo lo anterior.
+## 2) Instalar en el teléfono
+Abre la página en Chrome (Android) o Safari (iPhone):
+- Android: aparece abajo el botón **“Instalar app”**. Tócalo.
+- iPhone: menú Compartir → **“Agregar a inicio”**.
 
-### Acerca
-- Autoría: Ing. Christian Hernández S., UNAM.
+Ábrela una vez CON internet para que se guarde. Después funciona sin datos ni wifi.
 
-## Actualizar tu página
-1. Entra a Reporte y DESCARGA un respaldo antes (si ya tienes datos).
-2. Sube TODOS estos archivos a la raíz del repo (reemplazando los viejos).
-3. En el celular: desinstala la app y borra los datos del sitio.
-4. Abre con internet y reinstala. (Importa tu respaldo en Reporte.)
+## 3) Compartir por QR
+Dentro de la app toca el botón flotante **📲**. Se muestra un **código QR**;
+la otra persona lo escanea con su cámara, abre la app y la instala en su
+teléfono. Su información es independiente (cada quien la suya).
+
+## Si no carga sin internet (ya la tenías instalada antes)
+1. Desinstala la app / borra el acceso directo.
+2. En el navegador: ajustes del sitio → **borrar datos**.
+3. Abre otra vez la página CON internet y reinstala.
