@@ -25,46 +25,105 @@ const escribirExtras = extras => {
 };
 const GAP_MIN = 30;
 const FRECUENCIAS = [4, 6, 8, 12, 24];
-const PRESENTACIONES = ["Tabletas", "Cápsulas", "Jarabe / Suspensión", "Gotas", "Inyectable", "Sobres", "Crema / Ungüento", "Inhalador", "Otro"];
+const PRESENTACIONES = ["Tabletas", "Cápsulas", "Jarabe / Suspensión", "Solución oral", "Gotas", "Gotas oftálmicas", "Gotas óticas", "Inyectable", "Ampolleta", "Sobres / Polvo", "Crema / Ungüento / Gel", "Parche", "Óvulos / Supositorios", "Inhalador", "Nebulización", "Spray nasal", "Insulina / Pluma", "Otro"];
+const MEDICAMENTOS = ["Acetaminofén (Paracetamol)", "Aciclovir", "Ácido acetilsalicílico (Aspirina)", "Ácido fólico", "Albendazol", "Alprazolam", "Ambroxol", "Amlodipino", "Amoxicilina", "Amoxicilina con clavulanato", "Atorvastatina", "Azitromicina", "Betametasona", "Bromuro de ipratropio", "Budesonida", "Calcio", "Captopril", "Carbamazepina", "Cefalexina", "Cetirizina", "Ciprofloxacino", "Claritromicina", "Clonazepam", "Clopidogrel", "Complejo B", "Dexametasona", "Diclofenaco", "Difenhidramina", "Digoxina", "Dimenhidrinato", "Enalapril", "Escitalopram", "Esomeprazol", "Espironolactona", "Fenitoína", "Fluoxetina", "Furosemida", "Gabapentina", "Glibenclamida", "Hidroclorotiazida", "Hierro (sulfato ferroso)", "Ibuprofeno", "Insulina glargina", "Insulina NPH", "Ketorolaco", "Lansoprazol", "Levofloxacino", "Levotiroxina", "Loratadina", "Losartán", "Magnesio", "Metamizol sódico", "Metformina", "Metoclopramida", "Metoprolol", "Metronidazol", "Naproxeno", "Nifedipino", "Omega 3", "Omeprazol", "Ondansetrón", "Pantoprazol", "Paracetamol", "Prednisona", "Pregabalina", "Ranitidina", "Salbutamol", "Sertralina", "Simvastatina", "Trimetoprima con sulfametoxazol", "Vitamina C", "Vitamina D", "Warfarina", "Otro"];
+const DOSIS_PRESET = ["125 mg", "250 mg", "500 mg", "650 mg", "750 mg", "850 mg", "1 g", "5 mg", "10 mg", "20 mg", "25 mg", "40 mg", "50 mg", "100 mg", "½ tableta", "1 tableta", "2 tabletas", "1 cápsula", "5 ml", "10 ml", "15 ml", "1 aplicación", "2 gotas", "1 inhalación", "4 UI", "10 UI", "20 UI", "Otro"];
+const MOTIVOS_PRESET = ["Dolor", "Dolor de cabeza", "Dolor muscular", "Fiebre", "Infección", "Infección de garganta", "Infección urinaria", "Inflamación", "Presión alta", "Diabetes / azúcar alta", "Colesterol alto", "Gastritis / acidez", "Alergia", "Tos / gripa", "Asma", "Ansiedad / depresión", "Insomnio", "Tiroides", "Prevención / vitaminas", "Control de un padecimiento crónico", "Otro"];
+const INDICACIONES_PRESET = ["Tomar con alimentos", "Tomar en ayunas", "No combinar con alcohol", "Tomar con suficiente agua", "Antes de dormir", "Por la mañana", "Cada que haya dolor o fiebre", "No partir ni masticar", "Mantener en refrigeración", "Suspender si hay reacción y avisar al médico", "Completar todo el tratamiento aunque haya mejoría", "Otro"];
 const CATEGORIAS = [{
   id: "analgesico",
-  label: "Analgésico / Dolor",
+  label: "Analgésico / Dolor — alivia dolores",
+  corto: "Analgésico / Dolor",
   cls: "bg-rose-100 text-rose-700 border-rose-200"
 }, {
+  id: "antipiretico",
+  label: "Antipirético / Fiebre — baja la fiebre",
+  corto: "Antipirético / Fiebre",
+  cls: "bg-pink-100 text-pink-700 border-pink-200"
+}, {
   id: "antibiotico",
-  label: "Antibiótico",
+  label: "Antibiótico — combate infecciones por bacterias",
+  corto: "Antibiótico",
   cls: "bg-sky-100 text-sky-700 border-sky-200"
 }, {
   id: "antiinflamatorio",
-  label: "Antiinflamatorio",
+  label: "Antiinflamatorio (AINE) — desinflama y quita dolor",
+  corto: "Antiinflamatorio",
   cls: "bg-orange-100 text-orange-700 border-orange-200"
 }, {
   id: "gastro",
-  label: "Gastroprotector / Digestivo",
+  label: "Gastroprotector / Digestivo — protege el estómago",
+  corto: "Gastroprotector / Digestivo",
   cls: "bg-lime-100 text-lime-700 border-lime-200"
 }, {
   id: "cardio",
-  label: "Cardiovascular / Presión",
+  label: "Cardiovascular / Presión — corazón y presión",
+  corto: "Cardiovascular / Presión",
   cls: "bg-red-100 text-red-700 border-red-200"
 }, {
   id: "diabetes",
-  label: "Diabetes / Glucosa",
+  label: "Diabetes / Glucosa — controla el azúcar",
+  corto: "Diabetes / Glucosa",
   cls: "bg-violet-100 text-violet-700 border-violet-200"
 }, {
   id: "alergia",
-  label: "Antihistamínico / Alergia",
+  label: "Antihistamínico / Alergia — alivia alergias",
+  corto: "Antihistamínico / Alergia",
   cls: "bg-teal-100 text-teal-700 border-teal-200"
 }, {
   id: "respiratorio",
-  label: "Respiratorio",
+  label: "Respiratorio — tos, asma, vías respiratorias",
+  corto: "Respiratorio",
   cls: "bg-cyan-100 text-cyan-700 border-cyan-200"
 }, {
+  id: "antidepresivo",
+  label: "Antidepresivo / Ansiedad — salud mental",
+  corto: "Antidepresivo / Ansiedad",
+  cls: "bg-indigo-100 text-indigo-700 border-indigo-200"
+}, {
+  id: "anticonvulsivo",
+  label: "Anticonvulsivo / Neurológico — epilepsia, nervios",
+  corto: "Anticonvulsivo / Neurológico",
+  cls: "bg-purple-100 text-purple-700 border-purple-200"
+}, {
+  id: "hormonal",
+  label: "Hormonal / Tiroides — hormonas",
+  corto: "Hormonal / Tiroides",
+  cls: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200"
+}, {
+  id: "anticoagulante",
+  label: "Anticoagulante — evita coágulos",
+  corto: "Anticoagulante",
+  cls: "bg-rose-100 text-rose-700 border-rose-200"
+}, {
+  id: "diuretico",
+  label: "Diurético — elimina líquidos",
+  corto: "Diurético",
+  cls: "bg-blue-100 text-blue-700 border-blue-200"
+}, {
+  id: "corticoide",
+  label: "Corticoide / Esteroide — desinflama fuerte",
+  corto: "Corticoide / Esteroide",
+  cls: "bg-amber-100 text-amber-700 border-amber-200"
+}, {
+  id: "antiviral",
+  label: "Antiviral — combate virus",
+  corto: "Antiviral",
+  cls: "bg-emerald-100 text-emerald-700 border-emerald-200"
+}, {
+  id: "antiparasitario",
+  label: "Antiparasitario — elimina parásitos",
+  corto: "Antiparasitario",
+  cls: "bg-green-100 text-green-700 border-green-200"
+}, {
   id: "vitamina",
-  label: "Vitamina / Suplemento",
+  label: "Vitamina / Suplemento — nutrición y refuerzo",
+  corto: "Vitamina / Suplemento",
   cls: "bg-amber-100 text-amber-700 border-amber-200"
 }, {
   id: "otro",
-  label: "Otro",
+  label: "Otro (escribir)",
+  corto: "Otro",
   cls: "bg-slate-100 text-slate-600 border-slate-200"
 }];
 const DIAS_SEM = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
@@ -137,6 +196,7 @@ const diasTratamiento = med => {
   return out;
 };
 const catInfo = id => CATEGORIAS.find(c => c.id === id) || CATEGORIAS[CATEGORIAS.length - 1];
+const catTexto = med => med && med.category === "otro" && med.categoryCustom ? med.categoryCustom : catInfo(med ? med.category : "").corto;
 const fmtMoney = n => "$" + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("es-MX", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -559,6 +619,7 @@ function Citas({
   const [f, setF] = useState(vacio);
   const [editId, setEditId] = useState(null);
   const [abierto, setAbierto] = useState(true);
+  const [confDel, setConfDel] = useState(null);
   const set = (k, v) => setF(p => ({
     ...p,
     [k]: v
@@ -691,15 +752,20 @@ function Citas({
       className: "text-[11px] font-semibold rounded-full px-2.5 py-1 border " + (c.estado === k ? ESTADOS_CITA[k].cls : "bg-white text-slate-400 border-slate-200")
     }, ESTADOS_CITA[k].label)), React.createElement("button", {
       onClick: () => editar(c),
-      className: "text-[11px] font-semibold text-slate-500 border border-slate-200 rounded-full px-2.5 py-1 ml-auto"
+      className: "text-[11px] font-semibold text-slate-600 border border-slate-200 rounded-full px-2.5 py-1 ml-auto flex items-center gap-1"
     }, React.createElement(IEdit, {
-      cls: "w-3 h-3 inline"
-    })), React.createElement("button", {
-      onClick: () => borrar(c.id),
-      className: "text-[11px] font-semibold text-red-500 border border-red-100 rounded-full px-2.5 py-1"
+      cls: "w-3 h-3"
+    }), " Editar"), React.createElement("button", {
+      onClick: () => {
+        if (confDel === c.id) {
+          borrar(c.id);
+          setConfDel(null);
+        } else setConfDel(c.id);
+      },
+      className: "text-[11px] font-semibold rounded-full px-2.5 py-1 flex items-center gap-1 border " + (confDel === c.id ? "bg-red-500 text-white border-red-500" : "text-red-500 border-red-100")
     }, React.createElement(ITrash, {
-      cls: "w-3 h-3 inline"
-    }))));
+      cls: "w-3 h-3"
+    }), " ", confDel === c.id ? "¿Seguro?" : "Eliminar")));
   };
   return React.createElement("div", {
     className: "space-y-4"
@@ -1534,7 +1600,7 @@ function Emergencia({
     className: "font-bold text-slate-800 flex items-center gap-2"
   }, "\uD83E\uDE78 Ficha de emergencia"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1 mb-2"
-  }, "Datos \xFAtiles para quien te auxilie. Se llenan en Salud \u2192 Perfil del paciente."), React.createElement("div", {
+  }, "Datos \xFAtiles para quien te auxilie. Se llenan en Mediciones \u2192 Perfil del paciente."), React.createElement("div", {
     className: "grid grid-cols-2 gap-2 text-sm"
   }, React.createElement("div", {
     className: "bg-red-50 rounded-xl px-3 py-2"
@@ -1672,11 +1738,12 @@ function MiniChart({
   if (!puntos || puntos.length === 0) return React.createElement("div", {
     className: "text-xs text-slate-400 py-6 text-center"
   }, "Sin datos a\xFAn");
-  const W = 300,
-    H = 112,
-    pad = 8,
-    padL = 26,
-    padB = 12;
+  const W = 320,
+    H = 134,
+    padT = 10,
+    padB = 18,
+    padL = 30,
+    padR = 8;
   const vals = puntos.map(p => p.v);
   let lo = Math.min.apply(null, vals),
     hi = Math.max.apply(null, vals);
@@ -1684,147 +1751,252 @@ function MiniChart({
     lo = Math.min(lo, rango.min);
     hi = Math.max(hi, rango.max);
   }
+  const mg = (hi - lo) * 0.12 || 1;
+  lo -= mg;
+  hi += mg;
   if (lo === hi) {
     lo -= 1;
     hi += 1;
   }
   const span = hi - lo || 1;
-  const x = i => puntos.length === 1 ? padL + (W - padL - pad) / 2 : padL + i * (W - padL - pad) / (puntos.length - 1);
-  const y = v => pad + (hi - v) / span * (H - pad - padB);
+  const x = i => puntos.length === 1 ? padL + (W - padL - padR) / 2 : padL + i * (W - padL - padR) / (puntos.length - 1);
+  const y = v => padT + (hi - v) / span * (H - padT - padB);
   const dentro = v => rango ? v >= rango.min && v <= rango.max : true;
   const linea = puntos.map((p, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
+  const area = linea + " L " + x(puntos.length - 1).toFixed(1) + " " + y(lo).toFixed(1) + " L " + x(0).toFixed(1) + " " + y(lo).toFixed(1) + " Z";
+  const grid = [hi, (hi + lo) / 2, lo];
+  const fF = f => {
+    try {
+      return new Date(f + "T12:00:00").toLocaleDateString("es-MX", {
+        day: "numeric",
+        month: "short"
+      });
+    } catch (e) {
+      return f;
+    }
+  };
   return React.createElement("svg", {
     viewBox: "0 0 " + W + " " + H,
     className: "w-full",
     style: {
-      height: "118px"
+      height: "142px"
     }
-  }, rango && React.createElement("rect", {
+  }, grid.map((g, i) => React.createElement("line", {
+    key: i,
+    x1: padL,
+    x2: W - padR,
+    y1: y(g),
+    y2: y(g),
+    stroke: "#f1f5f9",
+    strokeWidth: "1"
+  })), rango && React.createElement("rect", {
     x: padL,
     y: y(Math.min(rango.max, hi)),
-    width: W - padL - pad,
+    width: W - padL - padR,
     height: Math.max(0, y(Math.max(rango.min, lo)) - y(Math.min(rango.max, hi))),
     fill: "#10b981",
-    opacity: "0.10"
+    opacity: "0.09"
   }), rango && React.createElement("line", {
     x1: padL,
-    x2: W - pad,
+    x2: W - padR,
     y1: y(rango.max),
     y2: y(rango.max),
     stroke: "#10b981",
-    strokeWidth: "0.6",
+    strokeWidth: "0.7",
     strokeDasharray: "3 3"
   }), rango && React.createElement("line", {
     x1: padL,
-    x2: W - pad,
+    x2: W - padR,
     y1: y(rango.min),
     y2: y(rango.min),
     stroke: "#10b981",
-    strokeWidth: "0.6",
+    strokeWidth: "0.7",
     strokeDasharray: "3 3"
+  }), React.createElement("path", {
+    d: area,
+    fill: color,
+    opacity: "0.06"
   }), React.createElement("path", {
     d: linea,
     fill: "none",
     stroke: color,
-    strokeWidth: "1.6"
+    strokeWidth: "1.9",
+    strokeLinejoin: "round",
+    strokeLinecap: "round"
   }), puntos.map((p, i) => React.createElement("circle", {
     key: i,
     cx: x(i),
     cy: y(p.v),
-    r: "2.6",
+    r: i === puntos.length - 1 ? 3.4 : 2.3,
     fill: dentro(p.v) ? color : "#ef4444"
-  })), React.createElement("text", {
+  })), grid.map((g, i) => React.createElement("text", {
+    key: "l" + i,
     x: "2",
-    y: y(hi) + 3,
-    fontSize: "7",
+    y: y(g) + 2.5,
+    fontSize: "7.5",
     fill: "#94a3b8"
-  }, Math.round(hi * 10) / 10), React.createElement("text", {
-    x: "2",
-    y: y(lo) + 3,
-    fontSize: "7",
+  }, Math.round(g * 10) / 10)), React.createElement("text", {
+    x: padL,
+    y: H - 5,
+    fontSize: "7.5",
     fill: "#94a3b8"
-  }, Math.round(lo * 10) / 10));
+  }, fF(puntos[0].fecha)), puntos.length > 1 && React.createElement("text", {
+    x: W - padR,
+    y: H - 5,
+    fontSize: "7.5",
+    fill: "#94a3b8",
+    textAnchor: "end"
+  }, fF(puntos[puntos.length - 1].fecha)));
 }
 const SERIES_DEF = [{
-  key: "peso",
-  tipo: "peso",
-  campo: "a",
-  label: "Peso",
-  unidad: "kg",
-  color: "#6366f1"
-}, {
   key: "glucosa",
   tipo: "glucosa",
   campo: "a",
   label: "Glucosa",
   unidad: "mg/dL",
-  color: "#e11d48"
+  color: "#e11d48",
+  rango: [70, 110],
+  guia: "glucosa",
+  grupo: "Metabólico"
 }, {
   key: "presion_sis",
   tipo: "presion",
   campo: "a",
   label: "Presión sistólica",
   unidad: "mmHg",
-  color: "#dc2626"
+  color: "#dc2626",
+  rango: [90, 130],
+  guia: "presion",
+  grupo: "Cardiovascular"
 }, {
   key: "presion_dia",
   tipo: "presion",
   campo: "b",
   label: "Presión diastólica",
   unidad: "mmHg",
-  color: "#f97316"
-}, {
-  key: "spo2",
-  tipo: "spo2",
-  campo: "a",
-  label: "Oxigenación (SpO2)",
-  unidad: "%",
-  color: "#0891b2"
-}, {
-  key: "temp",
-  tipo: "temp",
-  campo: "a",
-  label: "Temperatura",
-  unidad: "°C",
-  color: "#ea580c"
+  color: "#f97316",
+  rango: [60, 85],
+  guia: "presion",
+  grupo: "Cardiovascular"
 }, {
   key: "fc",
   tipo: "fc",
   campo: "a",
   label: "Frecuencia cardiaca",
   unidad: "lpm",
-  color: "#db2777"
+  color: "#db2777",
+  rango: [60, 100],
+  guia: "fc",
+  grupo: "Cardiovascular"
+}, {
+  key: "fr",
+  tipo: "fr",
+  campo: "a",
+  label: "Frecuencia respiratoria",
+  unidad: "rpm",
+  color: "#0ea5e9",
+  rango: [12, 20],
+  guia: "fr",
+  grupo: "Respiratorio"
+}, {
+  key: "spo2",
+  tipo: "spo2",
+  campo: "a",
+  label: "Oxigenación (SpO2)",
+  unidad: "%",
+  color: "#0891b2",
+  rango: [95, 100],
+  guia: "spo2",
+  grupo: "Respiratorio"
+}, {
+  key: "temp",
+  tipo: "temp",
+  campo: "a",
+  label: "Temperatura",
+  unidad: "°C",
+  color: "#ea580c",
+  rango: [36, 37.5],
+  guia: "temp",
+  grupo: "General"
+}, {
+  key: "peso",
+  tipo: "peso",
+  campo: "a",
+  label: "Peso",
+  unidad: "kg",
+  color: "#6366f1",
+  rango: [50, 90],
+  guia: "peso",
+  grupo: "Antropometría"
+}, {
+  key: "cintura",
+  tipo: "cintura",
+  campo: "a",
+  label: "Cintura",
+  unidad: "cm",
+  color: "#7c3aed",
+  rango: [70, 94],
+  guia: "cintura",
+  grupo: "Antropometría"
+}, {
+  key: "cadera",
+  tipo: "cintura",
+  campo: "b",
+  label: "Cadera",
+  unidad: "cm",
+  color: "#9333ea",
+  rango: [80, 105],
+  guia: "cintura",
+  grupo: "Antropometría"
+}, {
+  key: "cuello",
+  tipo: "cuello",
+  campo: "a",
+  label: "Cuello",
+  unidad: "cm",
+  color: "#64748b",
+  rango: [33, 43],
+  guia: "cuello",
+  grupo: "Antropometría"
+}, {
+  key: "dolor",
+  tipo: "dolor",
+  campo: "a",
+  label: "Dolor",
+  unidad: "/10",
+  color: "#f59e0b",
+  rango: [0, 3],
+  guia: "dolor",
+  grupo: "Síntomas y ánimo"
+}, {
+  key: "estres",
+  tipo: "estres",
+  campo: "a",
+  label: "Estrés",
+  unidad: "/10",
+  color: "#ef4444",
+  rango: [0, 4],
+  guia: "estres",
+  grupo: "Síntomas y ánimo"
+}, {
+  key: "sueno",
+  tipo: "sueno",
+  campo: "a",
+  label: "Horas de sueño",
+  unidad: "h",
+  color: "#4f46e5",
+  rango: [7, 9],
+  guia: "sueno",
+  grupo: "Síntomas y ánimo"
 }];
-const RANGOS_DEF = {
-  peso: {
-    min: 50,
-    max: 90
-  },
-  glucosa: {
-    min: 70,
-    max: 110
-  },
-  presion_sis: {
-    min: 90,
-    max: 130
-  },
-  presion_dia: {
-    min: 60,
-    max: 85
-  },
-  spo2: {
-    min: 95,
-    max: 100
-  },
-  temp: {
-    min: 36,
-    max: 37.5
-  },
-  fc: {
-    min: 60,
-    max: 100
-  }
-};
+const RANGOS_DEF = {};
+SERIES_DEF.forEach(s => {
+  RANGOS_DEF[s.key] = {
+    min: s.rango[0],
+    max: s.rango[1]
+  };
+});
+const GRUPOS_EVOL = ["Metabólico", "Cardiovascular", "Respiratorio", "General", "Antropometría", "Síntomas y ánimo"];
 function Evolucion({
   avisar,
   data
@@ -1870,11 +2042,26 @@ function Evolucion({
       return [];
     }
   })();
-  const serie = s => readings.filter(r => r.tipo === s.tipo && r[s.campo] != null && r[s.campo] !== "").map(r => ({
-    fecha: r.fecha,
-    hora: r.hora || "",
-    v: Number(r[s.campo])
-  })).sort((a, b) => a.fecha + a.hora < b.fecha + b.hora ? -1 : 1);
+  const serie = s => {
+    if (s.key === "sueno") {
+      const a = readings.filter(r => r.tipo === "sueno" && r.a).map(r => ({
+        fecha: r.fecha,
+        hora: r.hora || "07:00",
+        v: Number(r.a)
+      }));
+      const b = suenoLog.filter(r => r.horas).map(r => ({
+        fecha: r.fecha,
+        hora: "07:30",
+        v: Number(r.horas)
+      }));
+      return a.concat(b).sort((x, y) => x.fecha + x.hora < y.fecha + y.hora ? -1 : 1);
+    }
+    return readings.filter(r => r.tipo === s.tipo && r[s.campo] != null && r[s.campo] !== "").map(r => ({
+      fecha: r.fecha,
+      hora: r.hora || "",
+      v: Number(r[s.campo])
+    })).sort((a, b) => a.fecha + a.hora < b.fecha + b.hora ? -1 : 1);
+  };
   const hoy = hoyISO();
   const adherencia = dias => {
     const desde = addDays(hoy, -(dias - 1));
@@ -1979,6 +2166,71 @@ function Evolucion({
     s,
     p: serie(s)
   })).filter(o => o.p.length > 0);
+  const ChartCard = ({
+    s,
+    p,
+    r
+  }) => {
+    const [guia, setGuia] = useState(false);
+    const last = p[p.length - 1].v,
+      first = p[0].v;
+    const fuera = r && (last < r.min || last > r.max);
+    const vals = p.map(x => x.v);
+    const prom = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
+    const mn = Math.round(Math.min.apply(null, vals) * 10) / 10,
+      mx = Math.round(Math.max.apply(null, vals) * 10) / 10;
+    const delta = p.length < 2 ? 0 : Math.round((last - first) * 10) / 10;
+    const tend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+    const guiaTxt = METRICAS[s.guia] ? METRICAS[s.guia].guia : null;
+    return React.createElement("div", {
+      className: "bg-white rounded-2xl border border-slate-200 p-4"
+    }, React.createElement("div", {
+      className: "flex items-center justify-between"
+    }, React.createElement("h4", {
+      className: "font-bold text-slate-800 text-sm flex items-center gap-2"
+    }, React.createElement("span", {
+      style: {
+        color: s.color
+      }
+    }, "\u25CF"), " ", s.label), React.createElement("span", {
+      className: "text-base font-black " + (fuera ? "text-red-600" : "text-emerald-600")
+    }, last, " ", React.createElement("span", {
+      className: "text-xs font-semibold"
+    }, s.unidad))), React.createElement(MiniChart, {
+      puntos: p,
+      rango: r,
+      color: s.color
+    }), React.createElement("div", {
+      className: "grid grid-cols-4 gap-1 text-center mt-1"
+    }, React.createElement("div", null, React.createElement("div", {
+      className: "text-[10px] text-slate-400"
+    }, "M\xEDn"), React.createElement("div", {
+      className: "text-xs font-bold text-slate-700"
+    }, mn)), React.createElement("div", null, React.createElement("div", {
+      className: "text-[10px] text-slate-400"
+    }, "Prom"), React.createElement("div", {
+      className: "text-xs font-bold text-slate-700"
+    }, prom)), React.createElement("div", null, React.createElement("div", {
+      className: "text-[10px] text-slate-400"
+    }, "M\xE1x"), React.createElement("div", {
+      className: "text-xs font-bold text-slate-700"
+    }, mx)), React.createElement("div", null, React.createElement("div", {
+      className: "text-[10px] text-slate-400"
+    }, "Cambio"), React.createElement("div", {
+      className: "text-xs font-bold " + (delta === 0 ? "text-slate-500" : fuera ? "text-amber-600" : "text-slate-700")
+    }, tend, delta !== 0 ? Math.abs(delta) : ""))), React.createElement("div", {
+      className: "flex items-center justify-between mt-2 gap-2"
+    }, React.createElement("span", {
+      className: "text-[11px] text-slate-400"
+    }, "Objetivo: ", r ? r.min + "–" + r.max : "—", " ", s.unidad, " \xB7 ", p.length, " med."), guiaTxt && React.createElement("button", {
+      onClick: () => setGuia(!guia),
+      className: "text-[11px] font-semibold text-sky-600 shrink-0"
+    }, "\uD83D\uDCCF \xBFC\xF3mo medir?")), fuera && React.createElement("div", {
+      className: "text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5 mt-2"
+    }, "\u26A0\uFE0F El \xFAltimo valor est\xE1 fuera del rango objetivo. Com\xE9ntalo con tu m\xE9dico."), guia && guiaTxt && React.createElement("div", {
+      className: "text-xs text-sky-900 bg-sky-50 border border-sky-100 rounded-lg px-2.5 py-2 mt-2"
+    }, guiaTxt));
+  };
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", {
@@ -1989,7 +2241,7 @@ function Evolucion({
     cls: "w-5 h-5"
   }), " Evoluci\xF3n y estad\xEDsticas"), React.createElement("p", {
     className: "text-violet-100 text-sm mt-1"
-  }, "Mira c\xF3mo cambia tu salud con el tiempo y detecta lo que se sale de rango.")), React.createElement("div", {
+  }, "Gr\xE1ficas claras de todos tus registros para que t\xFA y tu m\xE9dico vean tu evoluci\xF3n.")), React.createElement("div", {
     className: "grid grid-cols-2 gap-2"
   }, React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-3 text-center"
@@ -2072,38 +2324,26 @@ function Evolucion({
     className: "text-slate-400 w-10"
   }, s.unidad))))), conDatos.length === 0 && React.createElement("div", {
     className: "text-center text-sm text-slate-400 py-6 bg-white rounded-2xl border border-slate-200"
-  }, "Registra tus mediciones en el apartado ", React.createElement("b", null, "Salud"), " (peso, glucosa, presi\xF3n, etc.) y aqu\xED ver\xE1s tus gr\xE1ficas de evoluci\xF3n."), conDatos.map(({
-    s,
-    p
-  }) => {
-    const r = rangos[s.key];
-    const last = p[p.length - 1].v;
-    const first = p[0].v;
-    const fueraRango = r && (last < r.min || last > r.max);
-    const tend = p.length < 2 ? "→" : last > first ? "↑" : last < first ? "↓" : "→";
-    const prom = Math.round(p.reduce((a, b) => a + b.v, 0) / p.length * 10) / 10;
+  }, "Registra tus mediciones en el apartado ", React.createElement("b", null, "Mediciones"), " (peso, glucosa, presi\xF3n, oxigenaci\xF3n, dolor, etc.) y aqu\xED ver\xE1s tus gr\xE1ficas de evoluci\xF3n."), GRUPOS_EVOL.map(grupo => {
+    const items = conDatos.filter(o => o.s.grupo === grupo);
+    if (!items.length) return null;
     return React.createElement("div", {
-      key: s.key,
-      className: "bg-white rounded-2xl border border-slate-200 p-4"
-    }, React.createElement("div", {
-      className: "flex items-center justify-between"
+      key: grupo
     }, React.createElement("h3", {
-      className: "font-bold text-slate-800 text-sm"
-    }, s.label), React.createElement("div", {
-      className: "flex items-center gap-2"
+      className: "text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"
     }, React.createElement("span", {
-      className: "text-xs text-slate-400"
-    }, tend, " tendencia"), React.createElement("span", {
-      className: "text-sm font-black " + (fueraRango ? "text-red-600" : "text-emerald-600")
-    }, last, " ", s.unidad))), React.createElement(MiniChart, {
-      puntos: p,
-      rango: r,
-      color: s.color
-    }), React.createElement("div", {
-      className: "flex justify-between text-[11px] text-slate-400 mt-1"
-    }, React.createElement("span", null, "Promedio: ", prom, " ", s.unidad), React.createElement("span", null, "Rango: ", r ? r.min + "–" + r.max : "—", " ", s.unidad), React.createElement("span", null, p.length, " mediciones")), fueraRango && React.createElement("div", {
-      className: "text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5 mt-2"
-    }, "\u26A0\uFE0F El \xFAltimo valor est\xE1 fuera del rango de referencia. Com\xE9ntalo con tu m\xE9dico."));
+      className: "h-4 w-1 rounded bg-violet-400"
+    }), grupo), React.createElement("div", {
+      className: "space-y-3"
+    }, items.map(({
+      s,
+      p
+    }) => React.createElement(ChartCard, {
+      key: s.key,
+      s: s,
+      p: p,
+      r: rangos[s.key]
+    }))));
   }), sintTop.length > 0 && React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
   }, React.createElement("h3", {
@@ -2837,7 +3077,7 @@ function MediControl() {
     Icon: ICal
   }, {
     id: "salud",
-    label: "Salud",
+    label: "Mediciones",
     Icon: IActivity
   }, {
     id: "sintomas",
@@ -2943,7 +3183,7 @@ function MediControl() {
       className: "font-semibold " + (t.done ? "text-emerald-800" : "")
     }, t.med.name), React.createElement("span", {
       className: "text-xs px-2 py-0.5 rounded-full border " + cat.cls
-    }, cat.label)), React.createElement("div", {
+    }, catTexto(t.med))), React.createElement("div", {
       className: "text-sm text-slate-500"
     }, t.med.dose, " \xB7 ", t.med.presentation), pasada && React.createElement("div", {
       className: "text-xs text-amber-700 mt-0.5 flex items-center gap-1"
@@ -3186,7 +3426,7 @@ function MedCard({
     className: "font-bold text-slate-800"
   }, med.name), React.createElement("span", {
     className: "text-xs px-2 py-0.5 rounded-full border " + cat.cls
-  }, cat.label), estadoBadge), React.createElement("div", {
+  }, catTexto(med)), estadoBadge), React.createElement("div", {
     className: "text-sm text-slate-500 mt-0.5"
   }, med.dose, " \xB7 ", med.presentation, " \xB7 cada ", med.freqHours, " h (", tomasPorDia, " ", tomasPorDia === 1 ? "toma" : "tomas", "/d\xEDa)"), med.purpose && React.createElement("div", {
     className: "text-sm text-slate-600 mt-1"
@@ -3346,6 +3586,51 @@ function BtnSec({
     cls: "w-4 h-4"
   }), " ", children);
 }
+function CampoLista({
+  label,
+  labelCls,
+  inputCls,
+  valor,
+  onChange,
+  opciones,
+  placeholder,
+  requerido
+}) {
+  const [otro, setOtro] = useState(false);
+  const enLista = valor !== "" && opciones.indexOf(valor) >= 0;
+  const custom = valor !== "" && !enLista;
+  const mostrarInput = otro || custom;
+  const selVal = mostrarInput ? "__otro__" : valor;
+  return React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, label, requerido ? " *" : ""), React.createElement("select", {
+    className: inputCls,
+    value: selVal,
+    onChange: e => {
+      const v = e.target.value;
+      if (v === "__otro__") {
+        setOtro(true);
+        onChange("");
+      } else {
+        setOtro(false);
+        onChange(v);
+      }
+    }
+  }, React.createElement("option", {
+    value: ""
+  }, "Elige\u2026"), opciones.map(o => React.createElement("option", {
+    key: o,
+    value: o
+  }, o)), React.createElement("option", {
+    value: "__otro__"
+  }, "Otro (escribir)\u2026")), mostrarInput && React.createElement("input", {
+    className: inputCls + " mt-2",
+    placeholder: placeholder || "Escríbelo",
+    value: valor,
+    onChange: e => onChange(e.target.value),
+    autoFocus: true
+  }));
+}
 function FormAgregar({
   ocupados,
   onGuardar,
@@ -3357,6 +3642,7 @@ function FormAgregar({
     presentation: PRESENTACIONES[0],
     dose: "",
     category: "analgesico",
+    categoryCustom: "",
     purpose: "",
     notes: "",
     doctor: "",
@@ -3375,6 +3661,7 @@ function FormAgregar({
         presentation: medEditar.presentation,
         dose: medEditar.dose,
         category: medEditar.category,
+        categoryCustom: medEditar.categoryCustom || "",
         purpose: medEditar.purpose || "",
         notes: medEditar.notes || "",
         doctor: medEditar.doctor || "",
@@ -3429,6 +3716,7 @@ function FormAgregar({
       presentation: f.presentation,
       dose: f.dose.trim(),
       category: f.category,
+      categoryCustom: f.category === "otro" ? f.categoryCustom.trim() : "",
       purpose: f.purpose.trim(),
       notes: f.notes.trim(),
       doctor: f.doctor.trim(),
@@ -3446,6 +3734,7 @@ function FormAgregar({
       presentation: PRESENTACIONES[0],
       dose: "",
       category: "analgesico",
+      categoryCustom: "",
       purpose: "",
       notes: "",
       doctor: "",
@@ -3478,29 +3767,33 @@ function FormAgregar({
     cls: "w-5 h-5 text-emerald-700"
   }), " Datos de la receta"), React.createElement("div", {
     className: "grid grid-cols-1 sm:grid-cols-2 gap-3"
-  }, React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "Nombre del medicamento *"), React.createElement("input", {
-    className: inputCls,
-    placeholder: "Ej. Paracetamol",
-    value: f.name,
-    onChange: e => set("name", e.target.value)
-  })), React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "Dosis *"), React.createElement("input", {
-    className: inputCls,
-    placeholder: "Ej. 500 mg \xB7 1 tableta \xB7 10 ml",
-    value: f.dose,
-    onChange: e => set("dose", e.target.value)
-  })), React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "Presentaci\xF3n"), React.createElement("select", {
-    className: inputCls,
-    value: f.presentation,
-    onChange: e => set("presentation", e.target.value)
-  }, PRESENTACIONES.map(p => React.createElement("option", {
-    key: p
-  }, p)))), React.createElement("div", null, React.createElement("label", {
+  }, React.createElement(CampoLista, {
+    label: "Nombre del medicamento",
+    requerido: true,
+    labelCls: labelCls,
+    inputCls: inputCls,
+    valor: f.name,
+    onChange: v => set("name", v),
+    opciones: MEDICAMENTOS,
+    placeholder: "Escribe el nombre del medicamento"
+  }), React.createElement(CampoLista, {
+    label: "Dosis",
+    requerido: true,
+    labelCls: labelCls,
+    inputCls: inputCls,
+    valor: f.dose,
+    onChange: v => set("dose", v),
+    opciones: DOSIS_PRESET,
+    placeholder: "Ej. 500 mg \xB7 1 tableta \xB7 10 ml"
+  }), React.createElement(CampoLista, {
+    label: "Presentaci\xF3n",
+    labelCls: labelCls,
+    inputCls: inputCls,
+    valor: f.presentation,
+    onChange: v => set("presentation", v),
+    opciones: PRESENTACIONES,
+    placeholder: "Escribe la presentaci\xF3n"
+  }), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "Tipo / funci\xF3n"), React.createElement("select", {
     className: inputCls,
@@ -3509,24 +3802,30 @@ function FormAgregar({
   }, CATEGORIAS.map(c => React.createElement("option", {
     key: c.id,
     value: c.id
-  }, c.label))))), React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "\xBFPara qu\xE9 te lo recetaron? (motivo)"), React.createElement("input", {
-    className: inputCls,
-    placeholder: "Ej. Dolor de cabeza y fiebre por infecci\xF3n de garganta",
-    value: f.purpose,
-    onChange: e => set("purpose", e.target.value)
-  })), React.createElement("div", {
+  }, c.label))), f.category === "otro" && React.createElement("input", {
+    className: inputCls + " mt-2",
+    placeholder: "Escribe el tipo o funci\xF3n",
+    value: f.categoryCustom,
+    onChange: e => set("categoryCustom", e.target.value)
+  }))), React.createElement(CampoLista, {
+    label: "\xBFPara qu\xE9 te lo recetaron? (motivo)",
+    labelCls: labelCls,
+    inputCls: inputCls,
+    valor: f.purpose,
+    onChange: v => set("purpose", v),
+    opciones: MOTIVOS_PRESET,
+    placeholder: "Escribe el motivo"
+  }), React.createElement("div", {
     className: "grid grid-cols-1 sm:grid-cols-2 gap-3"
-  }, React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "Indicaciones del m\xE9dico"), React.createElement("textarea", {
-    className: inputCls,
-    rows: 2,
-    placeholder: "Ej. Tomar con alimentos, no combinar con alcohol\u2026",
-    value: f.notes,
-    onChange: e => set("notes", e.target.value)
-  })), React.createElement("div", null, React.createElement("label", {
+  }, React.createElement(CampoLista, {
+    label: "Indicaciones del m\xE9dico",
+    labelCls: labelCls,
+    inputCls: inputCls,
+    valor: f.notes,
+    onChange: v => set("notes", v),
+    opciones: INDICACIONES_PRESET,
+    placeholder: "Escribe la indicaci\xF3n"
+  }), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "M\xE9dico que lo recet\xF3 (opcional)"), React.createElement("input", {
     className: inputCls,
@@ -7580,7 +7879,7 @@ function CalcNutricion({
     cls: "w-5 h-5 text-emerald-700"
   }), " Conoce tu estado de nutrici\xF3n"), React.createElement("p", {
     className: "text-xs text-slate-500 mt-1 mb-3"
-  }, "Se calcula con los datos de tu perfil y mediciones del apartado Salud. IMC = peso (kg) \xF7 estatura \xD7 estatura (m)."), React.createElement("div", {
+  }, "Se calcula con los datos de tu perfil y mediciones del apartado Mediciones. IMC = peso (kg) \xF7 estatura \xD7 estatura (m)."), React.createElement("div", {
     className: "grid grid-cols-2 sm:grid-cols-4 gap-2"
   }, React.createElement(Dato, {
     label: "Peso",
@@ -7604,10 +7903,10 @@ function CalcNutricion({
     className: "flex items-start gap-2"
   }, React.createElement(IWarn, {
     cls: "w-4 h-4 shrink-0 mt-0.5"
-  }), React.createElement("span", null, "Faltan datos: ", React.createElement("b", null, faltan.join(", ")), ". Ll\xE9nalos en el apartado ", React.createElement("b", null, "Salud"), " \u2192 Perfil del paciente (estatura y sexo) y registra tu peso y cintura en tus mediciones. Aqu\xED se reflejar\xE1n autom\xE1ticamente.")), onIrSalud && React.createElement("button", {
+  }), React.createElement("span", null, "Faltan datos: ", React.createElement("b", null, faltan.join(", ")), ". Ll\xE9nalos en el apartado ", React.createElement("b", null, "Mediciones"), " \u2192 Perfil del paciente (estatura y sexo) y registra tu peso y cintura en tus mediciones. Aqu\xED se reflejar\xE1n autom\xE1ticamente.")), onIrSalud && React.createElement("button", {
     onClick: onIrSalud,
     className: "mt-2 text-xs font-semibold bg-emerald-700 text-white rounded-full px-4 py-1.5 hover:bg-emerald-800"
-  }, "Ir al apartado Salud \u2192")), imc && React.createElement("div", {
+  }, "Ir al apartado Mediciones \u2192")), imc && React.createElement("div", {
     className: "mt-4 grid sm:grid-cols-3 gap-3"
   }, React.createElement("div", {
     className: "rounded-xl border p-3 text-center " + clasifIMCloc(imc).cls
@@ -10452,7 +10751,7 @@ function AcercaDe({
     className: "font-bold text-slate-800"
   }, "\uD83D\uDC64 Autor"), React.createElement("p", {
     className: "mt-1"
-  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Mtro. en Administraci\xF3n, UNAM egresado, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
+  }, "Creada por el ", React.createElement("b", null, "Ing. Christian Hern\xE1ndez S."), ", Maestro en Administraci\xF3n por la UNAM, para apoyar el control de su propia salud y bienestar. Si alguien m\xE1s decide usarla, lo hace bajo su propia responsabilidad.")), React.createElement("p", {
     className: "text-xs text-slate-400"
   }, "\xA9 2026 Christian Hern\xE1ndez S. Derechos de autor reservados.")), React.createElement("div", {
     className: "bg-white rounded-2xl border border-slate-200 p-4"
@@ -10950,7 +11249,14 @@ function Respaldo({
       epi: (ex["medicontrol-episodios-v1"] || []).length,
       pen: (ex["medicontrol-pensamientos-v1"] || []).length,
       grat: (ex["medicontrol-gratitud-v1"] || []).length,
-      eval: (ex["medicontrol-autoeval-v1"] || []).length
+      eval: (ex["medicontrol-autoeval-v1"] || []).length,
+      citas: (ex["medicontrol-citas-v1"] || []).length,
+      sint: (ex["medicontrol-sintomas-v1"] || []).length,
+      sueno: (ex["medicontrol-sueno-log-v1"] || []).length,
+      emer: (() => {
+        const e = ex["medicontrol-emergencia-v1"] || {};
+        return (e.medicos || []).length + (e.contactos || []).length;
+      })()
     };
   };
   const ChipsExtra = ({
@@ -10964,10 +11270,18 @@ function Respaldo({
   }, "\uD83D\uDCCA ", c.ctrl, " d\xEDas de control de raciones"), React.createElement("span", {
     className: "bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2.5 py-1"
   }, "\uD83D\uDCC8 ", c.seg, " registros de seguimiento"), React.createElement("span", {
+    className: "bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDCC5 ", c.citas, " citas"), React.createElement("span", {
+    className: "bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-1"
+  }, "\uD83E\uDD12 ", c.sint, " s\xEDntomas"), React.createElement("span", {
+    className: "bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2.5 py-1"
+  }, "\uD83C\uDF19 ", c.sueno, " noches de sue\xF1o"), React.createElement("span", {
+    className: "bg-red-50 text-red-700 border border-red-100 rounded-full px-2.5 py-1"
+  }, "\uD83D\uDEA8 ", c.emer, " contactos de emergencia"), React.createElement("span", {
     className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
   }, "\uD83D\uDCC6 ", c.epi, " episodios de bienestar"), React.createElement("span", {
     className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
-  }, "\uD83D\uDCAD ", c.pen, " registros de pensamientos"), React.createElement("span", {
+  }, "\uD83D\uDCAD ", c.pen, " pensamientos"), React.createElement("span", {
     className: "bg-sky-50 text-sky-700 border border-sky-100 rounded-full px-2.5 py-1"
   }, "\uD83D\uDCCB ", c.eval, " autoevaluaciones"));
   const actual = contar(data);
@@ -11283,7 +11597,7 @@ function Reporte({
       className: "font-bold text-slate-800"
     }, r.med.name), React.createElement("span", {
       className: "text-xs px-2 py-0.5 rounded-full border " + cat.cls
-    }, cat.label), React.createElement("span", {
+    }, catTexto(r.med)), React.createElement("span", {
       className: "text-xs text-slate-400"
     }, "cada ", r.med.freqHours, " h \xB7 ", r.med.dose)), r.med.purpose && React.createElement("div", {
       className: "text-xs text-slate-500 mt-0.5"
